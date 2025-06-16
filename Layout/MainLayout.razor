@@ -1,0 +1,79 @@
+﻿@inherits LayoutComponentBase
+@using MudBlazor
+@using Kidz2Learn.Components
+@using Kidz2Learn.Services
+@* Required *@
+<MudThemeProvider />
+<MudPopoverProvider />
+
+@* Needed for dialogs *@
+<MudDialogProvider />
+
+@* Needed for snackbars *@
+<MudSnackbarProvider />
+@if (_showWelcome)
+{
+    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background-color: rgba(0, 0, 0, 0.8); color: white; 
+                display: flex; align-items: center; justify-content: center; z-index: 1000;">
+        <div style="text-align: center;">
+            <h1>Willkommen zu meinem epischen SID-Player</h1>
+            <p>Bereit für ein wenig C64 Sound Nostalgie?</p>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="StartApp">
+                <MudIcon Icon="@Icons.Material.Filled.RocketLaunch" />
+            </MudButton>
+        </div>
+    </div>
+} else {
+<MudLayout>
+
+    <MudDrawer Open="true" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Mini">
+        <MudNavMenu>
+            <MudNavLink Href="" Match="NavLinkMatch.All">➕Addition</MudNavLink>
+            <MudNavLink Href="page1">Page 1</MudNavLink>
+            <MudNavLink Href="page2">Page 2</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+    <MudAppBar Elevation="4">
+        <MudProgressLinear Value="@_points" Max="100" Size="Size.Large" Rounded="true" Color="Color.Secondary" />
+        <MudImage Src="youtube.png" Alt="Youtube"></MudImage>
+    </MudAppBar>
+    <MudMainContent>
+        <div class="content">
+            <CascadingValue Value="(UpdatePointsHook)UpdatePoints">
+                @Body
+            </CascadingValue>
+        </div>
+
+    </MudMainContent>
+
+    <MudDrawer Anchor="Anchor.Right" Open="true" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Mini">
+        <MudText Typo="Typo.subtitle1">Log Console</MudText>
+        <MudText Typo="Typo.body2">@LogText</MudText>
+    </MudDrawer>
+    <SidPlayerWidget/>
+</MudLayout>
+}
+
+@inject NavigationManager Navigation
+
+@code {
+    public delegate void UpdatePointsHook(int delta);
+    private const string LogText = "App started...";
+    bool _showWelcome = true;
+
+    private void StartApp()
+    {
+        _showWelcome = false;
+    }
+    private int _points = 0;
+
+    private void UpdatePoints(int delta)
+    {
+        _points = Math.Clamp(_points + delta, 0, 100);
+        if(_points >= 100)
+            Navigation.NavigateTo("https://www.youtube.com", forceLoad: true);
+        else 
+            StateHasChanged();
+    }
+}

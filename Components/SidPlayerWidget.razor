@@ -1,0 +1,24 @@
+﻿@using Kidz2Learn.Services
+@using MudBlazor
+
+@inject SidPlayerService SidPlayer
+
+<MudPaper Elevation="3" Class="sid-player-widget">
+    <MudText Typo="Typo.subtitle1">🎵 @SidTitle</MudText>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="TogglePlay">
+        @if (!_isStarted || _isPaused)
+        {
+            <MudIcon Icon="@Icons.Material.Filled.PlayArrow" />
+        }
+        else
+        {
+            <MudIcon Icon="@Icons.Material.Filled.Pause" />
+        }
+    </MudButton>
+    
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SkipNext" OnClick="NextTitle"/>
+
+    <MudSlider Value="0.25" ValueChanged="(double volume) => SetVolume(volume)" Min="0" Max="1" Step="0.01" Style="width: 100px" />
+
+</MudPaper>
