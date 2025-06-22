@@ -39,7 +39,13 @@
                            @ref="@(_refs[i1])"/>
                 }
             </div>
-            <div style="margin-top:20px; font-weight:bold; text-align:center;">@_feedback</div>
+            <div style="margin-top:20px; font-weight:bold; text-align:center; color: rgb(221, 44, 68);">
+                @_feedback
+            </div>
+            @if (_showOkButton)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Warning" @onclick="OnOkClickedAsync">OK</MudButton>
+            }
         </MudPaper>
         <MudPaper Class="pa-4" Elevation="1" Width="200">
             <!-- Dein Numpad -->

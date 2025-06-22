@@ -30,6 +30,7 @@ public partial class ArithmeticChallenge : ComponentBase
     private int _number1;
     private int _number2;
     private bool _isAddition;
+    private bool _showOkButton;
     private int _expectedResult;
 
     private int[] _number1Digits = new int[MaxLength];
@@ -151,17 +152,24 @@ public partial class ArithmeticChallenge : ComponentBase
         {
             _feedback = "Richtig!";
             UpdatePoints(10);
+
+            Task.Delay(1000).ContinueWith(_ =>
+            {
+                InvokeAsync(GenerateNewTask);
+            });
         }
         else
         {
             _feedback = $"Falsch! Richtige Lösung: {_expectedResult}";
             UpdatePoints(-5);
+            _showOkButton = true;
         }
+    }
 
-        Task.Delay(1000).ContinueWith(_ =>
-        {
-            InvokeAsync(GenerateNewTask);
-        });
+    private async Task OnOkClickedAsync()
+    {
+        _showOkButton = false;
+        await GenerateNewTask();
     }
 
 }
