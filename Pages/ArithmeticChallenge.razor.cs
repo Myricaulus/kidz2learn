@@ -16,7 +16,7 @@ public partial class ArithmeticChallenge : ComponentBase
     private int CurrentIndex { get; set; }
 
     // Konfiguration
-    private const int MaxLength = 2;
+    private const int MaxLength = 1;
     private readonly Random _rng = new ();
     
     private readonly List<Dictionary<string,string>> _numpadLayout = 
@@ -66,7 +66,7 @@ public partial class ArithmeticChallenge : ComponentBase
 
             _expectedResult = _isAddition ? _number1 + _number2 : _number1 - _number2;
         }
-        while (_expectedResult >= 20) ;
+        while (_expectedResult <10 ) ;
         _number1Digits = ExtractDigits(_number1, MaxLength);
         _number2Digits = ExtractDigits(_number2, MaxLength);
 
