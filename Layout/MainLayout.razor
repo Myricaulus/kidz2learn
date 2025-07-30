@@ -51,8 +51,9 @@
     </MudMainContent>
 
     <MudDrawer Anchor="Anchor.Right" @bind-Open="@_toggleLogDrawer" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Responsive">
-        <MudText Typo="Typo.subtitle1">Log Console</MudText>
-        <MudText Typo="Typo.body2">@LogText</MudText>
+        <MudStack Breakpoint="Breakpoint.None">
+            <LiveLogger />
+        </MudStack>
     </MudDrawer>
     
 </MudLayout>

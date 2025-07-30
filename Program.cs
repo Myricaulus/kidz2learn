@@ -9,6 +9,7 @@ builder.Services.AddMudServices();
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddScoped<SidPlayerService>();
+builder.Services.AddSingleton<LoggerService>();
 
 builder.Services.AddIndexedDbService();
 // all options

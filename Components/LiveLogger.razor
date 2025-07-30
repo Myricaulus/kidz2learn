@@ -1,0 +1,31 @@
+@inject LoggerService Logger
+
+<div class="live-logger">
+    <h3>Live Logger</h3>
+    <ul>
+        @foreach (var entry in _logEntries)
+        {
+            <li>@entry</li>
+        }
+    </ul>
+</div>
+
+@code {
+    private readonly List<RenderFragment> _logEntries = new();
+
+    protected override void OnInitialized()
+    {
+        Logger.OnLogAppended += AddEntry;
+    }
+
+    private void AddEntry(RenderFragment fragment)
+    {
+        _logEntries.Insert(0, fragment);
+        InvokeAsync(StateHasChanged); // Nur ein <li> kommt neu dazu, kein Reset!
+    }
+
+    public void Dispose()
+    {
+        Logger.OnLogAppended -= AddEntry;
+    }
+}
