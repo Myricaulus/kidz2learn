@@ -3,6 +3,7 @@ using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
+using Tavenem.Blazor.IndexedDB;
 
 namespace Kidz2Learn.Pages;
 
@@ -12,6 +13,7 @@ public partial class ArithmeticChallenge : ComponentBase
 
     [Inject]
     private IJSRuntime Js { get; set; } = null!;
+    [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDB { get; set; } = default!;
 
     private int CurrentIndex { get; set; }
 

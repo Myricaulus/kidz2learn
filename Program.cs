@@ -10,6 +10,13 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddScoped<SidPlayerService>();
 
+builder.Services.AddIndexedDbService();
+// all options
+builder.Services.AddIndexedDb(
+    databaseName: "AufgabenDB", // the database name
+    objectStores: ["ArithmetikAufgaben"], // the names of value stores
+    version: 1); // the version number of the current database schema 
+
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
 await builder.Build().RunAsync();

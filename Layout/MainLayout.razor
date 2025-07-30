@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.WebUtilities
 @using MudBlazor
 @using Kidz2Learn.Components
 @using Kidz2Learn.Services
@@ -11,7 +12,7 @@
 
 @* Needed for snackbars *@
 <MudSnackbarProvider />
-@if (_showWelcome)
+@if (_showWelcome && !SkipSplash)
 {
     <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
                 background-color: rgba(0, 0, 0, 0.8); color: white; 
@@ -67,6 +68,19 @@
         _showWelcome = false;
     }
     private int _points = 0;
+
+    private bool SkipSplash;
+
+    protected override void OnInitialized()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("skipSplash", out var value))
+        {
+            SkipSplash = value.ToString().ToLower() == "true";
+        }
+    }
 
     private void UpdatePoints(int delta)
     {
