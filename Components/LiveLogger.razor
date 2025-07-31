@@ -2,16 +2,16 @@
 
 <div class="live-logger">
     <h3>Live Logger</h3>
-    <ul>
+    <ul class="log">
         @foreach (var entry in _logEntries)
         {
-            <li>@entry</li>
+            <li @key="entry.Key">@entry.Value</li>
         }
     </ul>
 </div>
 
 @code {
-    private readonly List<RenderFragment> _logEntries = new();
+    private readonly List<KeyValuePair<string,RenderFragment>> _logEntries = new();
 
     protected override void OnInitialized()
     {
@@ -20,8 +20,8 @@
 
     private void AddEntry(RenderFragment fragment)
     {
-        _logEntries.Insert(0, fragment);
-        InvokeAsync(StateHasChanged); // Nur ein <li> kommt neu dazu, kein Reset!
+        _logEntries.Insert(0, new KeyValuePair<string, RenderFragment>(Guid.NewGuid().ToString(),fragment));
+        InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
