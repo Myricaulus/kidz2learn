@@ -18,34 +18,48 @@ namespace Kidz2Learn.Pages;
 public class Kompetenzniveau
 {
     private const int SIZE = 20;
-    public int Amount { get; set; } = 0;
-    public char[] Sammlung { get; set; } = new char[SIZE] { '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-' };
-
+    public int Versuche { get; set; } = 0;
+    public string Historie { get; set; } = "--------------------";
 
     public void AddRichtig()
     {
-        Sammlung[Amount++ % SIZE] = 'R';
+        if(Historie.Length<20)
+            Historie = Historie.PadRight(20, '-');
+        char[] chars = Historie.ToCharArray();
+        chars[Versuche++ % SIZE] = 'R'; 
+        Historie = new string(chars);
     }
     public void AddFalsch()
     {
-        Sammlung[Amount++ % SIZE] = 'F';
+        if(Historie.Length<20)
+            Historie = Historie.PadRight(20, '-');
+        char[] chars = Historie.ToCharArray();
+        chars[Versuche++ % SIZE] = 'F'; 
+        Historie = new string(chars);
     }
 
     public int CountRichtig()
     {
-        return Sammlung.Count((c) => c == 'R');
+        return Historie.Count((c) => c == 'R');
     }
     public int CountFalsch()
     {
-        return Sammlung.Count((c) => c == 'F');
+        return Historie.Count((c) => c == 'F');
+    }
+
+    public double Verhältniss()
+    {
+        if (Versuche < 5)
+            return 0;
+        return CountRichtig() * 100.0 / Versuche;
     }
 
     public string GetProzent()
     {
-        if (Amount < 5)
+        if (Versuche < 5)
             return "--%";
-        var divisor = Amount < SIZE ? Amount : SIZE;
-        return $"{CountRichtig() * 100 / divisor:0}%";
+        var divisor = Versuche < SIZE ? Versuche : SIZE;
+        return $"{Verhältniss():0}%";
     } 
 }
 
@@ -53,8 +67,11 @@ public class ArithemticLog : IIdItem
 {
     [JsonPropertyName("id")]
     public string Id { get; set; } = string.Empty;
+    [JsonIgnore]
     public int Zahl1 { get; set; }
+    [JsonIgnore]
     public string Op { get; set; } = string.Empty;
+    [JsonIgnore]
     public int Zahl2 { get; set; }
     [JsonIgnore]
     public int UserZahl { get; set; }
@@ -259,19 +276,19 @@ public partial class ArithmeticChallenge : ComponentBase
             userValue = userValue * 10 + (_userDigits[i] ?? 0);
         }
 
-        var id = GetHash(sha, $"{_number1}+{_number2}");
+        var id = $"{_number1}+{_number2}";
         var log = await ArithDb.GetItemAsync<ArithemticLog>(id) ?? new ArithemticLog()
         {
-            Id = GetHash(sha, $"{_number1}+{_number2}"),
-            Zahl1 = _number1,
-            Op = "+",
-            Zahl2 = _number2,    
+            Id = id
         };
+        log.Zahl1 = _number1;
+        log.Zahl2 = _number2;
+        log.Op = "+";
         log.UserZahl = userValue;
         if (userValue == _expectedResult)
         {
             log.Kompetenz.AddRichtig();
-            _feedback = "Richtig!";
+            _feedback = $"Richtig!<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
             UpdatePoints(10);
 
             await Task.Delay(1000).ContinueWith(_ =>
@@ -283,7 +300,7 @@ public partial class ArithmeticChallenge : ComponentBase
         else
         {
             log.Kompetenz.AddFalsch();
-            _feedback = $"Falsch! Richtige Lösung: {_expectedResult}";
+            _feedback = $"Falsch! Richtige Lösung: {_expectedResult}.<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
             UpdatePoints(-5);
             _showOkButton = true;
         }
