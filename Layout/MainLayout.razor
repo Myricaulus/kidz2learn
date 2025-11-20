@@ -36,16 +36,14 @@
     <MudDrawer @bind-Open="@_toggleMenuDrawer" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Mini">
         <MudNavMenu>
             <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Add">Addition</MudNavLink>
-            <MudNavLink Href="page1" Icon="@Icons.Material.Filled.Star">Page 1</MudNavLink>
-            <MudNavLink Href="page2" Icon="@Icons.Material.Filled.Abc">Page 2</MudNavLink>
+            <!--MudNavLink Href="page1" Icon="@Icons.Material.Filled.Star">Page 1</MudNavLink-->
+            <MudNavLink Href="SilbenChallenge" Icon="@Icons.Material.Filled.Abc">Mi Im Ma</MudNavLink>
         </MudNavMenu>
         <SidPlayerWidget/>
     </MudDrawer>
     <MudMainContent>
         <div class="content">
-            <CascadingValue Value="(UpdatePointsHook)UpdatePoints">
-                @Body
-            </CascadingValue>
+            @Body
         </div>
 
     </MudMainContent>
@@ -62,6 +60,8 @@
 @inject NavigationManager Navigation
 
 @code {
+    [Inject]
+    public ScoreService Score { get; set; } = default!;
     public delegate void UpdatePointsHook(int delta);
     private const string LogText = "App started...";
     bool _showWelcome = true;
@@ -79,6 +79,7 @@
 
     protected override void OnInitialized()
     {
+        Score.OnScoreChanged += HandleScoreChanged;
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
         var query = QueryHelpers.ParseQuery(uri.Query);
 
@@ -93,12 +94,18 @@
         _toggleMenuDrawer = !_toggleMenuDrawer;
     }
 
-    private void UpdatePoints(int delta)
+    private async Task HandleScoreChanged(int score)
     {
-        _points = Math.Clamp(_points + delta, 0, 100);
-        if(_points >= 100)
-            Navigation.NavigateTo("https://www.youtube.com", forceLoad: true);
-        else 
+        _points = score;
+
+        if (_points >= 100)
+            Navigation.NavigateTo("https://youtube.com", forceLoad: true);
+        else
             StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Score.OnScoreChanged -= HandleScoreChanged;
     }
 }

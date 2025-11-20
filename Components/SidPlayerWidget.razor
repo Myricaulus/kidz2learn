@@ -19,6 +19,6 @@
     
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SkipNext" OnClick="NextTitle"/>
 
-    <MudSlider Value="0.25" ValueChanged="(double volume) => SetVolume(volume)" Min="0" Max="1" Step="0.01" Style="width: 100px" />
+    <MudSlider Value="@_volume" ValueChanged="(double volume) => SetVolume(volume)" Min="0" Max="1" Step="0.01" Style="width: 100px" />
 
 </MudPaper>

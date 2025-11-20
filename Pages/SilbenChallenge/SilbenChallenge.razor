@@ -1,0 +1,110 @@
+@page "/SilbenChallenge"
+
+@* Dynamic MI/IM/Pool-Hörtraining *@
+
+<div class="k4l-task-container">
+    <h2 class="k4l-title">Hörübung: Welche Silbe hörst du?</h2>
+
+    <div class="k4l-audio-box">
+        <button class="k4l-audio-button" @onclick="PlayAudio">▶️ Anhören</button>
+    </div>
+
+    <div class="k4l-options">
+        @foreach (var option in CurrentOptions)
+        {
+            <button class="k4l-option"
+                    @onclick="() => CheckAnswer(option)">
+                @((MarkupString)GetColoredHtml(option))
+            </button>
+        }
+    </div>
+
+    @if (ShowFeedback)
+    {
+        <div class="k4l-feedback @FeedbackClass">@FeedbackText</div>
+    }
+
+    <div class="k4l-progress">
+        <span>Richtig: @CorrectCount</span>
+        <span>Fehlversuche: @WrongCount</span>
+    </div>
+</div>
+
+<audio id="audioPlayer" src="@CurrentAudio"></audio>
+
+<style>
+.k4l-task-container {
+    max-width: 600px;
+    margin: auto;
+    text-align: center;
+    padding: 20px;
+}
+
+.k4l-title {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.k4l-audio-button {
+    font-size: 1.6rem;
+    padding: 15px 40px;
+    border-radius: 16px;
+    border: none;
+    background: #4a90e2;
+    color: white;
+    cursor: pointer;
+}
+
+.k4l-options {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.k4l-option {
+    font-size: 2rem;
+    padding: 18px 30px;
+    border-radius: 20px;
+    background: #ffffff;
+    border: 3px solid #444;
+    cursor: pointer;
+    transition: 0.2s;
+    min-width: 100px;
+}
+
+.k4l-option:hover {
+    background: #f0f0f0;
+}
+
+.k4l-feedback {
+    margin-top: 25px;
+    font-size: 1.6rem;
+    font-weight: bold;
+}
+
+.k4l-feedback-correct {
+    color: #3aa757;
+}
+
+.k4l-feedback-wrong {
+    color: #e53935;
+}
+
+.k4l-progress {
+    margin-top: 20px;
+    font-size: 1.2rem;
+    color: #555;
+    display: flex;
+    justify-content: space-around;
+}
+</style>
+
+<script>
+window.k4l_playAudio = function(id) {
+    const el = document.getElementById(id);
+    if (el) el.play();
+}
+</script>

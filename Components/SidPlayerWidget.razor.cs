@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
+using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components;
 
 namespace Kidz2Learn.Components;
@@ -9,14 +10,18 @@ public partial class SidPlayerWidget : ComponentBase
     private bool _isStarted = false;
     private List<string>? _sidFiles;
     [Inject] private HttpClient Http { get; set; } = null!;
+    [Inject] public SidWidgetService Player { get; set; } = default!;
     public string SidTitle { get; set; } = string.Empty;
 
     private bool _isPaused;
     private Random _random = new();
+    private double _volume;
+
 
     protected override async Task OnInitializedAsync()
     {
-        await SetVolume(0.25);
+        Player.OnVolumeChanged += SetVolume;
+        await SetVolume(1);
         _sidFiles = await Http.GetFromJsonAsync<List<string>>("sids/sidfiles.json");
         await TogglePlay();
     }
@@ -30,7 +35,7 @@ public partial class SidPlayerWidget : ComponentBase
     }
 
 
-    private async Task TogglePlay()
+    public async Task TogglePlay()
     {
         if (!_isStarted)
         {
@@ -56,6 +61,13 @@ public partial class SidPlayerWidget : ComponentBase
 
     private async Task SetVolume(double volume)
     {
-        await SidPlayer.SetVolume(volume);
+        _volume = volume;
+        await SidPlayer.SetVolume(volume / 4);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Player.OnVolumeChanged -= SetVolume;
     }
 }

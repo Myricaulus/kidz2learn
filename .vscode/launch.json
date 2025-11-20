@@ -7,7 +7,7 @@
             "request": "launch",
             "cwd": "${workspaceFolder}",
             "browser": "none",
-            "browserConfig": {}
+            "browserConfig": {},
         }
     ]
 }

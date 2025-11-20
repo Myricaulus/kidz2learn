@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Kidz2Learn.Layout;
+using Kidz2Learn.Model;
 using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -13,55 +14,7 @@ using Microsoft.JSInterop;
 using Tavenem.Blazor.IndexedDB;
 using Tavenem.DataStorage;
 
-namespace Kidz2Learn.Pages;
-
-public class Kompetenzniveau
-{
-    private const int SIZE = 20;
-    public int Versuche { get; set; } = 0;
-    public string Historie { get; set; } = "--------------------";
-
-    public void AddRichtig()
-    {
-        if(Historie.Length<20)
-            Historie = Historie.PadRight(20, '-');
-        char[] chars = Historie.ToCharArray();
-        chars[Versuche++ % SIZE] = 'R'; 
-        Historie = new string(chars);
-    }
-    public void AddFalsch()
-    {
-        if(Historie.Length<20)
-            Historie = Historie.PadRight(20, '-');
-        char[] chars = Historie.ToCharArray();
-        chars[Versuche++ % SIZE] = 'F'; 
-        Historie = new string(chars);
-    }
-
-    public int CountRichtig()
-    {
-        return Historie.Count((c) => c == 'R');
-    }
-    public int CountFalsch()
-    {
-        return Historie.Count((c) => c == 'F');
-    }
-
-    public double Verhältniss()
-    {
-        if (Versuche < 5)
-            return 0;
-        return CountRichtig() * 100.0 / Versuche;
-    }
-
-    public string GetProzent()
-    {
-        if (Versuche < 5)
-            return "--%";
-        var divisor = Versuche < SIZE ? Versuche : SIZE;
-        return $"{Verhältniss():0}%";
-    } 
-}
+namespace Kidz2Learn.Pages.ArithmeticChallenge;
 
 public class ArithemticLog : IIdItem
 {
@@ -105,12 +58,12 @@ public class ArithemticLog : IIdItem
 
 public partial class ArithmeticChallenge : ComponentBase
 {
-    [CascadingParameter] public MainLayout.UpdatePointsHook UpdatePoints { get; set; } = null!;
-
     [Inject]
     private IJSRuntime Js { get; set; } = null!;
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDB { get; set; } = default!;
     [Inject] private LoggerService Logger { get; set; } = default!;
+    [Inject]
+    public ScoreService Score { get; set; } = default!;
 
     private int CurrentIndex { get; set; }
     public IndexedDbStore ArithDb { get; private set; } = default!;
@@ -289,7 +242,7 @@ public partial class ArithmeticChallenge : ComponentBase
         {
             log.Kompetenz.AddRichtig();
             _feedback = $"Richtig!<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
-            UpdatePoints(10);
+            Score.AddPoints(1);
 
             await Task.Delay(1000).ContinueWith(_ =>
             {
@@ -301,7 +254,7 @@ public partial class ArithmeticChallenge : ComponentBase
         {
             log.Kompetenz.AddFalsch();
             _feedback = $"Falsch! Richtige Lösung: {_expectedResult}.<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
-            UpdatePoints(-5);
+            Score.AddPoints(-5);
             _showOkButton = true;
         }
 

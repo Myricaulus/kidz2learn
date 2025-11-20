@@ -4,14 +4,15 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>69014,69654</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.17" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.17" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.18" />
-    <PackageReference Include="MudBlazor" Version="8.7.0" />
-    <PackageReference Include="Tavenem.Blazor.IndexedDB" Version="6.1.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.22" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.20" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.22" />
+    <PackageReference Include="MudBlazor" Version="8.14.0" />
+    <PackageReference Include="Tavenem.Blazor.IndexedDB" Version="6.4.1" />
   </ItemGroup>
 
 </Project>
