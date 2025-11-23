@@ -1,6 +1,6 @@
 # 🎮 Kidz4Learn  
 Ein interaktives Lernspiel für Kinder – entwickelt mit **Blazor WebAssembly**, **.NET 8** und Spaß am Coden.
-Dieses Repo wird automatisch auf netlify deployd und ist unter [text](https://kidz4learn.netlify.app/) erreichbar.
+Dieses Repo wird automatisch auf netlify deployd und ist unter [Kidz4Learn](https://kidz4learn.netlify.app/) erreichbar.
 
 Kidz4Learn ist eine kleine, modulare Lern-App, die Kindern spielerisch verschiedene Aufgaben stellt.  
 Sie kombiniert einfache Spielmechaniken (Punkte sammeln, Soundeffekte) mit pädagogischem Nutzen.

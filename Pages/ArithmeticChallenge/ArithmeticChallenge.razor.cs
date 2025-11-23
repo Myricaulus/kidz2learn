@@ -120,14 +120,14 @@ public partial class ArithmeticChallenge : ComponentBase
     {
         _refs = new ElementReference[MaxLength + 1];
         ArithDb = AufgabenDB["ArithmetikAufgaben"] ?? throw new Exception("IndexedDb not instanced");
-        var log = await ArithDb.GetItemAsync<ArithemticLogStats>("0") ?? new ArithemticLogStats();
-        Logger.erfolgreich = log.RichtigProzent();
-        Logger.gesamtAnzahl = log.Versuche;
         await GenerateNewTask();
     }
 
     protected override async Task OnParametersSetAsync()
     {
+        var log = await ArithDb.GetItemAsync<ArithemticLogStats>("0") ?? new ArithemticLogStats();
+        Logger.erfolgreich = log.RichtigProzent();
+        Logger.gesamtAnzahl = log.Versuche;
         HUD.ResetAll();
     }
 
@@ -224,27 +224,6 @@ public partial class ArithmeticChallenge : ComponentBase
         else if (e.Key == "Enter")
             await Evaluate();
         // Sonst: ignorieren
-    }
-    
-    private static string GetHash(HashAlgorithm hashAlgorithm, string input)
-    {
-
-        // Convert the input string to a byte array and compute the hash.
-        byte[] data = hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(input));
-
-        // Create a new Stringbuilder to collect the bytes
-        // and create a string.
-        var sBuilder = new StringBuilder();
-
-        // Loop through each byte of the hashed data
-        // and format each one as a hexadecimal string.
-        for (int i = 0; i < data.Length; i++)
-        {
-            sBuilder.Append(data[i].ToString("x2"));
-        }
-
-        // Return the hexadecimal string.
-        return sBuilder.ToString();
     }
 
     private async Task Evaluate()

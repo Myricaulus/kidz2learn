@@ -129,7 +129,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
             CorrectCount++;
             FeedbackText = "Richtig!";
             FeedbackClass = "k4l-feedback-correct";
-            Score.AddPoints(20);
+            Score.AddPoints(5);
         }
         else
         {
