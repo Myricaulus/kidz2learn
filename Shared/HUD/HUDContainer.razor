@@ -1,0 +1,24 @@
+@using Kidz2Learn.Components
+@inject HUDStateService HUD
+
+<div class="hud-container">
+    <ComboCounter ComboCount="@HUD.ComboCount" />
+    <!--TimeAttackClock IsActive="@ShowTimer" />
+    <DifficultyIndicator Level="@CurrentDifficulty" /-->
+</div>
+
+@code {
+    // Beispiele (du kannst die Werte aus Pages setzen)
+    public int ComboCount { get; set; }
+    public bool ShowTimer { get; set; }
+    public int CurrentDifficulty { get; set; }
+
+    // Reset bei Pagewechsel
+    protected override void OnParametersSet()
+    {
+        ComboCount = 0;
+        ShowTimer = false;
+        CurrentDifficulty = 0;
+        HUD.OnChange += StateHasChanged;
+    }
+}

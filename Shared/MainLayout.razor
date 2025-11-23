@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@using Kidz2Learn.Shared.HUD
 @using Microsoft.AspNetCore.WebUtilities
 @using MudBlazor
 @using Kidz2Learn.Components
@@ -18,8 +19,8 @@
                 background-color: rgba(0, 0, 0, 0.8); color: white; 
                 display: flex; align-items: center; justify-content: center; z-index: 1000;">
         <div style="text-align: center;">
-            <h1>Willkommen zu meinem epischen SID-Player</h1>
-            <p>Bereit für ein wenig C64 Sound Nostalgie?</p>
+            <h1>Willkommen zu meinem epischen Übungsspiel zum Rechnen und Hören</h1>
+            <p>Dazu gibts noch ein wenig C64 Sound Nostalgie.</p>
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="StartApp">
                 <MudIcon Icon="@Icons.Material.Filled.RocketLaunch" />
             </MudButton>
@@ -42,10 +43,15 @@
         <SidPlayerWidget/>
     </MudDrawer>
     <MudMainContent>
-        <div class="content">
-            @Body
-        </div>
+        <div class="layout-root">
+            <div class="page-content">
+                @Body
+            </div>
 
+            <div class="hud-area">
+                <HUDContainer />
+            </div>
+        </div>
     </MudMainContent>
 
     <MudDrawer Anchor="Anchor.Right" @bind-Open="@_toggleLogDrawer" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Responsive">

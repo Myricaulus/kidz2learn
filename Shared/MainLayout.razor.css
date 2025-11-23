@@ -75,3 +75,20 @@ main {
         padding-right: 1.5rem !important;
     }
 }
+
+.layout-root {
+    display: grid;
+    grid-template-columns: 1fr 200px; /* ← rechter HUD-Bereich */
+    height: 100vh;
+}
+
+.page-content {
+    overflow: auto;
+}
+
+.hud-area {
+    position: relative;
+    background: rgba(0,0,0,0.1); /* leicht zur Orientierung */
+    padding: 10px;
+    box-sizing: border-box;
+}

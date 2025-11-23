@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using Kidz2Learn.Layout;
+using Kidz2Learn.Shared;
 using Kidz2Learn.Model;
 using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components;
@@ -56,14 +56,32 @@ public class ArithemticLog : IIdItem
         };
 }
 
+internal class ArithemticLogStats : IIdItem
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = "0";
+    public int Versuche {get;set;}
+    public int Erfolgreich {get;set;}
+
+    public bool Equals(IIdItem? other)
+    {
+        return Id == other?.Id;
+    }
+
+
+    public float RichtigProzent()
+    {
+        return Versuche == 0 ? 0 : (float)Erfolgreich / Versuche;
+    }
+}
+
 public partial class ArithmeticChallenge : ComponentBase
 {
-    [Inject]
-    private IJSRuntime Js { get; set; } = null!;
+    [Inject] private IJSRuntime Js { get; set; } = null!;
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDB { get; set; } = default!;
     [Inject] private LoggerService Logger { get; set; } = default!;
-    [Inject]
-    public ScoreService Score { get; set; } = default!;
+    [Inject] public ScoreService Score { get; set; } = default!;
+    [Inject] private HUDStateService HUD { get; set; } = default!;
 
     private int CurrentIndex { get; set; }
     public IndexedDbStore ArithDb { get; private set; } = default!;
@@ -83,7 +101,6 @@ public partial class ArithmeticChallenge : ComponentBase
     private int _number1;
     private int _number2;
     private bool _isAddition;
-    private bool _showOkButton;
     private int _expectedResult;
 
     private int[] _number1Digits = new int[MaxLength];
@@ -102,8 +119,16 @@ public partial class ArithmeticChallenge : ComponentBase
     protected override async Task OnInitializedAsync()
     {
         _refs = new ElementReference[MaxLength + 1];
-        await GenerateNewTask();
         ArithDb = AufgabenDB["ArithmetikAufgaben"] ?? throw new Exception("IndexedDb not instanced");
+        var log = await ArithDb.GetItemAsync<ArithemticLogStats>("0") ?? new ArithemticLogStats();
+        Logger.erfolgreich = log.RichtigProzent();
+        Logger.gesamtAnzahl = log.Versuche;
+        await GenerateNewTask();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        HUD.ResetAll();
     }
 
     private async Task GenerateNewTask()
@@ -130,6 +155,7 @@ public partial class ArithmeticChallenge : ComponentBase
         _number2Digits = ExtractDigits(_number2, MaxLength);
 
         _feedback = "";
+        
         await Js.InvokeVoidAsync("elementInterop.emptyElementById", "digit-", MaxLength + 1);
 
         // Fokus auf erster Stelle rechts (wie bei schriftlichem Rechnen)
@@ -230,10 +256,12 @@ public partial class ArithmeticChallenge : ComponentBase
         }
 
         var id = $"{_number1}+{_number2}";
+        var stats = await ArithDb.GetItemAsync<ArithemticLogStats>("0") ?? new ArithemticLogStats();
         var log = await ArithDb.GetItemAsync<ArithemticLog>(id) ?? new ArithemticLog()
         {
             Id = id
         };
+        
         log.Zahl1 = _number1;
         log.Zahl2 = _number2;
         log.Op = "+";
@@ -241,9 +269,12 @@ public partial class ArithmeticChallenge : ComponentBase
         if (userValue == _expectedResult)
         {
             log.Kompetenz.AddRichtig();
+            HUD.IncrementCombo();
             _feedback = $"Richtig!<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
             Score.AddPoints(1);
-
+            stats.Erfolgreich++;
+            stats.Versuche++;
+            StateHasChanged();
             await Task.Delay(1000).ContinueWith(_ =>
             {
                 InvokeAsync(GenerateNewTask);
@@ -253,19 +284,30 @@ public partial class ArithmeticChallenge : ComponentBase
         else
         {
             log.Kompetenz.AddFalsch();
+            HUD.SetCombo(0);
+            stats.Versuche++;
             _feedback = $"Falsch! Richtige Lösung: {_expectedResult}.<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
             Score.AddPoints(-5);
-            _showOkButton = true;
+            await Js.InvokeVoidAsync("elementInterop.emptyElementById", "digit-", MaxLength + 1);
+
+            // Fokus auf erster Stelle rechts (wie bei schriftlichem Rechnen)
+            _ = Task.Delay(100).ContinueWith(_ =>
+            {
+                for (var i = 0; i < _userDigits.Length; i++)
+                {
+                    _userDigits[i] = null;
+                }
+                InvokeAsync(() => _refs[MaxLength].FocusAsync());
+            });      
         }
 
         await ArithDb.StoreItemAsync(log);
         Logger.Log(log.ToRenderFragment());
-    }
 
-    private async Task OnOkClickedAsync()
-    {
-        _showOkButton = false;
-        await GenerateNewTask();
+        Logger.erfolgreich = stats.RichtigProzent();
+        Logger.gesamtAnzahl = stats.Versuche;
+        await ArithDb.StoreItemAsync(stats);
+        StateHasChanged();
     }
-
 }
+

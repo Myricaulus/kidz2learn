@@ -12,6 +12,7 @@ builder.Services.AddScoped<SidPlayerService>();
 builder.Services.AddSingleton<LoggerService>();
 builder.Services.AddSingleton<ScoreService>();
 builder.Services.AddSingleton<SidWidgetService>();
+builder.Services.AddSingleton<HUDStateService>();
 
 builder.Services.AddIndexedDbService();
 // all options

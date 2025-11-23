@@ -1,5 +1,8 @@
 @inject LoggerService Logger
-
+<div> 
+    <p> Lösungsversuche: @Logger.gesamtAnzahl</p>
+    <p> Davon Erfolgreich: @((Logger.erfolgreich *100).ToString("0.\\%"))</p>
+</div>
 <div class="live-logger">
     <h3>Live Logger</h3>
     <ul class="log">
@@ -11,6 +14,7 @@
 </div>
 
 @code {
+
     private readonly List<KeyValuePair<string,RenderFragment>> _logEntries = new();
 
     protected override void OnInitialized()
@@ -23,6 +27,8 @@
         _logEntries.Insert(0, new KeyValuePair<string, RenderFragment>(Guid.NewGuid().ToString(),fragment));
         InvokeAsync(StateHasChanged);
     }
+
+
 
     public void Dispose()
     {

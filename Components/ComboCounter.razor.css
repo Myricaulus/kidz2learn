@@ -1,0 +1,147 @@
+.combo-wrapper {
+    position: relative;
+    display: inline-block;
+    overflow: visible;
+}
+.combo-content {
+    display: flex;
+    gap: 0px;
+    align-items: center;
+}
+
+.combo-left {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.combo-hidden {
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.2) translateY(20px);
+}
+
+/*🎨 4. EPISCH: richtige Arcade-Farb- und Shadow-Class behalten*/
+.combo-right {
+    font-family: Impact, Haettenschweiler, 'Arial Black', sans-serif;
+    font-size: 40px;
+    font-weight: 900;
+    background: linear-gradient(180deg, #ff2a00 40%, #ffcf00 60%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke:3px #000;
+
+    transform: skew(-5deg) rotate(-2deg);
+    margin-left: -21px;
+    margin-top: 67px;
+}
+
+/*🚀 ENTRY – Ultra-Combo Charge + Overshoot + Hitflash*/
+
+.combo-enter .combo-content {
+    animation: comboEntry 550ms cubic-bezier(.2,1.4,.4,1) forwards,
+               comboHitFlash 120ms ease-out 200ms;
+}
+
+@keyframes comboEntry {
+    0%   { transform: translateY(80px) scale(0.2); opacity: 0; filter: blur(8px); }
+    40%  { transform: translateY(-20px) scale(1.25); opacity: 1; filter: blur(0); }
+    75%  { transform: translateY(10px) scale(0.95); }
+    100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes comboHitFlash {
+    0%   { filter: brightness(3); }
+    100% { filter: brightness(1); }
+}
+
+/*⚡ Screen Shake (pure CSS!)*/
+
+.combo-shake {
+    animation: shake 0.4s steps(4) infinite;
+}
+
+@keyframes shake {
+    0% { transform: translate(0,0); }
+    25% { transform: translate(3px,-3px); }
+    50% { transform: translate(-3px,2px); }
+    75% { transform: translate(3px,3px); }
+    100% { transform: translate(0,0); }
+}
+/*🌈 Glitch + Chromatische Aberration*/
+
+.combo-glitch .combo-content {
+    position: relative;
+}
+
+.combo-glitch .combo-content::before,
+.combo-glitch .combo-content::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: inherit;
+    mix-blend-mode: screen;
+    pointer-events: none;
+}
+
+.combo-glitch .combo-content::before {
+    filter: blur(1px) drop-shadow(2px 0 red);
+    animation: chroma 120ms infinite;
+}
+
+.combo-glitch .combo-content::after {
+    filter: blur(1px) drop-shadow(-2px 0 cyan);
+    animation: chroma 150ms infinite reverse;
+}
+
+@keyframes chroma {
+    0% { transform: translateX(0); }
+    50% { transform: translateX(2px); }
+    100% { transform: translateX(0); }
+}
+/*💥 PARTIKEL (explodieren beim Erscheinen)*/
+.combo-particles,
+.combo-particles2 {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    background: yellow;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.combo-enter .combo-particles {
+    animation: particleBlast 500ms ease-out forwards;
+}
+.combo-enter .combo-particles2 {
+    animation: particleBlast 600ms ease-out 50ms forwards;
+}
+
+@keyframes particleBlast {
+    0% { opacity: 1; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(calc(60px - 120px * random()), calc(60px - 120px * random())) scale(0); }
+}
+
+/* 🕳 EXIT */
+.combo-exit .combo-left {
+    animation: breakL 450ms cubic-bezier(.6,-0.2,.9,1.5) forwards;
+}
+.combo-exit .combo-right {
+    animation: breakR 450ms cubic-bezier(.6,-0.2,.9,1.5) forwards;
+}
+
+@keyframes breakL {
+    from { opacity: 1; transform: rotate(0deg) translateY(0); }
+    50%  { transform: rotate(-20deg) translateY(20px); }
+    to   { opacity: 0; transform: rotate(-90deg) translateY(200px) scale(0.7); }
+}
+
+@keyframes breakR {
+    from { opacity: 1; transform: rotate(0deg) translateY(0); }
+    50%  { transform: rotate(20deg) translateY(20px); }
+    to   { opacity: 0; transform: rotate(90deg) translateY(200px) scale(0.7); }
+}

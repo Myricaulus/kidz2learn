@@ -1,0 +1,19 @@
+<div class="combo-wrapper @AnimationClass">
+    <div class="combo-content">
+        <img src="combo.png" class="combo-left" width="150px"/>
+        <span class="combo-right">@($"{ComboCount}X")</span>
+    </div>
+
+    <div class="combo-particles"></div>
+    <div class="combo-particles2"></div>
+</div>
+
+@code {
+    [Parameter] public int ComboCount { get; set; }
+
+    private string AnimationClass =>
+        ComboCount == 0 ? "combo-exit" :
+        ComboCount == 1 ? "combo-hidden" :
+        ComboCount >= 2 ? "combo-enter combo-shake combo-glitch" :
+        "combo-hidden";
+}

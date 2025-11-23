@@ -4,6 +4,7 @@ public class Kompetenzniveau
 {
     private const int SIZE = 20;
     public int Versuche { get; set; } = 0;
+    public int Richtig { get; set; } = 0;
     public string Historie { get; set; } = "--------------------";
 
     public void AddRichtig()
@@ -13,6 +14,7 @@ public class Kompetenzniveau
         char[] chars = Historie.ToCharArray();
         chars[Versuche++ % SIZE] = 'R'; 
         Historie = new string(chars);
+        ++Richtig;
     }
     public void AddFalsch()
     {
