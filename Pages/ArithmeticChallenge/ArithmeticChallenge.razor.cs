@@ -129,6 +129,7 @@ public partial class ArithmeticChallenge : ComponentBase
         Logger.erfolgreich = log.RichtigProzent();
         Logger.gesamtAnzahl = log.Versuche;
         HUD.ResetAll();
+        StateHasChanged();
     }
 
     private async Task GenerateNewTask()

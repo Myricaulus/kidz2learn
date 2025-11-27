@@ -89,7 +89,11 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
+        {
             await Player.SetVolume(0.1);
+            await PlayAudio();
+        }
+
     }
 
     public async ValueTask DisposeAsync()
@@ -109,7 +113,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
 
         CurrentOptions = shuffled
             .Where(s => s != CorrectSyllable)
-            .Take(3)
+            .Take(5)
             .Append(CorrectSyllable)
             .OrderBy(_ => rng.Next())
             .ToList();
@@ -142,11 +146,12 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         ShowFeedback = true;
         StateHasChanged();
 
-        _ = Task.Delay(900).ContinueWith(_ =>
+        _ = Task.Delay(900).ContinueWith(async _ =>
         {
             ShowFeedback = false;
             NextTask();
-            InvokeAsync(StateHasChanged);
+            StateHasChanged();
+            await PlayAudio();
         });
     }
 
