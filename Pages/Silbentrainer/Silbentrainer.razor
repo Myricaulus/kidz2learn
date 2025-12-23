@@ -1,0 +1,46 @@
+@page "/Silbentrainer"
+@inject IJSRuntime JS
+
+<h3>Audio Test</h3>
+
+<button @onclick="Start">Start Listening</button>
+
+<p>@Status</p>
+
+
+
+@code {
+    private string Status = "Idle";
+    private DotNetObjectReference<Silbentrainer>? _ref;
+
+    protected override void OnInitialized()
+    {
+        _ref = DotNetObjectReference.Create(this);
+    }
+
+    private async Task Start()
+    {
+        Status = "Listening...";
+        await JS.InvokeVoidAsync("startListening", _ref);
+    }
+
+    [JSInvokable]
+    public Task OnAudioCaptured(float[] samples)
+    {
+        Status = $"Captured {samples.Length} samples";
+
+        // HIER:
+        // - Silence trimming
+        // - MFCC
+        // - DTW
+        // - Bewertung
+
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        _ref?.Dispose();
+    }
+}
