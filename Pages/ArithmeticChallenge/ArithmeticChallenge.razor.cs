@@ -111,6 +111,8 @@ public partial class ArithmeticChallenge : ComponentBase
 
     private string _feedback = "";
     private static readonly SHA256 sha;
+    private readonly byte MaxValue = 20;
+
     static ArithmeticChallenge()
     {
         sha = SHA256.Create();
@@ -134,11 +136,11 @@ public partial class ArithmeticChallenge : ComponentBase
 
     private async Task GenerateNewTask()
     {
-        _isAddition = true; //_rng.Next(2) == 0;
+        _isAddition = false; //_rng.Next(2) == 0;
         do
         {
-            _number1 = _rng.Next(1, (int)Math.Pow(10, MaxLength));
-            _number2 = _rng.Next(1, (int)Math.Pow(10, MaxLength));
+            _number1 = _rng.Next(1, Math.Clamp((int)Math.Pow(10, MaxLength)*(!_isAddition&&MaxLength==1?2:1),0,MaxValue));
+            _number2 = _rng.Next(1, Math.Clamp((int)Math.Pow(10, MaxLength),0,MaxValue));
 
             if (!_isAddition)
             {
@@ -235,7 +237,7 @@ public partial class ArithmeticChallenge : ComponentBase
             userValue = userValue * 10 + (_userDigits[i] ?? 0);
         }
 
-        var id = $"{_number1}+{_number2}";
+        var id = $"{_number1}{(_isAddition?"+":"-")}{_number2}";
         var stats = await ArithDb.GetItemAsync<ArithemticLogStats>("0") ?? new ArithemticLogStats();
         var log = await ArithDb.GetItemAsync<ArithemticLog>(id) ?? new ArithemticLog()
         {
@@ -244,7 +246,7 @@ public partial class ArithmeticChallenge : ComponentBase
         
         log.Zahl1 = _number1;
         log.Zahl2 = _number2;
-        log.Op = "+";
+        log.Op = _isAddition?"+":"-";
         log.UserZahl = userValue;
         if (userValue == _expectedResult)
         {
