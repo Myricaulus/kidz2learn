@@ -50,7 +50,8 @@
         <MudNavMenu>
             <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Add">Addition</MudNavLink>
             <!--MudNavLink Href="page1" Icon="@Icons.Material.Filled.Star">Page 1</MudNavLink-->
-            <MudNavLink Href="SilbenChallenge" Icon="@Icons.Material.Filled.Abc">Mi Im Ma</MudNavLink>
+            <MudNavLink Href="SilbenChallenge" Disabled Icon="@Icons.Material.Filled.Abc">Mi Im Ma</MudNavLink>
+            <MudNavLink Href="Silbentrainer" Disabled Icon="@Icons.Material.Filled.MicExternalOn">Trainer</MudNavLink>
         </MudNavMenu>
         <SidPlayerWidget/>
     </MudDrawer>
@@ -74,7 +75,7 @@
     
 </MudLayout>
 }
-
+ 
 @inject NavigationManager Navigation
 
 @code {
