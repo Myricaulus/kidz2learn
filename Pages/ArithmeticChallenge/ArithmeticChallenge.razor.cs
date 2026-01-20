@@ -87,7 +87,7 @@ public partial class ArithmeticChallenge : ComponentBase
     public IndexedDbStore ArithDb { get; private set; } = default!;
 
     // Konfiguration
-    private const int MaxLength = 1;
+    private const int MaxLength = 2;
     private readonly Random _rng = new();
 
     private readonly List<Dictionary<string, string>> _numpadLayout =
@@ -253,7 +253,7 @@ public partial class ArithmeticChallenge : ComponentBase
             log.Kompetenz.AddRichtig();
             HUD.IncrementCombo();
             _feedback = $"Richtig!<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
-            Score.AddPoints(1);
+            Score.AddPoints(10);
             stats.Erfolgreich++;
             stats.Versuche++;
             StateHasChanged();
