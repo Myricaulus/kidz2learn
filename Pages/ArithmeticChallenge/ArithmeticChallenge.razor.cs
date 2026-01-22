@@ -16,64 +16,63 @@ using Tavenem.DataStorage;
 
 namespace Kidz2Learn.Pages.ArithmeticChallenge;
 
-public class ArithemticLog : IIdItem
+public class LevelDefinition
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = string.Empty;
-    [JsonIgnore]
-    public int Zahl1 { get; set; }
-    [JsonIgnore]
-    public string Op { get; set; } = string.Empty;
-    [JsonIgnore]
-    public int Zahl2 { get; set; }
-    [JsonIgnore]
-    public int UserZahl { get; set; }
+    public int LevelNumber { get; init; }
+    public required Func<Random, (int number1, int number2)> Generator { get; init; }
+}
 
-    public Kompetenzniveau Kompetenz { get; set; } = new();
-    [JsonIgnore]
-    public int Richtig { get; set; }
-    [JsonIgnore]
-    public int Falsch { get; set; }
 
-    public bool Equals(IIdItem? other)
+public static class LevelRegistry
+{
+    private static readonly Dictionary<ArithOperator, List<LevelDefinition>> _levels =
+        new();
+
+    static LevelRegistry()
     {
-        return Id == other?.Id;
-    }
-
-
-    public RenderFragment ToRenderFragment() => builder =>
+        _levels[ArithOperator.Addition] = new()
         {
-            int i = 0;
-            builder.OpenElement(i++, "div");
-            builder.AddAttribute(i++, "class", "log-entry arithmetik-log");
-            builder.AddContent(i++, $"{Zahl1}{Op}{Zahl2} = ");
-            builder.OpenElement(i++, "span");
-            builder.AddAttribute(i++, "style", $"color: {(UserZahl == Zahl1+Zahl2 ? "green" : "red")}");
-            builder.AddContent(i++, UserZahl);
-            builder.CloseElement(); // </span>
-            builder.AddContent(i++, $" ({Zahl1+Zahl2}) R:{Kompetenz.GetProzent()}");
-            builder.CloseElement(); // </div>
+            new LevelDefinition {
+                LevelNumber = 1,
+                Generator = rng => (rng.Next(1,5), rng.Next(1,5))
+            },
+            new LevelDefinition {
+                LevelNumber = 2,
+                Generator = rng => {
+                    int a, b;
+                    do {
+                        a = rng.Next(1,10);
+                        b = rng.Next(1,10);
+                    } while(a + b >= 10);
+                    return (a, b);
+                }
+            },
+            new LevelDefinition {
+                LevelNumber = 3,
+                Generator = rng => (rng.Next(3,10), rng.Next(3,10))
+            },
+            new LevelDefinition {
+                LevelNumber = 4,
+                Generator = rng => (rng.Next(1,20), rng.Next(1,10))
+            },
+            new LevelDefinition {
+                LevelNumber = 5,
+                Generator = rng => (rng.Next(1,20), rng.Next(1,20))
+            },
+            new LevelDefinition {
+                LevelNumber = 6,
+                Generator = rng => (rng.Next(1,50), rng.Next(1,50))
+            },
+            new LevelDefinition {
+                LevelNumber = 7,
+                Generator = rng => (rng.Next(1,100), rng.Next(1,100))
+            }
         };
-}
-
-internal class ArithemticLogStats : IIdItem
-{
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = "0";
-    public int Versuche {get;set;}
-    public int Erfolgreich {get;set;}
-
-    public bool Equals(IIdItem? other)
-    {
-        return Id == other?.Id;
     }
 
-
-    public float RichtigProzent()
-    {
-        return Versuche == 0 ? 0 : (float)Erfolgreich / Versuche;
-    }
+    public static IReadOnlyList<LevelDefinition> Get(ArithOperator op) => _levels[op];
 }
+
 
 public partial class ArithmeticChallenge : ComponentBase
 {
@@ -110,6 +109,7 @@ public partial class ArithmeticChallenge : ComponentBase
     private ElementReference[] _refs = new ElementReference[MaxLength + 1];
 
     private string _feedback = "";
+    private LearningTask? _currentTaskDef;
     private static readonly SHA256 sha;
     private readonly byte MaxValue = 20;
 
@@ -136,24 +136,18 @@ public partial class ArithmeticChallenge : ComponentBase
 
     private async Task GenerateNewTask()
     {
-        _isAddition = false; //_rng.Next(2) == 0;
-        do
-        {
-            _number1 = _rng.Next(1, Math.Clamp((int)Math.Pow(10, MaxLength)*(!_isAddition&&MaxLength==1?2:1),0,MaxValue));
-            _number2 = _rng.Next(1, Math.Clamp((int)Math.Pow(10, MaxLength),0,MaxValue));
+        var store = new SkillMasteryStore(AufgabenDB);
+        var adaptiveTask = new AdaptiveTaskGenerator(store, _rng);
 
-            if (!_isAddition)
-            {
-                // Keine negativen Ergebnisse
-                if (_number2 > _number1)
-                {
-                    (_number1, _number2) = (_number2, _number1);
-                }
-            }
+        _currentTaskDef = adaptiveTask.ChooseTask("math");
+        var _currentTask = _currentTaskDef.Task.Generator(_rng);
 
-            _expectedResult = _isAddition ? _number1 + _number2 : _number1 - _number2;
-        }
-        while (_expectedResult < 10);
+        _number1 = _currentTask.a;
+        _number2 = _currentTask.b;
+        
+        _expectedResult = _currentTaskDef.Task.Operator==ArithOperator.Addition ? _number1 + _number2 : _number1 - _number2;
+        _isAddition = _currentTaskDef.Task.Operator==ArithOperator.Addition;
+
         _number1Digits = ExtractDigits(_number1, MaxLength);
         _number2Digits = ExtractDigits(_number2, MaxLength);
 
@@ -253,7 +247,8 @@ public partial class ArithmeticChallenge : ComponentBase
             log.Kompetenz.AddRichtig();
             HUD.IncrementCombo();
             _feedback = $"Richtig!<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
-            Score.AddPoints(10);
+            Score.AddPoints(2,8);
+            _currentTaskDef?.Success();
             stats.Erfolgreich++;
             stats.Versuche++;
             StateHasChanged();
@@ -266,10 +261,11 @@ public partial class ArithmeticChallenge : ComponentBase
         else
         {
             log.Kompetenz.AddFalsch();
+            _currentTaskDef?.Fail();
             HUD.SetCombo(0);
             stats.Versuche++;
             _feedback = $"Falsch! Richtige Lösung: {_expectedResult}.<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
-            Score.AddPoints(-5);
+            Score.AddPoints(-5,0);
             await Js.InvokeVoidAsync("elementInterop.emptyElementById", "digit-", MaxLength + 1);
 
             // Fokus auf erster Stelle rechts (wie bei schriftlichem Rechnen)

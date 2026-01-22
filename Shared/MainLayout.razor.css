@@ -92,3 +92,54 @@ main {
     padding: 10px;
     box-sizing: border-box;
 }
+
+/* Bieber Area */
+
+.appbar-with-biber .progress-container {
+    position: relative;
+    flex: 1; /* füllt den Platz zwischen den Buttons / Bildern */
+}
+
+.mud-progress-bar {
+    width: 100%;
+}
+
+.beaver {
+    height: 64px;
+    position: absolute;
+    transform: translateX(-50%); /* damit der Biber mittig auf der Balkenposition sitzt */
+    background-repeat: no-repeat;
+}
+
+.beaver.smooth-decay {
+    transition: left 500ms linear;
+}
+
+/* Normale Animation: */
+.beaver.normal {
+    width: 100px;
+    top: -43px; /* leicht über dem Balken */
+    background-image: url('bieber-frist.png');
+    background-position-y: 0px;
+    animation: chew 0.6s steps(4) infinite;
+}
+@keyframes chew {
+    from { background-position-x: 0; }
+    to   { background-position-x: -400px; } 
+}
+
+/* Wütend: 4 Frames, langsamer */
+.beaver.angry {
+    width: 85px;
+    top: -22px; 
+    background-image: url('bieber-hungrig.png');
+    background-position-y: 0px;
+    animation: chew-angry 0.6s steps(2) infinite;
+}
+
+@keyframes chew-angry {
+    from { background-position-x: 0; }
+    to   { background-position-x: -170px; } 
+}
+
+
