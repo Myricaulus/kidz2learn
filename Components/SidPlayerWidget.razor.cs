@@ -21,7 +21,7 @@ public partial class SidPlayerWidget : ComponentBase
     protected override async Task OnInitializedAsync()
     {
         Player.OnVolumeChanged += SetVolume;
-        await SetVolume(1);
+        await SetVolume(0.4);
         _sidFiles = await Http.GetFromJsonAsync<List<string>>("sids/sidfiles.json");
         await TogglePlay();
     }

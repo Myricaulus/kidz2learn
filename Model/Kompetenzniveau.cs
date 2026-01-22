@@ -36,8 +36,17 @@ public class Kompetenzniveau
 
     public string GetProzent()
     {
-        if (Versuche < 5)
+        var fenster = Math.Min(Versuche, SIZE);
+        if (fenster < 5)
             return "--%";
-        return $"{CountRichtig() * 100.0 / Versuche:0}%";
+        return $"{CountRichtig() * 100.0 / fenster:0}%";
     } 
+
+    public float GetProzentValue()
+    {
+        var fenster = Math.Min(Versuche, SIZE);
+        if (fenster < 5)
+            return 0.0f;
+        return CountRichtig() / (float)fenster;
+    }
 }

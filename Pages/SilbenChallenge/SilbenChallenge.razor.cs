@@ -133,14 +133,14 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
             CorrectCount++;
             FeedbackText = "Richtig!";
             FeedbackClass = "k4l-feedback-correct";
-            Score.AddPoints(5);
+            Score.AddPoints(5,5);
         }
         else
         {
             WrongCount++;
             FeedbackText = $"Falsch – das war '{CorrectSyllable}'.";
             FeedbackClass = "k4l-feedback-wrong";
-            Score.AddPoints(-10);
+            Score.AddPoints(-10,0);
         }
         
         ShowFeedback = true;
