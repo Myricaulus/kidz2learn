@@ -77,9 +77,9 @@ public sealed class AdaptiveTaskGenerator
         // 2. Aufgaben suchen, die diese Skills trainieren
         IReadOnlyList<T> candidates = TaskRegistry.GetTasks<T>();
 
-        candidates = candidates
+        /*candidates = candidates
             .Where(d => d.Skills.Any(s => weakestSkills.Contains(s)))
-            .ToList();
+            .ToList();*/
         
         // Fallback, falls alles voll mastered
        // if (candidates.Count == 0)
