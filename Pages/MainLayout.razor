@@ -1,6 +1,6 @@
 ﻿@inherits LayoutComponentBase
 @using Kidz2Learn.Model
-@using Kidz2Learn.Shared.HUD
+@using Kidz2Learn.Pages.HUD
 @using Microsoft.AspNetCore.WebUtilities
 @using MudBlazor
 @using Kidz2Learn.Components
@@ -64,14 +64,16 @@
             <!-- Biber-Overlay -->
             <div class="beaver @BiberState @(_useTransition ? "smooth-decay" : "")" style="left:@_points.ToString("F1", CultureInfo.InvariantCulture)%;"></div>
         </div>
+        <MudImage Src="youtube.png" Alt="Youtube"></MudImage>
     </MudAppBar>
 
     <MudDrawer @bind-Open="@_toggleMenuDrawer" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Mini">
         <MudNavMenu>
-            <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Add">Addition</MudNavLink>
+            <MudNavLink Href="ArithmeticChallenge"  Disabled Icon="@Icons.Material.Filled.Add">Addition</MudNavLink>
             <!--MudNavLink Href="page1" Icon="@Icons.Material.Filled.Star">Page 1</MudNavLink-->
-            <MudNavLink Href="SilbenChallenge" Disabled Icon="@Icons.Material.Filled.Abc">Mi Im Ma</MudNavLink>
+            <MudNavLink Href="SilbenChallenge" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Abc">Mi Im Ma</MudNavLink>
             <MudNavLink Href="Silbentrainer" Disabled Icon="@Icons.Material.Filled.MicExternalOn">Trainer</MudNavLink>
+            <MudNavLink Href="Profile" Icon="@Icons.Material.Filled.Person">Profil</MudNavLink>
         </MudNavMenu>
         <SidPlayerWidget/>
     </MudDrawer>
@@ -147,20 +149,28 @@
         _toggleMenuDrawer = !_toggleMenuDrawer;
     }
 
+    private bool _hasNavigated;
+
     private async Task HandleScoreChanged(float score, float bonus)
     {
-        if(bonus < 2)
-            BiberState = "angry";
-        else if(bonus > 50)
-            BiberState = "normal"; // chainsaw
-        else 
-            BiberState = "normal";
-        _useTransition = Score.TotalScore < _points; 
-        _points = Score.TotalScore;
-        StateHasChanged();
+        if (_hasNavigated)
+            return;
         if (_points >= 100)
         {
+            Console.WriteLine("Navigating to Youtube");
             Navigation.NavigateTo("https://youtube.com", forceLoad: true);
+            _hasNavigated = true;
+        } else
+        {
+            if(bonus < 2)
+                BiberState = "angry";
+            else if(bonus > 50)
+                BiberState = "normal"; // chainsaw
+            else 
+                BiberState = "normal";
+            _useTransition = Score.TotalScore < _points; 
+            _points = Score.TotalScore;
+            StateHasChanged();
         }
     }
 

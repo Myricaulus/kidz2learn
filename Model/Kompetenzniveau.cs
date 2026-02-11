@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace Kidz2Learn.Model;
 
 public class Kompetenzniveau
@@ -32,6 +34,32 @@ public class Kompetenzniveau
     public int CountFalsch()
     {
         return Historie.Count((c) => c == 'F');
+    }
+
+    public int CountLastFalschRow()
+    {
+        var count = 0;
+        for(int i=0; i<SIZE;i++)
+        {
+            if(Historie[(Versuche-i-1)%SIZE]=='F')
+                count++;
+            else 
+                break;
+        }
+        return count;
+    }
+
+    public int CountLastRichtigRow()
+    {
+        var count = 0;
+        for(int i=0; i<SIZE;i++)
+        {
+            if(Historie[(Versuche-i-1)%SIZE]=='R')
+                count++;
+            else 
+                break;
+        }
+        return count;
     }
 
     public string GetProzent()

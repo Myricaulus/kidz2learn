@@ -13,66 +13,10 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using Tavenem.Blazor.IndexedDB;
 using Tavenem.DataStorage;
+using Kidz2Learn.Model.Tasks;
+using Kidz2Learn.Model.Tasks.TaskDefs;
 
 namespace Kidz2Learn.Pages.ArithmeticChallenge;
-
-public class LevelDefinition
-{
-    public int LevelNumber { get; init; }
-    public required Func<Random, (int number1, int number2)> Generator { get; init; }
-}
-
-
-public static class LevelRegistry
-{
-    private static readonly Dictionary<ArithOperator, List<LevelDefinition>> _levels =
-        new();
-
-    static LevelRegistry()
-    {
-        _levels[ArithOperator.Addition] = new()
-        {
-            new LevelDefinition {
-                LevelNumber = 1,
-                Generator = rng => (rng.Next(1,5), rng.Next(1,5))
-            },
-            new LevelDefinition {
-                LevelNumber = 2,
-                Generator = rng => {
-                    int a, b;
-                    do {
-                        a = rng.Next(1,10);
-                        b = rng.Next(1,10);
-                    } while(a + b >= 10);
-                    return (a, b);
-                }
-            },
-            new LevelDefinition {
-                LevelNumber = 3,
-                Generator = rng => (rng.Next(3,10), rng.Next(3,10))
-            },
-            new LevelDefinition {
-                LevelNumber = 4,
-                Generator = rng => (rng.Next(1,20), rng.Next(1,10))
-            },
-            new LevelDefinition {
-                LevelNumber = 5,
-                Generator = rng => (rng.Next(1,20), rng.Next(1,20))
-            },
-            new LevelDefinition {
-                LevelNumber = 6,
-                Generator = rng => (rng.Next(1,50), rng.Next(1,50))
-            },
-            new LevelDefinition {
-                LevelNumber = 7,
-                Generator = rng => (rng.Next(1,100), rng.Next(1,100))
-            }
-        };
-    }
-
-    public static IReadOnlyList<LevelDefinition> Get(ArithOperator op) => _levels[op];
-}
-
 
 public partial class ArithmeticChallenge : ComponentBase
 {
@@ -109,7 +53,7 @@ public partial class ArithmeticChallenge : ComponentBase
     private ElementReference[] _refs = new ElementReference[MaxLength + 1];
 
     private string _feedback = "";
-    private LearningTask? _currentTaskDef;
+    private LearningTask<ArithTaskDefinition>? _currentTaskDef;
     private static readonly SHA256 sha;
     private readonly byte MaxValue = 20;
 
@@ -139,11 +83,8 @@ public partial class ArithmeticChallenge : ComponentBase
         var store = new SkillMasteryStore(AufgabenDB);
         var adaptiveTask = new AdaptiveTaskGenerator(store, _rng);
 
-        _currentTaskDef = adaptiveTask.ChooseTask("math");
-        var _currentTask = _currentTaskDef.Task.Generator(_rng);
-
-        _number1 = _currentTask.a;
-        _number2 = _currentTask.b;
+        _currentTaskDef = await adaptiveTask.ChooseTaskAsync<Model.Tasks.TaskDefs.ArithTaskDefinition>();
+        (_number1, _number2)= _currentTaskDef.Task.Generator(_rng);
         
         _expectedResult = _currentTaskDef.Task.Operator==ArithOperator.Addition ? _number1 + _number2 : _number1 - _number2;
         _isAddition = _currentTaskDef.Task.Operator==ArithOperator.Addition;
@@ -156,13 +97,13 @@ public partial class ArithmeticChallenge : ComponentBase
         await Js.InvokeVoidAsync("elementInterop.emptyElementById", "digit-", MaxLength + 1);
 
         // Fokus auf erster Stelle rechts (wie bei schriftlichem Rechnen)
-        _ = Task.Delay(100).ContinueWith(_ =>
+        _ = Task.Delay(100).ContinueWith(async _ =>
         {
             for (var i = 0; i < _userDigits.Length; i++)
             {
                 _userDigits[i] = null;
             }
-            InvokeAsync(() => _refs[MaxLength].FocusAsync());
+            await Fokus(MaxLength);
         });
         StateHasChanged();
     }
@@ -183,6 +124,7 @@ public partial class ArithmeticChallenge : ComponentBase
         await InvokeAsync(async () =>
         {
             await Task.Delay(1); // minimal warten auf Render-Fertigstellung
+            index = Math.Clamp(index, 0, MaxLength);
             await _refs[index].FocusAsync();
         });
     }
@@ -246,22 +188,16 @@ public partial class ArithmeticChallenge : ComponentBase
         {
             log.Kompetenz.AddRichtig();
             HUD.IncrementCombo();
-            _feedback = $"Richtig!<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
             Score.AddPoints(2,8);
-            _currentTaskDef?.Success();
+            await (_currentTaskDef?.Success(log.Kompetenz) ?? Task.CompletedTask);
             stats.Erfolgreich++;
             stats.Versuche++;
-            StateHasChanged();
-            await Task.Delay(1000).ContinueWith(_ =>
-            {
-                InvokeAsync(GenerateNewTask);
-            });
-
+            await GenerateNewTask();
         }
         else
         {
             log.Kompetenz.AddFalsch();
-            _currentTaskDef?.Fail();
+            await (_currentTaskDef?.Fail(log.Kompetenz)?? Task.CompletedTask);
             HUD.SetCombo(0);
             stats.Versuche++;
             _feedback = $"Falsch! Richtige Lösung: {_expectedResult}.<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
@@ -269,13 +205,13 @@ public partial class ArithmeticChallenge : ComponentBase
             await Js.InvokeVoidAsync("elementInterop.emptyElementById", "digit-", MaxLength + 1);
 
             // Fokus auf erster Stelle rechts (wie bei schriftlichem Rechnen)
-            _ = Task.Delay(100).ContinueWith(_ =>
+            _ = Task.Delay(100).ContinueWith(async _ =>
             {
                 for (var i = 0; i < _userDigits.Length; i++)
                 {
                     _userDigits[i] = null;
                 }
-                InvokeAsync(() => _refs[MaxLength].FocusAsync());
+                await Fokus(MaxLength);
             });      
         }
 

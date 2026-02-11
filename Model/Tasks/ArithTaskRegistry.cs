@@ -1,27 +1,8 @@
-namespace Kidz2Learn.Model;
+using Kidz2Learn.Model.Tasks.TaskDefs;
 
-public interface IBaseTaskDefinition
-{
-    string[] Skills { get; }
-    int DifficultyLevel { get; }
-}
+namespace Kidz2Learn.Model.Tasks;
 
-public abstract class BaseTaskDefinition<T> : IBaseTaskDefinition
-{
-    public required string[] Skills { get; init; }
-    public int DifficultyLevel { get; init; } // 1 = leicht, 2 = mittel, 3 = schwer
-
-    public required Func<Random, T> Generator { get; init; }
-}
-
-
-public sealed class ArithTaskDefinition : BaseTaskDefinition<(int a, int b)>
-{
-    public ArithOperator Operator { get; init; }
-
-}
-
-public static class TaskRegistry
+public static class ArithTaskRegistry
 {
     private static readonly List<ArithTaskDefinition> _defs = new()
     {
@@ -83,14 +64,5 @@ public static class TaskRegistry
             }
         }
     };
-
     public static IReadOnlyList<ArithTaskDefinition> All => _defs;
-}
-
-public enum ArithOperator
-{
-    Addition,
-    Subtraction,
-    Multiplication,
-    Division
 }

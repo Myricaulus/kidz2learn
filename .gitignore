@@ -52,3 +52,8 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# wavesplit
+WaveSplit/*
+!WaveSplit/SplitWaveAndCompress.py
+!WaveSplit/DeduplicateNames.py

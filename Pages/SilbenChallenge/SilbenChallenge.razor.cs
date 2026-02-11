@@ -1,18 +1,13 @@
-using System.ComponentModel;
-using System.Drawing;
-using System.Reflection.Metadata;
-using System.Security.Cryptography;
-using System.Text;
+
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using Kidz2Learn.Shared;
 using Kidz2Learn.Model;
 using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using Tavenem.Blazor.IndexedDB;
 using Tavenem.DataStorage;
+using Kidz2Learn.Model.Tasks.TaskDefs;
+using MudBlazor;
 
 namespace Kidz2Learn.Pages.SilbenChallenge;
 
@@ -55,10 +50,14 @@ public class SilbenLog : IIdItem
             builder.CloseElement(); // </div>
         };
 }
+
+
+
 public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
 {
    // Pool: Dateiname = exakt die Silbe
-    [Inject] private IJSRuntime Js { get; set; } = null!;
+       [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDB { get; set; } = default!;
+       [Inject] private IJSRuntime Js { get; set; } = null!;
     [Inject] private LoggerService Logger { get; set; } = default!;
     [Inject] public ScoreService Score { get; set; } = default!;
     [Inject] public SidWidgetService Player { get; set; } = default!;
@@ -79,11 +78,14 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
     int CorrectCount = 0;
     int WrongCount = 0;
 
-    Random rng = new();
+    List<string> WrongSelectedOption = [];
+    bool TaskSolved = false;
 
-    protected override void OnInitialized()
+    readonly Random _rng = new();
+
+    protected override async Task OnInitializedAsync()
     {
-        NextTask();
+        await NextTask();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -101,22 +103,33 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         await Player.SetVolume(1.0);
     }
 
-    void NextTask()
+    string GetOptionClass(string option)
     {
+        if (WrongSelectedOption.Contains(option))
+            return "k4l-option-wrong";
+
+        return "";
+    }
+
+    async Task NextTask()
+    {
+        var store = new SkillMasteryStore(AufgabenDB);
+        var adaptiveTask = new AdaptiveTaskGenerator(store, _rng);
+        var taskGen = await adaptiveTask.ChooseTaskAsync<SilbenTaskDefinition>();
+        var task = taskGen.Task.Generator(_rng);
+
         // 1. Silbe auswählen
-        CorrectSyllable = SyllablePool[rng.Next(SyllablePool.Count)];
-        CurrentAudio = $"audio/{CorrectSyllable}.mp3";
+        CorrectSyllable = task.correct;
+        CurrentAudio = $"audio/{CorrectSyllable}.opus";
 
         // 2. Optionspool vorbereiten
         //    1 richtige + 3 zufällige andere
-        var shuffled = SyllablePool.OrderBy(_ => rng.Next()).ToList();
-
-        CurrentOptions = shuffled
-            .Where(s => s != CorrectSyllable)
-            .Take(5)
-            .Append(CorrectSyllable)
-            .OrderBy(_ => rng.Next())
+        var shuffled = task.options
+            .OrderBy(_ => _rng.Next())
+            .Take(9)
             .ToList();
+
+        CurrentOptions = shuffled;
     }
 
     async Task PlayAudio()
@@ -124,35 +137,46 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         await Js.InvokeVoidAsync("k4l_playAudio", "audioPlayer");
     }
 
-    void CheckAnswer(string answer)
+    async Task CheckAnswer(string answer)
     {
-        bool correct = answer == CorrectSyllable;
+        string correctAnswer = CorrectSyllable.Replace("-", "");
+        bool correct = answer == correctAnswer;
 
         if (correct)
         {
+            TaskSolved = true;
             CorrectCount++;
             FeedbackText = "Richtig!";
             FeedbackClass = "k4l-feedback-correct";
-            Score.AddPoints(5,5);
+            Score.AddPoints(3,5);
+
+            ShowFeedback = true;
+            StateHasChanged();
+            // Reset für nächste Runde
+            _ = Task.Delay(900).ContinueWith(async _ =>
+            {
+                ShowFeedback = false;
+                await NextTask();
+                WrongSelectedOption = [];
+                ShowFeedback = false;
+                StateHasChanged();
+                await PlayAudio();
+            });
+
+            
         }
         else
         {
             WrongCount++;
-            FeedbackText = $"Falsch – das war '{CorrectSyllable}'.";
-            FeedbackClass = "k4l-feedback-wrong";
-            Score.AddPoints(-10,0);
-        }
-        
-        ShowFeedback = true;
-        StateHasChanged();
+            WrongSelectedOption.Add(answer);
 
-        _ = Task.Delay(900).ContinueWith(async _ =>
-        {
-            ShowFeedback = false;
-            NextTask();
-            StateHasChanged();
-            await PlayAudio();
-        });
+            FeedbackText = "Nochmal versuchen!";
+            FeedbackClass = "k4l-feedback-wrong";
+
+            Score.AddPoints(-5,-5);
+
+            ShowFeedback = true;
+        }
     }
 
     private string GetColoredHtml(string silbe)

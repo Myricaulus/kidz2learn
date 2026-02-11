@@ -1,4 +1,4 @@
-@page "/SilbenChallenge"
+@page "/"
 
 @* Dynamic MI/IM/Pool-Hörtraining *@
 
@@ -12,7 +12,7 @@
     <div class="k4l-options">
         @foreach (var option in CurrentOptions)
         {
-            <button class="k4l-option"
+            <button class="k4l-option @GetOptionClass(option)"
                     @onclick="() => CheckAnswer(option)">
                 @((MarkupString)GetColoredHtml(option))
             </button>
@@ -108,6 +108,16 @@
     color: #555;
     display: flex;
     justify-content: space-around;
+}
+
+.k4l-option-wrong {
+    background: #ffdddd;
+    border-color: #e53935;
+}
+
+.k4l-option-correct {
+    background: #ddffdd;
+    border-color: #3aa757;
 }
 </style>
 

@@ -1,3 +1,7 @@
+using System.Threading.Tasks;
+using Kidz2Learn.Model.Tasks;
+using Kidz2Learn.Shared.Extensions;
+
 namespace Kidz2Learn.Model;
 
 public enum Difficulty
@@ -7,15 +11,22 @@ public enum Difficulty
     Extreme
 }
 
-public sealed class LearningTask
+public sealed class LearningTask<T> where T: BaseTaskDefinition
 {
-    public ArithTaskDefinition Task { get; }
+    public T Task { get; }
     public Difficulty Difficulty { get; }
 
     private readonly SkillMasteryStore _store;
 
+    /// <summary>
+    /// Jaja, die Aufgabe muss noch angezeigt werden, und Menschen mit langsamenen Rechner werden hier systematisch benachteilgt, mimimi. Heul leise...
+    /// Menschen die schlechte Rechner haben sind Arm. Und arme Menschen müssen mehr üben, damit sie aus ihrer Armut entfliehen können!
+    /// Ausserdem sollten sich die Unterschiede im Millisekunden bereich aufhalten...
+    /// </summary>
+    private readonly DateTime timeStarted = DateTime.Now;
+
     internal LearningTask(
-        ArithTaskDefinition task,
+        T task,
         Difficulty difficulty,
         SkillMasteryStore store)
     {
@@ -24,16 +35,18 @@ public sealed class LearningTask
         _store = store;
     }
 
-    public void Success()
+    public async Task Success(Kompetenzniveau kompetenz)
     {
+        var time = DateTime.Now - timeStarted;
         foreach (var skill in Task.Skills)
-            _store.Adjust(skill, Difficulty, true);
+            await _store.Adjust(skill, Difficulty, (int)time.TotalMilliseconds, kompetenz, true);
     }
 
-    public void Fail()
+    public async Task Fail(Kompetenzniveau kompetenz)
     {
+        var time = DateTime.Now - timeStarted;
         foreach (var skill in Task.Skills)
-            _store.Adjust(skill, Difficulty, false);
+            await _store.Adjust(skill, Difficulty, (int)time.TotalMilliseconds, kompetenz, false);
     }
 }
 
@@ -48,31 +61,29 @@ public sealed class AdaptiveTaskGenerator
         _rng = rng;
     }
 
-    public LearningTask ChooseTask(string domain, string? category=null)
+    public async Task<LearningTask<T>> ChooseTaskAsync<T>(string? category=null) where T: BaseTaskDefinition, IBaseTaskDefinition
     {
-        
+        var domain = T.Domain; 
+        var skillstates = await _store.GetSkillViewEnumarableAsync();
         // 1. Schwächste Skills priorisieren
-        var weakestSkills = _store.Snapshot().Join(SkillRegistry.All,m=>m.Key,r=>r.Key,
-            (skillMastery,skillRegistry)=>
-            {
-                return(skillMastery,skillRegistry);
-            }
-            )
-            .Where(kw=>kw.skillRegistry.Value.Domain==domain && (category == null || kw.skillRegistry.Value.Category==category)  )
-            .OrderBy(kv => kv.skillMastery.Value.Mastery)
-            .ThenBy(kv => kv.skillRegistry.Value.Difficulty)
+        var weakestSkills = skillstates
+            .Where(sv=>sv.Definition.Domain==domain && (category == null || sv.Definition.Category==category)  )
+            .OrderBy(sv => sv.State.Mastery)
+            .ThenBy(kv => kv.Definition.Difficulty)
             .Take(3)
-            .Select(kv => kv.skillMastery.Key)
+            .Select(kv => kv.State.Id)
             .ToHashSet();
 
         // 2. Aufgaben suchen, die diese Skills trainieren
-        var candidates = TaskRegistry.All
+        IReadOnlyList<T> candidates = TaskRegistry.GetTasks<T>();
+
+        candidates = candidates
             .Where(d => d.Skills.Any(s => weakestSkills.Contains(s)))
             .ToList();
-
+        
         // Fallback, falls alles voll mastered
-        if (candidates.Count == 0)
-            candidates = [.. TaskRegistry.All];
+       // if (candidates.Count == 0)
+        //    candidates = [.. TaskRegistry.All];
 
         // 3. Bevorzugung normaler Tasks
         var weighted = candidates
@@ -82,7 +93,6 @@ public sealed class AdaptiveTaskGenerator
         var easiestDifficulty = candidates.Min(c=>c.DifficultyLevel);
 
         var chosen = InvertedWeightedPick(weighted);
-
         var difficulty = chosen.DifficultyLevel switch
         {
             var x when x == easiestDifficulty => Difficulty.Normal,
@@ -90,13 +100,13 @@ public sealed class AdaptiveTaskGenerator
             _ => Difficulty.Extreme
         };
 
-        return new LearningTask(
+        return new LearningTask<T>(
             chosen,
             difficulty,
             _store);
     }
 
-    private ArithTaskDefinition InvertedWeightedPick(List<(ArithTaskDefinition def, int weight)> items)
+    private T InvertedWeightedPick<T>(List<(T def, int weight)> items)
     {
         int max = items.Max(i=>i.weight);
         int total = items.Sum(i => max+1 - i.weight);
