@@ -4,7 +4,7 @@ namespace Kidz2Learn.Model.Tasks;
 
 public static class TaskRegistry
 {
-    private static readonly Dictionary<Type, IReadOnlyList<BaseTaskDefinition>> _tasks =
+    private static readonly Dictionary<Type, IReadOnlyList<BaseTaskDefinition>> Tasks =
     new()
     {
         { typeof(ArithTaskDefinition), AllArith },
@@ -12,11 +12,11 @@ public static class TaskRegistry
     };
 
     public static IReadOnlyList<T> GetTasks<T>() where T : BaseTaskDefinition
-        => (IReadOnlyList<T>)_tasks[typeof(T)];
+        => (IReadOnlyList<T>)Tasks[typeof(T)];
     
 
     private static IReadOnlyList<BaseTaskDefinition>? _all;
-    public static IReadOnlyList<BaseTaskDefinition> All => _all ??= [.. _tasks.Values.SelectMany(x => x)];
+    public static IReadOnlyList<BaseTaskDefinition> All => _all ??= [.. Tasks.Values.SelectMany(x => x)];
     public static IReadOnlyList<ArithTaskDefinition> AllArith => ArithTaskRegistry.All;
     public static IReadOnlyList<SilbenTaskDefinition> AllSilben => SilbenTaskRegistry.All;
 
@@ -31,7 +31,7 @@ public static class TaskRegistry
                 baseType.IsAssignableFrom(t))
             .ToList();
 
-        var registeredTypes = _tasks.Keys.ToHashSet();
+        var registeredTypes = Tasks.Keys.ToHashSet();
 
         var missing = allTaskTypes
             .Where(t => !registeredTypes.Contains(t))

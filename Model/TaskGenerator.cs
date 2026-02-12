@@ -23,7 +23,7 @@ public sealed class LearningTask<T> where T: BaseTaskDefinition
     /// Menschen die schlechte Rechner haben sind Arm. Und arme Menschen müssen mehr üben, damit sie aus ihrer Armut entfliehen können!
     /// Ausserdem sollten sich die Unterschiede im Millisekunden bereich aufhalten...
     /// </summary>
-    private readonly DateTime timeStarted = DateTime.Now;
+    private readonly DateTime _timeStarted = DateTime.Now;
 
     internal LearningTask(
         T task,
@@ -37,34 +37,25 @@ public sealed class LearningTask<T> where T: BaseTaskDefinition
 
     public async Task Success(Kompetenzniveau kompetenz)
     {
-        var time = DateTime.Now - timeStarted;
+        var time = DateTime.Now - _timeStarted;
         foreach (var skill in Task.Skills)
             await _store.Adjust(skill, Difficulty, (int)time.TotalMilliseconds, kompetenz, true);
     }
 
     public async Task Fail(Kompetenzniveau kompetenz)
     {
-        var time = DateTime.Now - timeStarted;
+        var time = DateTime.Now - _timeStarted;
         foreach (var skill in Task.Skills)
             await _store.Adjust(skill, Difficulty, (int)time.TotalMilliseconds, kompetenz, false);
     }
 }
 
-public sealed class AdaptiveTaskGenerator
+public sealed class AdaptiveTaskGenerator(SkillMasteryStore store, Random rng)
 {
-    private readonly SkillMasteryStore _store;
-    private readonly Random _rng;
-
-    public AdaptiveTaskGenerator(SkillMasteryStore store, Random rng)
-    {
-        _store = store;
-        _rng = rng;
-    }
-
     public async Task<LearningTask<T>> ChooseTaskAsync<T>(string? category=null) where T: BaseTaskDefinition, IBaseTaskDefinition
     {
         var domain = T.Domain; 
-        var skillstates = await _store.GetSkillViewEnumarableAsync();
+        var skillstates = await store.GetSkillViewEnumerableAsync();
         // 1. Schwächste Skills priorisieren
         var weakestSkills = skillstates
             .Where(sv=>sv.Definition.Domain==domain && (category == null || sv.Definition.Category==category)  )
@@ -75,7 +66,7 @@ public sealed class AdaptiveTaskGenerator
             .ToHashSet();
 
         // 2. Aufgaben suchen, die diese Skills trainieren
-        IReadOnlyList<T> candidates = TaskRegistry.GetTasks<T>();
+        var candidates = TaskRegistry.GetTasks<T>();
 
         /*candidates = candidates
             .Where(d => d.Skills.Any(s => weakestSkills.Contains(s)))
@@ -103,15 +94,15 @@ public sealed class AdaptiveTaskGenerator
         return new LearningTask<T>(
             chosen,
             difficulty,
-            _store);
+            store);
     }
 
     private T InvertedWeightedPick<T>(List<(T def, int weight)> items)
     {
-        int max = items.Max(i=>i.weight);
-        int total = items.Sum(i => max+1 - i.weight);
-        int roll = _rng.Next(0, total);
-        int sum = 0;
+        var max = items.Max(i=>i.weight);
+        var total = items.Sum(i => max+1 - i.weight);
+        var roll = rng.Next(0, total);
+        var sum = 0;
 
         foreach (var item in items)
         {

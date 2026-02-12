@@ -38,7 +38,7 @@ public class SilbenLog : IIdItem
 
     public RenderFragment ToRenderFragment() => builder =>
         {
-            int i = 0;
+            var i = 0;
             builder.OpenElement(i++, "div");
             builder.AddAttribute(i++, "class", "log-entry arithmetik-log");
             builder.AddContent(i++, $"{Zahl1}{Op}{Zahl2} = ");
@@ -46,42 +46,37 @@ public class SilbenLog : IIdItem
             builder.AddAttribute(i++, "style", $"color: {(UserZahl == Zahl1+Zahl2 ? "green" : "red")}");
             builder.AddContent(i++, UserZahl);
             builder.CloseElement(); // </span>
-            builder.AddContent(i++, $" ({Zahl1+Zahl2}) R:{Kompetenz.GetProzent()}");
+            builder.AddContent(i, $" ({Zahl1+Zahl2}) R:{Kompetenz.GetProzent()}");
             builder.CloseElement(); // </div>
         };
 }
 
 
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
 {
-   // Pool: Dateiname = exakt die Silbe
-       [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDB { get; set; } = default!;
-       [Inject] private IJSRuntime Js { get; set; } = null!;
-    [Inject] private LoggerService Logger { get; set; } = default!;
-    [Inject] public ScoreService Score { get; set; } = default!;
-    [Inject] public SidWidgetService Player { get; set; } = default!;
-    List<string> SyllablePool = new()
-    {
-        "mi", "im", "ma", "am", "mo", "om"
-    };
+    [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
+    [Inject] private IJSRuntime Js { get; set; } = null!;
+    //[Inject] private LoggerService Logger { get; set; } = null!;
+    [Inject] public ScoreService Score { get; set; } = null!;
+    [Inject] public SidWidgetService Player { get; set; } = null!;
 
-    string CurrentAudio = string.Empty;
-    string CorrectSyllable = string.Empty;
+    private string _currentAudio = string.Empty;
+    private string _correctSyllable = string.Empty;
 
-    List<string> CurrentOptions = new();
+    private List<string> _currentOptions = [];
 
-    bool ShowFeedback = false;
-    string FeedbackText = string.Empty;
-    string FeedbackClass = string.Empty;
+    private bool _showFeedback;
+    private string _feedbackText = string.Empty;
+    private string _feedbackClass = string.Empty;
 
-    int CorrectCount = 0;
-    int WrongCount = 0;
+    private int _correctCount;
+    private int _wrongCount;
 
-    List<string> WrongSelectedOption = [];
-    bool TaskSolved = false;
+    private List<string> _wrongSelectedOption = [];
 
-    readonly Random _rng = new();
+    private readonly Random _rng = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -103,24 +98,24 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         await Player.SetVolume(1.0);
     }
 
-    string GetOptionClass(string option)
+    private string GetOptionClass(string option)
     {
-        if (WrongSelectedOption.Contains(option))
+        if (_wrongSelectedOption.Contains(option))
             return "k4l-option-wrong";
 
         return "";
     }
 
-    async Task NextTask()
+    private async Task NextTask()
     {
-        var store = new SkillMasteryStore(AufgabenDB);
+        var store = new SkillMasteryStore(AufgabenDb);
         var adaptiveTask = new AdaptiveTaskGenerator(store, _rng);
         var taskGen = await adaptiveTask.ChooseTaskAsync<SilbenTaskDefinition>();
         var task = taskGen.Task.Generator(_rng);
 
         // 1. Silbe auswählen
-        CorrectSyllable = task.correct;
-        CurrentAudio = $"audio/{CorrectSyllable}.opus";
+        _correctSyllable = task.correct;
+        _currentAudio = $"audio/{_correctSyllable}.opus";
 
         // 2. Optionspool vorbereiten
         //    1 richtige + 3 zufällige andere
@@ -129,57 +124,53 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
             .Take(9)
             .ToList();
 
-        CurrentOptions = shuffled;
+        _currentOptions = shuffled;
     }
 
-    async Task PlayAudio()
+    private async Task PlayAudio()
     {
         await Js.InvokeVoidAsync("k4l_playAudio", "audioPlayer");
     }
 
-    async Task CheckAnswer(string answer)
+    private void CheckAnswer(string answer)
     {
-        string correctAnswer = CorrectSyllable.Replace("-", "");
-        bool correct = answer == correctAnswer;
+        var correctAnswer = _correctSyllable.Replace("-", "");
+        var correct = answer == correctAnswer;
 
         if (correct)
         {
-            TaskSolved = true;
-            CorrectCount++;
-            FeedbackText = "Richtig!";
-            FeedbackClass = "k4l-feedback-correct";
+            _correctCount++;
+            _feedbackText = "Richtig!";
+            _feedbackClass = "k4l-feedback-correct";
             Score.AddPoints(3,5);
 
-            ShowFeedback = true;
+            _showFeedback = true;
             StateHasChanged();
             // Reset für nächste Runde
             _ = Task.Delay(900).ContinueWith(async _ =>
             {
-                ShowFeedback = false;
                 await NextTask();
-                WrongSelectedOption = [];
-                ShowFeedback = false;
+                _wrongSelectedOption = [];
+                _showFeedback = false;
                 StateHasChanged();
                 await PlayAudio();
             });
-
-            
         }
         else
         {
-            WrongCount++;
-            WrongSelectedOption.Add(answer);
+            _wrongCount++;
+            _wrongSelectedOption.Add(answer);
 
-            FeedbackText = "Nochmal versuchen!";
-            FeedbackClass = "k4l-feedback-wrong";
+            _feedbackText = "Nochmal versuchen!";
+            _feedbackClass = "k4l-feedback-wrong";
 
             Score.AddPoints(-5,-5);
 
-            ShowFeedback = true;
+            _showFeedback = true;
         }
     }
 
-    private string GetColoredHtml(string silbe)
+    private static string GetColoredHtml(string silbe)
     {
         var result = "";
 

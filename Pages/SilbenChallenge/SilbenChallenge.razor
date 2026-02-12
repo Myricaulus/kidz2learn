@@ -10,7 +10,7 @@
     </div>
 
     <div class="k4l-options">
-        @foreach (var option in CurrentOptions)
+        @foreach (var option in _currentOptions)
         {
             <button class="k4l-option @GetOptionClass(option)"
                     @onclick="() => CheckAnswer(option)">
@@ -19,18 +19,18 @@
         }
     </div>
 
-    @if (ShowFeedback)
+    @if (_showFeedback)
     {
-        <div class="k4l-feedback @FeedbackClass">@FeedbackText</div>
+        <div class="k4l-feedback @_feedbackClass">@_feedbackText</div>
     }
 
     <div class="k4l-progress">
-        <span>Richtig: @CorrectCount</span>
-        <span>Fehlversuche: @WrongCount</span>
+        <span>Richtig: @_correctCount</span>
+        <span>Fehlversuche: @_wrongCount</span>
     </div>
 </div>
 
-<audio id="audioPlayer" src="@CurrentAudio"></audio>
+<audio id="audioPlayer" src="@_currentAudio"></audio>
 
 <style>
 .k4l-task-container {

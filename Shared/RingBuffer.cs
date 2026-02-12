@@ -123,9 +123,9 @@ public sealed class RingBufferJsonConverter<T> : JsonConverter<RingBuffer<T>>
         if (reader.TokenType != JsonTokenType.StartObject)
             throw new JsonException();
 
-        int capacity = 0;
+        var capacity = 0;
         List<T>? items = null;
-        int itemStart = 0;
+        var itemStart = 0;
 
         while (reader.Read())
         {
@@ -177,7 +177,7 @@ public sealed class RingBufferJsonConverter<T> : JsonConverter<RingBuffer<T>>
         writer.WritePropertyName("items");
         writer.WriteStartArray();
 
-        for (int i = 0; i < value.Count; i++)
+        for (var i = 0; i < value.Count; i++)
         {
             JsonSerializer.Serialize(writer, value[i], options);
         }

@@ -12,26 +12,26 @@ public sealed class SkillMigrationHelper
     // BUMP THIS WHENEVER YOU CHANGE SKILL SCHEMA OR MIGRATION LOGIC
     private const int CurrentSchemaVersion = 1;
     private readonly IndexedDb _db;
-    private readonly IndexedDbStore metaStore;
-    private readonly IndexedDbStore skillStore;
+    private readonly IndexedDbStore _metaStore;
+    private readonly IndexedDbStore _skillStore;
 
     public SkillMigrationHelper(IndexedDb db)
     {
         _db = db;
-        metaStore = _db["SkillMeta"]??throw new Exception("SkillMeta db failed");
-        skillStore = _db["SkillStates"]??throw new Exception("SkillStates db failed");;
+        _metaStore = _db["SkillMeta"]??throw new Exception("SkillMeta db failed");
+        _skillStore = _db["SkillStates"]??throw new Exception("SkillStates db failed");;
     }
 
     public async Task InitAsync()
     {
-        var meta = await metaStore.GetItemAsync<SkillMeta>("meta");
+        var meta = await _metaStore.GetItemAsync<SkillMeta>("meta");
         if (meta is { Initialized: true })
             return;
 
         // Initialisiere alle Skills mit 0
         foreach (var skill in SkillRegistry.All)
         {
-            await skillStore.StoreItemAsync(new SkillState
+            await _skillStore.StoreItemAsync(new SkillState
             {
                 Id = skill.Value.Id,
                 Mastery = 0,
@@ -40,30 +40,30 @@ public sealed class SkillMigrationHelper
             });
         }
 
-        await metaStore.StoreItemAsync(new SkillMeta { Initialized = true, SchemaVersion = CurrentSchemaVersion });
+        await _metaStore.StoreItemAsync(new SkillMeta { Initialized = true, SchemaVersion = CurrentSchemaVersion });
     }
 
     public async Task EnsureSchemaAsync()
     {
-        var meta = await metaStore.GetItemAsync<SkillMeta>("meta");
+        var meta = await _metaStore.GetItemAsync<SkillMeta>("meta");
 
         if (meta == null)
         {
             await MigrateLegacyAsync();
-            await metaStore.StoreItemAsync(new SkillMeta { Initialized = true, SchemaVersion = CurrentSchemaVersion });
-            return;
+            await _metaStore.StoreItemAsync(new SkillMeta { Initialized = true, SchemaVersion = CurrentSchemaVersion });
         } else if (meta.SchemaVersion < CurrentSchemaVersion)
         {
-            await MigrateAsync(meta.SchemaVersion, CurrentSchemaVersion, metaStore);
+            await MigrateAsync(meta.SchemaVersion, CurrentSchemaVersion, _metaStore);
         }
     }
 
     private async Task MigrateAsync(int schemaVersion, int currentSchemaVersion, IndexedDbStore metaStore)
     {
+        await Task.Delay(100);
         throw new NotImplementedException();
     }
 
-    public async Task MigrateLegacyAsync()
+    private async Task MigrateLegacyAsync()
     {
         var arithDb = _db["ArithmetikAufgaben"]??throw new Exception("ArithmetikAufgaben db failed");
 
@@ -109,7 +109,7 @@ public sealed class SkillMigrationHelper
         // In SkillState schreiben
         foreach (var (skillId, value) in stats)
         {
-            await skillStore.StoreItemAsync(new SkillState
+            await _skillStore.StoreItemAsync(new SkillState
             {
                 Id = skillId,
                 Attempts = value.attempts,
@@ -124,14 +124,14 @@ public static class SkillInference
 {
     public static IEnumerable<string> FromLegacyLog(ArithemticLog log)
     {
-        bool isAdd = log.Id.Contains('+');
+        var isAdd = log.Id.Contains('+');
         var valuelist = log.Id.Split(isAdd?'+':'-');
         var a = int.Parse(valuelist[0]);
         var b = int.Parse(valuelist[1]);
 
         if (isAdd)
         {
-            int sum = a + b;
+            var sum = a + b;
 
             if (a < 5 && b < 5)
                 yield return "add_1_5";
@@ -149,7 +149,7 @@ public static class SkillInference
         }
         else
         {
-            int diff = a - b;
+            var diff = a - b;
 
             if (a < 10 && b < 10)
                 yield return "sub_10";

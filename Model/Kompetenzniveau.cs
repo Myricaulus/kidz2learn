@@ -4,26 +4,26 @@ namespace Kidz2Learn.Model;
 
 public class Kompetenzniveau
 {
-    private const int SIZE = 20;
-    public int Versuche { get; set; } = 0;
-    public int Richtig { get; set; } = 0;
+    private const int Size = 20;
+    public int Versuche { get; set; }
+    public int Richtig { get; set; }
     public string Historie { get; set; } = "--------------------";
 
     public void AddRichtig()
     {
-        if(Historie.Length<SIZE)
-            Historie = Historie.PadRight(SIZE, '-');
-        char[] chars = Historie.ToCharArray();
-        chars[Versuche++ % SIZE] = 'R'; 
+        if(Historie.Length<Size)
+            Historie = Historie.PadRight(Size, '-');
+        var chars = Historie.ToCharArray();
+        chars[Versuche++ % Size] = 'R'; 
         Historie = new string(chars);
         ++Richtig;
     }
     public void AddFalsch()
     {
-        if(Historie.Length<SIZE)
-            Historie = Historie.PadRight(SIZE, '-');
-        char[] chars = Historie.ToCharArray();
-        chars[Versuche++ % SIZE] = 'F'; 
+        if(Historie.Length<Size)
+            Historie = Historie.PadRight(Size, '-');
+        var chars = Historie.ToCharArray();
+        chars[Versuche++ % Size] = 'F'; 
         Historie = new string(chars);
     }
 
@@ -39,9 +39,9 @@ public class Kompetenzniveau
     public int CountLastFalschRow()
     {
         var count = 0;
-        for(int i=0; i<SIZE;i++)
+        for(var i=0; i<Size;i++)
         {
-            if(Historie[(Versuche-i-1)%SIZE]=='F')
+            if(Historie[(Versuche-i-1)%Size]=='F')
                 count++;
             else 
                 break;
@@ -52,9 +52,9 @@ public class Kompetenzniveau
     public int CountLastRichtigRow()
     {
         var count = 0;
-        for(int i=0; i<SIZE;i++)
+        for(var i=0; i<Size;i++)
         {
-            if(Historie[(Versuche-i-1)%SIZE]=='R')
+            if(Historie[(Versuche-i-1)%Size]=='R')
                 count++;
             else 
                 break;
@@ -64,7 +64,7 @@ public class Kompetenzniveau
 
     public string GetProzent()
     {
-        var fenster = Math.Min(Versuche, SIZE);
+        var fenster = Math.Min(Versuche, Size);
         if (fenster < 5)
             return "--%";
         return $"{CountRichtig() * 100.0 / fenster:0}%";
@@ -72,7 +72,7 @@ public class Kompetenzniveau
 
     public float GetProzentValue()
     {
-        var fenster = Math.Min(Versuche, SIZE);
+        var fenster = Math.Min(Versuche, Size);
         if (fenster < 5)
             return 0.0f;
         return CountRichtig() / (float)fenster;

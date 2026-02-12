@@ -1,10 +1,8 @@
 @page "/profile"
-@using Kidz2Learn.Entities
 @using Kidz2Learn.Model
 @using Kidz2Learn.Shared.Extensions
 @using MudBlazor
 @using Tavenem.Blazor.IndexedDB
-
 
 <MudPaper Class="p-4 mt-4">
     <MudText Typo="Typo.h5">Skill Profil</MudText>
@@ -23,31 +21,25 @@
             <MudTd>@context.Definition.Domain.FirstCharToUpper()</MudTd>
             <MudTd>@context.Definition.Category?.FirstCharToUpper()</MudTd>
             <MudTd>@context.Definition.Difficulty</MudTd>
-            <MudTd>@(context.State?.Attempts ?? 0)</MudTd>
-            <MudTd>@(context.State?.Success ?? 0)</MudTd>
-            <MudTd>@(context.State?.Mastery.ToString("P0") ?? "0%")</MudTd>
+            <MudTd>@(context.State.Attempts)</MudTd>
+            <MudTd>@(context.State.Success)</MudTd>
+            <MudTd>@(context.State.Mastery.ToString("P0"))</MudTd>
         </RowTemplate>
     </MudTable>
 </MudPaper>
 
 @code {
-    private bool _toggleMenuDrawer;
-    [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDB { get; set; } = default!;
+    [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
 
     private IEnumerable<SkillView>? _skillsWithState;
 
     protected override async Task OnInitializedAsync()
     {
-        IndexedDbStore skillStore = AufgabenDB["SkillStates"] ?? throw new Exception("SkillStates table not found");
-        
-        // Alle SkillStates aus der DB holen
-        Dictionary<string, SkillState> statesById = await skillStore.ToDictionaryAsync<SkillState>();
-
+        var store = new SkillMasteryStore(AufgabenDb);
         // Alle Skills in SkillRegistry einbeziehen
-        _skillsWithState = SkillRegistry.All.Values
-            .Select(def => new SkillView(def, statesById.GetValueOrDefault(def.Id)))
+        _skillsWithState = (await store.GetSkillViewEnumerableAsync())
             .OrderBy(s => s.Definition.Domain)
             .ThenBy(s => s.Definition.Difficulty);
-
     }
+
 }

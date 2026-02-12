@@ -1,33 +1,25 @@
-﻿using System.ComponentModel;
-using System.Drawing;
-using System.Reflection.Metadata;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using Kidz2Learn.Shared;
-using Kidz2Learn.Model;
+﻿using Kidz2Learn.Model;
 using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using Tavenem.Blazor.IndexedDB;
-using Tavenem.DataStorage;
 using Kidz2Learn.Model.Tasks;
 using Kidz2Learn.Model.Tasks.TaskDefs;
 
 namespace Kidz2Learn.Pages.ArithmeticChallenge;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public partial class ArithmeticChallenge : ComponentBase
 {
     [Inject] private IJSRuntime Js { get; set; } = null!;
-    [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDB { get; set; } = default!;
-    [Inject] private LoggerService Logger { get; set; } = default!;
-    [Inject] public ScoreService Score { get; set; } = default!;
-    [Inject] private HUDStateService HUD { get; set; } = default!;
+    [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
+    [Inject] private LoggerService Logger { get; set; } = null!;
+    [Inject] public ScoreService Score { get; set; } = null!;
+    [Inject] private HudStateService Hud { get; set; } = null!;
 
     private int CurrentIndex { get; set; }
-    public IndexedDbStore ArithDb { get; private set; } = default!;
+    private IndexedDbStore ArithDb { get; set; } = null!;
 
     // Konfiguration
     private const int MaxLength = 2;
@@ -48,42 +40,35 @@ public partial class ArithmeticChallenge : ComponentBase
 
     private int[] _number1Digits = new int[MaxLength];
     private int[] _number2Digits = new int[MaxLength];
-    private int?[] _userDigits = new int?[MaxLength + 1];
+    private readonly int?[] _userDigits = new int?[MaxLength + 1];
 
     private ElementReference[] _refs = new ElementReference[MaxLength + 1];
 
     private string _feedback = "";
     private LearningTask<ArithTaskDefinition>? _currentTaskDef;
-    private static readonly SHA256 sha;
-    private readonly byte MaxValue = 20;
-
-    static ArithmeticChallenge()
-    {
-        sha = SHA256.Create();
-    }
 
     protected override async Task OnInitializedAsync()
     {
         _refs = new ElementReference[MaxLength + 1];
-        ArithDb = AufgabenDB["ArithmetikAufgaben"] ?? throw new Exception("IndexedDb not instanced");
+        ArithDb = AufgabenDb["ArithmetikAufgaben"] ?? throw new Exception("IndexedDb not instanced");
         await GenerateNewTask();
     }
 
     protected override async Task OnParametersSetAsync()
     {
         var log = await ArithDb.GetItemAsync<ArithemticLogStats>("0") ?? new ArithemticLogStats();
-        Logger.erfolgreich = log.RichtigProzent();
-        Logger.gesamtAnzahl = log.Versuche;
-        HUD.ResetAll();
+        Logger.Erfolgreich = log.RichtigProzent();
+        Logger.GesamtAnzahl = log.Versuche;
+        Hud.ResetAll();
         StateHasChanged();
     }
 
     private async Task GenerateNewTask()
     {
-        var store = new SkillMasteryStore(AufgabenDB);
+        var store = new SkillMasteryStore(AufgabenDb);
         var adaptiveTask = new AdaptiveTaskGenerator(store, _rng);
 
-        _currentTaskDef = await adaptiveTask.ChooseTaskAsync<Model.Tasks.TaskDefs.ArithTaskDefinition>();
+        _currentTaskDef = await adaptiveTask.ChooseTaskAsync<ArithTaskDefinition>();
         (_number1, _number2)= _currentTaskDef.Task.Generator(_rng);
         
         _expectedResult = _currentTaskDef.Task.Operator==ArithOperator.Addition ? _number1 + _number2 : _number1 - _number2;
@@ -111,7 +96,7 @@ public partial class ArithmeticChallenge : ComponentBase
     private int[] ExtractDigits(int number, int length)
     {
         var digits = new int[length];
-        for (int i = length - 1; i >= 0; i--)
+        for (var i = length - 1; i >= 0; i--)
         {
             digits[i] = number % 10;
             number /= 10;
@@ -167,8 +152,8 @@ public partial class ArithmeticChallenge : ComponentBase
 
     private async Task Evaluate()
     {
-        int userValue = 0;
-        for (int i = 0; i < MaxLength + 1; i++)
+        var userValue = 0;
+        for (var i = 0; i < MaxLength + 1; i++)
         {
             userValue = userValue * 10 + (_userDigits[i] ?? 0);
         }
@@ -187,7 +172,7 @@ public partial class ArithmeticChallenge : ComponentBase
         if (userValue == _expectedResult)
         {
             log.Kompetenz.AddRichtig();
-            HUD.IncrementCombo();
+            Hud.IncrementCombo();
             Score.AddPoints(2,8);
             await (_currentTaskDef?.Success(log.Kompetenz) ?? Task.CompletedTask);
             stats.Erfolgreich++;
@@ -198,7 +183,7 @@ public partial class ArithmeticChallenge : ComponentBase
         {
             log.Kompetenz.AddFalsch();
             await (_currentTaskDef?.Fail(log.Kompetenz)?? Task.CompletedTask);
-            HUD.SetCombo(0);
+            Hud.SetCombo(0);
             stats.Versuche++;
             _feedback = $"Falsch! Richtige Lösung: {_expectedResult}.<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
             Score.AddPoints(-5,0);
@@ -218,8 +203,8 @@ public partial class ArithmeticChallenge : ComponentBase
         await ArithDb.StoreItemAsync(log);
         Logger.Log(log.ToRenderFragment());
 
-        Logger.erfolgreich = stats.RichtigProzent();
-        Logger.gesamtAnzahl = stats.Versuche;
+        Logger.Erfolgreich = stats.RichtigProzent();
+        Logger.GesamtAnzahl = stats.Versuche;
         await ArithDb.StoreItemAsync(stats);
         StateHasChanged();
     }

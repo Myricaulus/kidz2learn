@@ -30,7 +30,7 @@ public class ArithemticLog : IIdItem
 
     public RenderFragment ToRenderFragment() => builder =>
         {
-            int i = 0;
+            var i = 0;
             builder.OpenElement(i++, "div");
             builder.AddAttribute(i++, "class", "log-entry arithmetik-log");
             builder.AddContent(i++, $"{Zahl1}{Op}{Zahl2} = ");

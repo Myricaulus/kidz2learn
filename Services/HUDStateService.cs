@@ -1,4 +1,6 @@
-public class HUDStateService
+namespace Kidz2Learn.Services;
+
+public class HudStateService
 {
     public event Action? OnChange;
 

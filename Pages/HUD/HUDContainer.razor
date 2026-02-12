@@ -1,8 +1,9 @@
 @using Kidz2Learn.Components
-@inject HUDStateService HUD
+@using Kidz2Learn.Services
+@inject HudStateService Hud
 
 <div class="hud-container">
-    <ComboCounter ComboCount="@HUD.ComboCount" />
+    <ComboCounter ComboCount="@Hud.ComboCount" />
     <!--TimeAttackClock IsActive="@ShowTimer" />
     <DifficultyIndicator Level="@CurrentDifficulty" /-->
     <div class="spacer"></div>
@@ -23,6 +24,6 @@
         ComboCount = 0;
         ShowTimer = false;
         CurrentDifficulty = 0;
-        HUD.OnChange += StateHasChanged;
+        Hud.OnChange += StateHasChanged;
     }
 }

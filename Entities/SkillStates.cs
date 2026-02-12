@@ -10,7 +10,7 @@ public sealed record SkillAttempt
     public bool Correct {get;set;}
     public int NeededTimeMs {get;set;}
     public float EffectiveDifficulty {get;set;}
-    public AttemptFailReason failReason {get;set;}
+    public AttemptFailReason FailReason {get;set;}
 }
 
 public enum AttemptFailReason

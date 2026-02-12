@@ -13,14 +13,14 @@ public static class Skill
 {
     public static class Math
     {
-        public const string add_1_5 = "add_1_5";
-        public const string add_10_no_carry = "add_10_no_carry";
-        public const string add_10_with_carry = "add_10_with_carry";
-        public const string sub_10 = "sub_10";    
-        public const string add_20 = "add_20";
-        public const string sub_20 = "sub_20";
+        public const string Add15 = "add_1_5";
+        public const string Add10NoCarry = "add_10_no_carry";
+        public const string Add10WithCarry = "add_10_with_carry";
+        public const string Sub10 = "sub_10";    
+        public const string Add20 = "add_20";
+        public const string Sub20 = "sub_20";
     }
-    public const string read_syllables = "read_syllables";
+    public const string ReadSyllables = "read_syllables";
 }
 
 public sealed class SkillDefinition
@@ -40,27 +40,27 @@ public static class TaskDomain
 
 public static class SkillRegistry
 {
-    private static readonly Dictionary<string,SkillDefinition> _skills = new()
+    private static readonly Dictionary<string,SkillDefinition> Skills = new()
     {
-        {Skill.Math.add_1_5, new()  { Id=Skill.Math.add_1_5, Domain=TaskDomain.Math, Category="arithmetic", Difficulty=1,DisplayName="Addition bis 5" }},
-        {Skill.Math.add_10_no_carry, new() { Id=Skill.Math.add_10_no_carry, Domain=TaskDomain.Math, Category="arithmetic", Difficulty=2,DisplayName="Addition bis 10 ohne Übergang" }},
-        {Skill.Math.add_10_with_carry, new() { Id=Skill.Math.add_10_with_carry, Domain=TaskDomain.Math, Category="arithmetic", Difficulty=3,DisplayName="Addition mit Übergang" }},
-        {Skill.Math.add_20, new() { Id=Skill.Math.add_20, Domain=TaskDomain.Math, Category="arithmetic", Difficulty=4,DisplayName="Addition bis 20" }},
-        {Skill.Math.sub_10, new() { Id=Skill.Math.sub_10, Domain=TaskDomain.Math, Category="arithmetic", Difficulty=3,DisplayName="Subtraktion bis 10" }},
-        {Skill.Math.sub_20, new() { Id=Skill.Math.sub_20, Domain=TaskDomain.Math, Category="arithmetic", Difficulty=4,DisplayName="Subtraktion bis 20" }},
-        {Skill.read_syllables, new() { Id=Skill.read_syllables, Domain=TaskDomain.Reading, Category="phonetics", Difficulty=1,DisplayName="Silben lesen" }},
+        {Skill.Math.Add15, new()  { Id=Skill.Math.Add15, Domain=TaskDomain.Math, Category="arithmetic", Difficulty=1,DisplayName="Addition bis 5" }},
+        {Skill.Math.Add10NoCarry, new() { Id=Skill.Math.Add10NoCarry, Domain=TaskDomain.Math, Category="arithmetic", Difficulty=2,DisplayName="Addition bis 10 ohne Übergang" }},
+        {Skill.Math.Add10WithCarry, new() { Id=Skill.Math.Add10WithCarry, Domain=TaskDomain.Math, Category="arithmetic", Difficulty=3,DisplayName="Addition mit Übergang" }},
+        {Skill.Math.Add20, new() { Id=Skill.Math.Add20, Domain=TaskDomain.Math, Category="arithmetic", Difficulty=4,DisplayName="Addition bis 20" }},
+        {Skill.Math.Sub10, new() { Id=Skill.Math.Sub10, Domain=TaskDomain.Math, Category="arithmetic", Difficulty=3,DisplayName="Subtraktion bis 10" }},
+        {Skill.Math.Sub20, new() { Id=Skill.Math.Sub20, Domain=TaskDomain.Math, Category="arithmetic", Difficulty=4,DisplayName="Subtraktion bis 20" }},
+        {Skill.ReadSyllables, new() { Id=Skill.ReadSyllables, Domain=TaskDomain.Reading, Category="phonetics", Difficulty=1,DisplayName="Silben lesen" }},
     };
 
     public static SkillDefinition Get(string id)
-        => _skills.TryGetValue(id,out var v)?v:new(){Id=id, Domain="unkown", Difficulty=1, DisplayName="unknown"};
+        => Skills.TryGetValue(id,out var v)?v:new(){Id=id, Domain="unkown", Difficulty=1, DisplayName="unknown"};
 
     public static IEnumerable<SkillDefinition> ByDomain(string domain)
-        => _skills.Values.Where(s => s.Domain == domain);
+        => Skills.Values.Where(s => s.Domain == domain);
 
     public static IEnumerable<SkillDefinition> ByCategory(string category)
-        => _skills.Values.Where(s => s.Category == category);
+        => Skills.Values.Where(s => s.Category == category);
 
-    public static IReadOnlyDictionary<string,SkillDefinition> All => _skills;
+    public static IReadOnlyDictionary<string,SkillDefinition> All => Skills;
 }
 
 public record SkillView(SkillDefinition Definition, SkillState State);
@@ -111,7 +111,7 @@ public sealed class SkillMasteryStore(IndexedDb skillDb)
             Correct=success,
             EffectiveDifficulty = s.EffectiveDifficulty,
             NeededTimeMs = timeMs,
-            failReason = AttemptFailReason.Unknown // TODO: try to guess AttemptFailReason
+            FailReason = AttemptFailReason.Unknown // TODO: try to guess AttemptFailReason
         });
 
         // specificTaskHistory contains the history of last 20 attempts about this specific Task, like "5+6" or "5+7"
@@ -133,8 +133,8 @@ public sealed class SkillMasteryStore(IndexedDb skillDb)
 
         float TaskRowFactor(Kompetenzniveau taskHistory)
 {
-            int good = taskHistory.CountLastRichtigRow();
-            int bad  = taskHistory.CountLastFalschRow();
+            var good = taskHistory.CountLastRichtigRow();
+            var bad  = taskHistory.CountLastFalschRow();
 
             if (good > 0)
                 return 1f + 0.2f * (float)Math.Sqrt(good);
@@ -148,9 +148,9 @@ public sealed class SkillMasteryStore(IndexedDb skillDb)
         float TimeFactor(int timeMs, float effectiveDifficulty)
         {
             // Erwartete Zeit steigt mit Schwierigkeit
-            float expectedMs = 1500f + effectiveDifficulty * 2000f;
+            var expectedMs = 1500f + effectiveDifficulty * 2000f;
 
-            float ratio = expectedMs / Math.Max(timeMs, 5000);
+            var ratio = expectedMs / Math.Max(timeMs, 5000);
 
             return Math.Clamp(ratio, 0.5f, 1.8f);
         }
@@ -171,16 +171,16 @@ public sealed class SkillMasteryStore(IndexedDb skillDb)
         await _store.StoreItemAsync(s);
     }
 
-    internal async Task<IReadOnlyDictionary<string, SkillState>> Snapshot() => await _store.ToDictionaryAsync<SkillState>();
+    private async Task<IReadOnlyDictionary<string, SkillState>> Snapshot() => await _store.ToDictionaryAsync<SkillState>();
 
-    public async Task<IEnumerable<SkillView>> GetSkillViewEnumarableAsync()
+    public async Task<IEnumerable<SkillView>> GetSkillViewEnumerableAsync()
     {
         // Alle SkillStates aus der DB holen
         var statesById = await Snapshot();
 
         // Alle Skills in SkillRegistry einbeziehen
         return SkillRegistry.All.Values
-            .Select(def => new SkillView(def, statesById.GetValueOrDefault(def.Id)?? new()));
+            .Select(def => new SkillView(def, statesById.GetValueOrDefault(def.Id)?? new SkillState()));
     }
 
 }

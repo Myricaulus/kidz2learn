@@ -7,10 +7,10 @@ namespace Kidz2Learn.Components;
 
 public partial class SidPlayerWidget : ComponentBase
 {
-    private bool _isStarted = false;
+    private bool _isStarted;
     private List<string>? _sidFiles;
     [Inject] private HttpClient Http { get; set; } = null!;
-    [Inject] public SidWidgetService Player { get; set; } = default!;
+    [Inject] public SidWidgetService Player { get; set; } = null!;
     public string SidTitle { get; set; } = string.Empty;
 
     private bool _isPaused;
