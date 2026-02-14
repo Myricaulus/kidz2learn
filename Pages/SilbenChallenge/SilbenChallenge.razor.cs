@@ -1,34 +1,23 @@
-
 using System.Text.Json.Serialization;
 using Kidz2Learn.Model;
+using Kidz2Learn.Model.Tasks.TaskDefs;
 using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Tavenem.Blazor.IndexedDB;
 using Tavenem.DataStorage;
-using Kidz2Learn.Model.Tasks.TaskDefs;
-using MudBlazor;
 
 namespace Kidz2Learn.Pages.SilbenChallenge;
 
 public class SilbenLog : IIdItem
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = string.Empty;
-    [JsonIgnore]
-    public int Zahl1 { get; set; }
-    [JsonIgnore]
-    public string Op { get; set; } = string.Empty;
-    [JsonIgnore]
-    public int Zahl2 { get; set; }
-    [JsonIgnore]
-    public int UserZahl { get; set; }
+    [JsonIgnore] public string Wort { get; set; } = string.Empty;
 
     public Kompetenzniveau Kompetenz { get; set; } = new();
-    [JsonIgnore]
-    public int Richtig { get; set; }
-    [JsonIgnore]
-    public int Falsch { get; set; }
+
+    [JsonIgnore] public int Falsch { get; set; }
+
+    [JsonPropertyName("id")] public string Id { get; set; } = string.Empty;
 
     public bool Equals(IIdItem? other)
     {
@@ -36,52 +25,67 @@ public class SilbenLog : IIdItem
     }
 
 
-    public RenderFragment ToRenderFragment() => builder =>
+    public static string GenId(string word, string skill)
+    {
+        var abb = StringAbbreviator.Abbreviate(skill);
+        return word + "-" + abb;
+    }
+
+    public RenderFragment ToRenderFragment()
+    {
+        return builder =>
         {
             var i = 0;
             builder.OpenElement(i++, "div");
             builder.AddAttribute(i++, "class", "log-entry arithmetik-log");
-            builder.AddContent(i++, $"{Zahl1}{Op}{Zahl2} = ");
+            builder.AddContent(i++, $"{Id} = ");
             builder.OpenElement(i++, "span");
-            builder.AddAttribute(i++, "style", $"color: {(UserZahl == Zahl1+Zahl2 ? "green" : "red")}");
-            builder.AddContent(i++, UserZahl);
+            builder.AddAttribute(i++, "style", $"color: {(Falsch == 0 ? "green" : "red")}");
+            builder.AddContent(i++, $"V:{Falsch + 1}");
             builder.CloseElement(); // </span>
-            builder.AddContent(i, $" ({Zahl1+Zahl2}) R:{Kompetenz.GetProzent()}");
+            builder.AddContent(i, $" ({Wort}) R:{Kompetenz.GetProzent()}");
             builder.CloseElement(); // </div>
         };
+    }
 }
-
-
 
 // ReSharper disable once ClassNeverInstantiated.Global
 public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
 {
-    [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
-    [Inject] private IJSRuntime Js { get; set; } = null!;
-    //[Inject] private LoggerService Logger { get; set; } = null!;
-    [Inject] public ScoreService Score { get; set; } = null!;
-    [Inject] public SidWidgetService Player { get; set; } = null!;
-
-    private string _currentAudio = string.Empty;
-    private string _correctSyllable = string.Empty;
-
-    private List<string> _currentOptions = [];
-
-    private bool _showFeedback;
-    private string _feedbackText = string.Empty;
-    private string _feedbackClass = string.Empty;
+    private readonly Random _rng = new();
 
     private int _correctCount;
+    private string _correctSyllable = string.Empty;
+
+    private string _currentAudio = string.Empty;
+
+    private List<string> _currentOptions = [];
+    private LearningTask<SilbenTaskDefinition>? _currentTaskDef;
+    private string _feedbackClass = string.Empty;
+    private string _feedbackText = string.Empty;
+
+    private bool _showFeedback;
     private int _wrongCount;
 
     private List<string> _wrongSelectedOption = [];
+    [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
+    [Inject] private LoggerService Logger { get; set; } = null!;
+    [Inject] private IJSRuntime Js { get; set; } = null!;
+    [Inject] public ScoreService Score { get; set; } = null!;
+    [Inject] public SidWidgetService Player { get; set; } = null!;
+    private IndexedDbStore ReadingDb { get; set; } = null!;
 
-    private readonly Random _rng = new();
+    public async ValueTask DisposeAsync()
+    {
+        await Player.SetVolume(1.0);
+    }
 
     protected override async Task OnInitializedAsync()
     {
+        ReadingDb = AufgabenDb["LeseAufgaben"] ?? throw new Exception("IndexedDb not instanced");
         await NextTask();
     }
+
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -90,12 +94,6 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
             await Player.SetVolume(0.1);
             await PlayAudio();
         }
-
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await Player.SetVolume(1.0);
     }
 
     private string GetOptionClass(string option)
@@ -110,8 +108,8 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
     {
         var store = new SkillMasteryStore(AufgabenDb);
         var adaptiveTask = new AdaptiveTaskGenerator(store, _rng);
-        var taskGen = await adaptiveTask.ChooseTaskAsync<SilbenTaskDefinition>();
-        var task = taskGen.Task.Generator(_rng);
+        _currentTaskDef = await adaptiveTask.ChooseTaskAsync<SilbenTaskDefinition>();
+        var task = _currentTaskDef.Task.Generator(_rng);
 
         // 1. Silbe auswählen
         _correctSyllable = task.correct;
@@ -132,7 +130,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         await Js.InvokeVoidAsync("k4l_playAudio", "audioPlayer");
     }
 
-    private void CheckAnswer(string answer)
+    private async Task CheckAnswer(string answer)
     {
         var correctAnswer = _correctSyllable.Replace("-", "");
         var correct = answer == correctAnswer;
@@ -142,8 +140,22 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
             _correctCount++;
             _feedbackText = "Richtig!";
             _feedbackClass = "k4l-feedback-correct";
-            Score.AddPoints(3,5);
-
+            Score.AddPoints(3, 5);
+            if (_currentTaskDef is null)
+                throw new InvalidOperationException(
+                    "Cannot Check answer if no task has been given."); // should never land here
+            var id = SilbenLog.GenId(correctAnswer, _currentTaskDef.Task.Skills.First());
+            var log = await ReadingDb.GetItemAsync<SilbenLog>(id) ?? new SilbenLog
+            {
+                Id = id
+            };
+            log.Wort = correctAnswer;
+            log.Falsch = _wrongCount;
+            if (_wrongCount > 0)
+                log.Kompetenz.AddFalsch();
+            else
+                log.Kompetenz.AddRichtig();
+            await (_currentTaskDef?.Success(log.Kompetenz) ?? Task.CompletedTask);
             _showFeedback = true;
             StateHasChanged();
             // Reset für nächste Runde
@@ -155,6 +167,11 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
                 StateHasChanged();
                 await PlayAudio();
             });
+            await ReadingDb.StoreItemAsync(log);
+            Logger.Log(log.ToRenderFragment());
+
+            Logger.Erfolgreich++;
+            Logger.GesamtAnzahl += 1 + _wrongCount;
         }
         else
         {
@@ -164,7 +181,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
             _feedbackText = "Nochmal versuchen!";
             _feedbackClass = "k4l-feedback-wrong";
 
-            Score.AddPoints(-5,-5);
+            Score.AddPoints(-5, -5);
 
             _showFeedback = true;
         }
@@ -175,21 +192,13 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         var result = "";
 
         foreach (var c in silbe)
-        {
             if ("aeiouäöüAEIOUÄÖÜ".Contains(c))
-            {
                 // Vokal
                 result += $"<span style='color:#0077ff;font-weight:bold'>{c}</span>";
-            }
             else
-            {
                 // Konsonant
                 result += $"<span style='color:#ff0066;font-weight:bold'>{c}</span>";
-            }
-        }
 
         return result;
     }
-
-
 }

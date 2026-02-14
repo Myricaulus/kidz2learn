@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Kidz2Learn;
 using Kidz2Learn.Services;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -17,9 +17,9 @@ builder.Services.AddSingleton<HudStateService>();
 builder.Services.AddIndexedDbService();
 // all options
 builder.Services.AddIndexedDb(
-    databaseName: "AufgabenDB", // the database name
-    objectStores: ["ArithmetikAufgaben","SkillMeta","SkillStates"], // the names of value stores
-    version: 2); // the version number of the current database schema 
+    "AufgabenDB", // the database name
+    ["ArithmetikAufgaben", "LeseAufgaben", "SkillMeta", "SkillStates"], // the names of value stores
+    2); // the version number of the current database schema 
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
