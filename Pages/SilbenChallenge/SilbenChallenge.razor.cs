@@ -119,7 +119,6 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         //    1 richtige + 3 zufällige andere
         var shuffled = task.options
             .OrderBy(_ => _rng.Next())
-            .Take(9)
             .ToList();
 
         _currentOptions = shuffled;
@@ -155,6 +154,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
                 log.Kompetenz.AddFalsch();
             else
                 log.Kompetenz.AddRichtig();
+
             await (_currentTaskDef?.Success(log.Kompetenz) ?? Task.CompletedTask);
             _showFeedback = true;
             StateHasChanged();
@@ -172,16 +172,17 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
 
             Logger.Erfolgreich++;
             Logger.GesamtAnzahl += 1 + _wrongCount;
+            _wrongCount = 0;
         }
         else
         {
+            if (_wrongCount == 0)
+                Score.AddPoints(-5, -5);
             _wrongCount++;
             _wrongSelectedOption.Add(answer);
 
             _feedbackText = "Nochmal versuchen!";
             _feedbackClass = "k4l-feedback-wrong";
-
-            Score.AddPoints(-5, -5);
 
             _showFeedback = true;
         }

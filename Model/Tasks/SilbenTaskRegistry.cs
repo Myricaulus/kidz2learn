@@ -30,7 +30,7 @@ public static class SilbenTaskRegistry
             {
                 var candidates = WordMeta.Data.Where(w => w.Key.Length >= 3).ToList();
                 var target = candidates[r.Next(candidates.Count)];
-                var selectedOptions = ErstleserDistraktorGenerator.Generate(target.Key, 20, r).Concat([target.Key])
+                var selectedOptions = ErstleserDistraktorGenerator.Generate(target.Key, 5, r).Concat([target.Key])
                     .ToArray();
                 return (target.Value.filename, options: selectedOptions);
             }
@@ -85,7 +85,7 @@ public static class ErstleserDistraktorGenerator
     private static readonly Dictionary<char, char[]> VowelConfusions = new()
     {
         ['a'] = ['e'],
-        ['e'] = ['i'],
+        ['e'] = ['i', 'a'],
         ['i'] = ['e'],
         ['o'] = ['u'],
         ['u'] = ['o']
@@ -136,7 +136,7 @@ public static class ErstleserDistraktorGenerator
         foreach (var newWord in GenerateClusterVariants(word)) results.Add(Capitalize(newWord, isCapital));
 
         // Original nicht drin haben
-        results.Remove(word);
+        results.Remove(Capitalize(word, isCapital));
         Console.WriteLine($"Found Distractions {results.Count}");
         return results
             .OrderBy(_ => r.Next())
@@ -175,9 +175,9 @@ public static class ErstleserDistraktorGenerator
             {
                 var chars = word.ToCharArray();
                 var doubled =
-                    word.Substring(0, i) +
+                    word[..i] +
                     c + c +
-                    word.Substring(i + 1);
+                    word[(i + 1)..];
 
                 yield return doubled;
             }
