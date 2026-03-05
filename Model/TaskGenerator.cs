@@ -1,6 +1,4 @@
-using System.Threading.Tasks;
 using Kidz2Learn.Model.Tasks;
-using Kidz2Learn.Shared.Extensions;
 
 namespace Kidz2Learn.Model;
 
@@ -11,17 +9,16 @@ public enum Difficulty
     Extreme
 }
 
-public sealed class LearningTask<T> where T: BaseTaskDefinition
+public sealed class LearningTask<T> where T : BaseTaskDefinition
 {
-    public T Task { get; }
-    public Difficulty Difficulty { get; }
-
     private readonly SkillMasteryStore _store;
 
     /// <summary>
-    /// Jaja, die Aufgabe muss noch angezeigt werden, und Menschen mit langsamenen Rechner werden hier systematisch benachteilgt, mimimi. Heul leise...
-    /// Menschen die schlechte Rechner haben sind Arm. Und arme Menschen müssen mehr üben, damit sie aus ihrer Armut entfliehen können!
-    /// Ausserdem sollten sich die Unterschiede im Millisekunden bereich aufhalten...
+    ///     Jaja, die Aufgabe muss noch angezeigt werden, und Menschen mit langsamenen Rechner werden hier systematisch
+    ///     benachteilgt, mimimi. Heul leise...
+    ///     Menschen die schlechte Rechner haben sind Arm. Und arme Menschen müssen mehr üben, damit sie aus ihrer Armut
+    ///     entfliehen können!
+    ///     Ausserdem sollten sich die Unterschiede im Millisekunden bereich aufhalten...
     /// </summary>
     private readonly DateTime _timeStarted = DateTime.Now;
 
@@ -34,6 +31,9 @@ public sealed class LearningTask<T> where T: BaseTaskDefinition
         Difficulty = difficulty;
         _store = store;
     }
+
+    public T Task { get; }
+    public Difficulty Difficulty { get; }
 
     public async Task Success(Kompetenzniveau kompetenz)
     {
@@ -52,13 +52,14 @@ public sealed class LearningTask<T> where T: BaseTaskDefinition
 
 public sealed class AdaptiveTaskGenerator(SkillMasteryStore store, Random rng)
 {
-    public async Task<LearningTask<T>> ChooseTaskAsync<T>(string? category=null) where T: BaseTaskDefinition, IBaseTaskDefinition
+    public async Task<LearningTask<T>> ChooseTaskAsync<T>(string? category = null, string? skill = null)
+        where T : BaseTaskDefinition, IBaseTaskDefinition
     {
-        var domain = T.Domain; 
+        var domain = T.Domain;
         var skillstates = await store.GetSkillViewEnumerableAsync();
         // 1. Schwächste Skills priorisieren
         var weakestSkills = skillstates
-            .Where(sv=>sv.Definition.Domain==domain && (category == null || sv.Definition.Category==category)  )
+            .Where(sv => sv.Definition.Domain == domain && (category == null || sv.Definition.Category == category))
             .OrderBy(sv => sv.State.Mastery)
             .ThenBy(kv => kv.Definition.Difficulty)
             .Take(3)
@@ -68,12 +69,14 @@ public sealed class AdaptiveTaskGenerator(SkillMasteryStore store, Random rng)
         // 2. Aufgaben suchen, die diese Skills trainieren
         var candidates = TaskRegistry.GetTasks<T>();
 
+        if (skill is not null) candidates = candidates.Where(c => c.Skills.Contains(skill)).ToList();
+
         /*candidates = candidates
             .Where(d => d.Skills.Any(s => weakestSkills.Contains(s)))
             .ToList();*/
-        
+
         // Fallback, falls alles voll mastered
-       // if (candidates.Count == 0)
+        // if (candidates.Count == 0)
         //    candidates = [.. TaskRegistry.All];
 
         // 3. Bevorzugung normaler Tasks
@@ -81,7 +84,7 @@ public sealed class AdaptiveTaskGenerator(SkillMasteryStore store, Random rng)
             .Select(d => (def: d, weight: d.DifficultyLevel))
             .ToList();
 
-        var easiestDifficulty = candidates.Min(c=>c.DifficultyLevel);
+        var easiestDifficulty = candidates.Min(c => c.DifficultyLevel);
 
         var chosen = InvertedWeightedPick(weighted);
         var difficulty = chosen.DifficultyLevel switch
@@ -99,14 +102,14 @@ public sealed class AdaptiveTaskGenerator(SkillMasteryStore store, Random rng)
 
     private T InvertedWeightedPick<T>(List<(T def, int weight)> items)
     {
-        var max = items.Max(i=>i.weight);
-        var total = items.Sum(i => max+1 - i.weight);
+        var max = items.Max(i => i.weight);
+        var total = items.Sum(i => max + 1 - i.weight);
         var roll = rng.Next(0, total);
         var sum = 0;
 
         foreach (var item in items)
         {
-            sum += max+1 - item.weight;
+            sum += max + 1 - item.weight;
             if (roll < sum)
                 return item.def;
         }
@@ -114,4 +117,3 @@ public sealed class AdaptiveTaskGenerator(SkillMasteryStore store, Random rng)
         return items[0].def;
     }
 }
-

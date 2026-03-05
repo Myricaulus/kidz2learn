@@ -5,22 +5,21 @@ using Tavenem.DataStorage;
 
 public class ArithemticLog : IIdItem
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = string.Empty;
-    [JsonIgnore]
-    public int Zahl1 { get; set; }
-    [JsonIgnore]
-    public string Op { get; set; } = string.Empty;
-    [JsonIgnore]
-    public int Zahl2 { get; set; }
-    [JsonIgnore]
-    public int UserZahl { get; set; }
+    [JsonIgnore] public int? Zahl1 { get; set; }
+
+    [JsonIgnore] public string Op { get; set; } = string.Empty;
+
+    [JsonIgnore] public int? Zahl2 { get; set; }
+
+    [JsonIgnore] public int? Zahl3 { get; set; }
+
+    [JsonIgnore] public int UserZahl { get; set; }
 
     public Kompetenzniveau Kompetenz { get; set; } = new();
-    [JsonIgnore]
-    public int Richtig { get; set; }
-    [JsonIgnore]
-    public int Falsch { get; set; }
+
+    [JsonIgnore] public bool Richtig { get; set; }
+
+    [JsonPropertyName("id")] public string Id { get; set; } = string.Empty;
 
     public bool Equals(IIdItem? other)
     {
@@ -28,27 +27,47 @@ public class ArithemticLog : IIdItem
     }
 
 
-    public RenderFragment ToRenderFragment() => builder =>
+    public RenderFragment ToRenderFragment()
+    {
+        return builder =>
         {
             var i = 0;
+            var color = Richtig ? "#2e7d32" : "#c62828"; // angenehmes grün / rot
             builder.OpenElement(i++, "div");
             builder.AddAttribute(i++, "class", "log-entry arithmetik-log");
-            builder.AddContent(i++, $"{Zahl1}{Op}{Zahl2} = ");
-            builder.OpenElement(i++, "span");
-            builder.AddAttribute(i++, "style", $"color: {(UserZahl == (Op=="+"?Zahl1+Zahl2:Zahl1-Zahl2) ? "green" : "red")}");
-            builder.AddContent(i++, UserZahl);
-            builder.CloseElement(); // </span>
-            builder.AddContent(i++, $" ({Zahl1+Zahl2}) R:{Kompetenz.GetProzent()}");
-            builder.CloseElement(); // </div>
+
+            void RenderValue(int? value)
+            {
+                if (value.HasValue)
+                {
+                    builder.AddContent(i++, value.Value);
+                }
+                else
+                {
+                    builder.OpenElement(i++, "span");
+                    builder.AddAttribute(i++, "style", $"color:{color}; font-weight:600;");
+                    builder.AddContent(i++, UserZahl);
+                    builder.CloseElement();
+                }
+            }
+
+            RenderValue(Zahl1);
+            builder.AddContent(i++, $" {Op} ");
+            RenderValue(Zahl2);
+            builder.AddContent(i++, " = ");
+            RenderValue(Zahl3);
+            builder.AddContent(i++, $"  R:{Kompetenz.GetProzent()}");
+            builder.CloseElement(); // div
         };
+    }
 }
 
 internal class ArithemticLogStats : IIdItem
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = "0";
-    public int Versuche {get;set;}
-    public int Erfolgreich {get;set;}
+    public int Versuche { get; set; }
+    public int Erfolgreich { get; set; }
+
+    [JsonPropertyName("id")] public string Id { get; set; } = "0";
 
     public bool Equals(IIdItem? other)
     {

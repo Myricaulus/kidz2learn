@@ -5,20 +5,14 @@ namespace Kidz2Learn.Model.Tasks;
 public static class TaskRegistry
 {
     private static readonly Dictionary<Type, IReadOnlyList<BaseTaskDefinition>> Tasks =
-    new()
-    {
-        { typeof(ArithTaskDefinition), AllArith },
-        { typeof(SilbenTaskDefinition), AllSilben }
-    };
+        new()
+        {
+            { typeof(ArithTaskDefinition), AllArith },
+            { typeof(SilbenTaskDefinition), AllSilben }
+        };
 
-    public static IReadOnlyList<T> GetTasks<T>() where T : BaseTaskDefinition
-        => (IReadOnlyList<T>)Tasks[typeof(T)];
-    
 
     private static IReadOnlyList<BaseTaskDefinition>? _all;
-    public static IReadOnlyList<BaseTaskDefinition> All => _all ??= [.. Tasks.Values.SelectMany(x => x)];
-    public static IReadOnlyList<ArithTaskDefinition> AllArith => ArithTaskRegistry.All;
-    public static IReadOnlyList<SilbenTaskDefinition> AllSilben => SilbenTaskRegistry.All;
 
     static TaskRegistry()
     {
@@ -45,5 +39,15 @@ public static class TaskRegistry
 
             throw new InvalidOperationException(message);
         }
+    }
+
+    public static IReadOnlyList<BaseTaskDefinition> All => _all ??= [.. Tasks.Values.SelectMany(x => x)];
+    public static IReadOnlyList<ArithTaskDefinition> AllArith => ArithTaskRegistry.All;
+    public static IReadOnlyList<ArithTaskDefinition> TurboArith => ArithTaskRegistry.Turbo;
+    public static IReadOnlyList<SilbenTaskDefinition> AllSilben => SilbenTaskRegistry.All;
+
+    public static IReadOnlyList<T> GetTasks<T>() where T : BaseTaskDefinition
+    {
+        return (IReadOnlyList<T>)Tasks[typeof(T)];
     }
 }

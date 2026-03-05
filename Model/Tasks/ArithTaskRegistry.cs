@@ -6,18 +6,16 @@ public static class ArithTaskRegistry
 {
     private static readonly List<ArithTaskDefinition> Defs =
     [
-        new()
+        new() // 0
         {
-            Operator = ArithOperator.Addition,
             Skills = [Skill.Math.Add15],
             DifficultyLevel = 1,
-            Generator = r => (r.Next(1, 5), r.Next(1, 5))
+            Generator = r => (r.Next(1, 5), r.Next(1, 5), null, ArithOperator.Addition)
         },
 
 
-        new()
+        new() // 1
         {
-            Operator = ArithOperator.Addition,
             Skills = [Skill.Math.Add10NoCarry],
             DifficultyLevel = 2,
             Generator = r =>
@@ -29,47 +27,43 @@ public static class ArithTaskRegistry
                     b = r.Next(1, 10);
                 } while (a + b >= 10);
 
-                return (a, b);
+                return (a, b, null, ArithOperator.Addition);
             }
         },
 
 
-        new()
+        new() // 2
         {
-            Operator = ArithOperator.Addition,
             Skills = [Skill.Math.Add10WithCarry],
             DifficultyLevel = 3,
-            Generator = r => (r.Next(5, 10), r.Next(5, 10))
+            Generator = r => (r.Next(5, 10), r.Next(5, 10), null, ArithOperator.Addition)
         },
 
 
-        new()
+        new() //3
         {
-            Operator = ArithOperator.Addition,
             Skills = [Skill.Math.Add20],
             DifficultyLevel = 4,
-            Generator = r => (r.Next(1, 20), r.Next(1, 20))
+            Generator = r => (r.Next(1, 20), r.Next(1, 20), null, ArithOperator.Addition)
         },
 
         // SUBTRAKTION
 
-        new()
+        new() //4
         {
-            Operator = ArithOperator.Subtraction,
             Skills = [Skill.Math.Sub10],
             DifficultyLevel = 3,
             Generator = r =>
             {
                 var a = r.Next(1, 10);
                 var b = r.Next(1, a + 1);
-                return (a, b);
+                return (a, b, null, ArithOperator.Subtraction);
             }
         },
 
 
-        new()
+        new() //6
         {
-            Operator = ArithOperator.Subtraction,
             Skills = [Skill.Math.Sub20],
             DifficultyLevel = 4,
             Generator = r =>
@@ -77,9 +71,51 @@ public static class ArithTaskRegistry
                 var a = r.Next(1, 20);
                 var b = r.Next(1, 20);
                 if (b > a) (a, b) = (b, a);
-                return (a, b);
+                return (a, b, null, ArithOperator.Subtraction);
             }
         }
     ];
-    public static IReadOnlyList<ArithTaskDefinition> All => Defs;
+
+    private static readonly List<ArithTaskDefinition> TurboDefs =
+    [
+        new()
+        {
+            Skills = [Skill.Math.Turbo10],
+            DifficultyLevel = 3,
+            Generator = r =>
+            {
+                if (r.Next(2) == 0)
+                {
+                    int? x, y;
+                    do
+                    {
+                        x = r.Next(1, 10);
+                        y = r.Next(1, 10);
+                    } while (x + y >= 10);
+
+                    var z = x + y;
+                    var i = r.Next(3);
+                    if (i == 0) x = null;
+                    else if (i == 1) y = null;
+                    else z = null;
+                    return (x, y, z, ArithOperator.Addition);
+                }
+                else
+                {
+                    int? x = r.Next(1, 10);
+                    int? y = r.Next(1, x.Value + 1);
+                    var z = x - y;
+                    var i = r.Next(3);
+                    if (i == 0) x = null;
+                    else if (i == 1) y = null;
+                    else z = null;
+                    return (x, y, z, ArithOperator.Subtraction);
+                }
+            }
+        }
+    ];
+
+    public static IReadOnlyList<ArithTaskDefinition> All => Defs.Union(TurboDefs).ToList();
+    public static IReadOnlyList<ArithTaskDefinition> Simple => Defs;
+    public static IReadOnlyList<ArithTaskDefinition> Turbo => TurboDefs;
 }

@@ -8,6 +8,7 @@ public static class Skill
 {
     public const string ReadSyllables = "read_syllables";
     public const string ReadPrecise = "read_precise";
+    public const string TurboRead = "read_turbo";
 
     public static class Math
     {
@@ -17,6 +18,8 @@ public static class Skill
         public const string Sub10 = "sub_10";
         public const string Add20 = "add_20";
         public const string Sub20 = "sub_20";
+        public const string Turbo10 = "turbo_10";
+        public const string Turbo20 = "turbo_20";
     }
 }
 
@@ -85,6 +88,14 @@ public static class SkillRegistry
             {
                 Id = Skill.Math.Sub20, Domain = TaskDomain.Math, Category = "arithmetic", Difficulty = 4,
                 DisplayName = "Subtraktion bis 20"
+            }
+        },
+        {
+            Skill.Math.Turbo10,
+            new SkillDefinition
+            {
+                Id = Skill.Math.Turbo10, Domain = TaskDomain.Math, Category = "arithmetic", Difficulty = 4,
+                DisplayName = "Turbo Rechnen bis 10"
             }
         },
         {

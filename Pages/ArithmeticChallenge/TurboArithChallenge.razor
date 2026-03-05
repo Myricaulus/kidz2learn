@@ -1,0 +1,384 @@
+@page "/ArithmeticTurbo"
+@using Kidz2Learn.Model
+@using Kidz2Learn.Model.Tasks
+@using Kidz2Learn.Model.Tasks.TaskDefs
+@using Kidz2Learn.Services
+@using MudBlazor
+@using Tavenem.Blazor.IndexedDB
+
+<MudPaper Class="pa-6" Elevation="2">
+
+    @if (_state == PageState.Start)
+    {
+        <MudStack AlignItems="AlignItems.Center" Spacing="4">
+
+            <MudText Typo="Typo.h4">🚀 1-Minute Turbo Rechnen</MudText>
+
+            <MudText Typo="Typo.body1" Style="max-width:500px; text-align:center;">
+                Rechne eine Minute lang so viele Aufgaben wie möglich.
+                Plus und Minus wechseln sich ab.
+                Gib einfach das fehlende Ergebnis ein und drücke Enter.
+            </MudText>
+
+            @if (_lastBlockCount > 0)
+            {
+                <MudDivider Class="my-4"/>
+
+                <MudText Typo="Typo.h6">Letzter Block</MudText>
+
+                <MudStack AlignItems="AlignItems.Center" Spacing="1">
+
+                    <MudText>
+                        Aufgaben: @_lastBlockCount
+                    </MudText>
+
+                    <MudText>
+                        Fehlerquote: @($"{_lastErrorRate:P0}")
+                    </MudText>
+
+                    <MudProgressLinear
+                        Value="@(_lastCorrectRate * 100)"
+                        Color="Color.Success"
+                        BufferValue="100"
+                        Style="width:300px"/>
+
+                    <MudText Typo="Typo.h4">
+                        @_lastStars
+                    </MudText>
+
+                </MudStack>
+            }
+
+            <MudButton
+                Variant="Variant.Filled"
+                Color="Color.Primary"
+                Size="Size.Large"
+                StartIcon="@Icons.Material.Filled.RocketLaunch"
+                OnClick="StartTurbo">
+                Start
+            </MudButton>
+
+        </MudStack>
+    }
+
+    @if (_state == PageState.Running)
+    {
+        <MudStack AlignItems="AlignItems.Center" Spacing="4">
+
+            <MudText Typo="Typo.h5">
+                Zeit läuft...
+            </MudText>
+
+            <MudPaper Class="pa-6" Elevation="1">
+
+                <div style="font-size:48px; text-align:center; letter-spacing:4px;">
+                    <form @onsubmit="OnSubmit" @onsubmit:preventDefault>
+                        @if (_x is null)
+                        {
+                            <input
+                                @bind="_userInput"
+                                style="font-size:48px; width:140px; text-align:center;"
+                                @ref="_inputRef"/>
+                        }
+                        else
+                        {
+                            @DisplayValue(_x)
+                        }
+                        <span> @(_operator == ArithOperator.Addition ? "+" : "-") </span>
+                        @if (_y is null)
+                        {
+                            <input
+                                @bind="_userInput"
+                                style="font-size:48px; width:140px; text-align:center;"
+                                @ref="_inputRef"/>
+                        }
+                        else
+                        {
+                            @DisplayValue(_y)
+                        }
+                        <span>=</span>
+
+                        @if (_z is null)
+                        {
+                            <input
+                                @bind="_userInput"
+                                style="font-size:48px; width:140px; text-align:center;"
+                                @ref="_inputRef"/>
+                        }
+                        else
+                        {
+                            @DisplayValue(_z)
+                        }
+                    </form>
+                </div>
+
+            </MudPaper>
+
+        </MudStack>
+    }
+
+</MudPaper>
+
+@code {
+
+    #region Inject
+
+    [Inject] private IJSRuntime Js { get; set; } = null!;
+    [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
+    [Inject] private LoggerService Logger { get; set; } = null!;
+    [Inject] private ScoreService Score { get; set; } = null!;
+    [Inject] private HudStateService Hud { get; set; } = null!;
+
+    #endregion
+
+    #region State
+
+    private enum PageState
+    {
+        Start,
+        Running
+    }
+
+    private PageState _state = PageState.Start;
+
+    #endregion
+
+    #region Config
+
+    private const int TurboSeconds = 180;
+
+    #endregion
+
+    #region Runtime
+
+    private DateTime _endTime;
+
+    private readonly Random _rng = new();
+
+    private LearningTask<ArithTaskDefinition>? _currentTaskDef;
+
+    private Func<Random, (int?, int?, int?, ArithOperator)>? _generator;
+
+    #endregion
+
+    #region Current Task
+
+    private int? _x;
+    private int? _y;
+    private int? _z;
+    private ArithOperator _operator;
+
+    private string _userInput = "";
+
+    private ElementReference _inputRef;
+
+    #endregion
+
+    #region Stats
+
+    private int _blockTotal;
+    private int _blockCorrect;
+
+    private int _lastBlockCount;
+    private double _lastErrorRate;
+    private double _lastCorrectRate;
+    private string _lastStars = "";
+
+    #endregion
+
+    #region DB
+
+    private IndexedDbStore ArithDb = null!;
+
+    #endregion
+
+    protected override async Task OnInitializedAsync()
+    {
+        ArithDb = AufgabenDb["ArithmetikAufgaben"]
+                  ?? throw new Exception("IndexedDb not instanced");
+    }
+
+    #region Start
+
+    private async Task StartTurbo()
+    {
+        Hud.ResetAll();
+
+        _blockTotal = 0;
+        _blockCorrect = 0;
+
+        var store = new SkillMasteryStore(AufgabenDb);
+        var adaptiveTask = new AdaptiveTaskGenerator(store, _rng);
+
+        _currentTaskDef =
+            await adaptiveTask.ChooseTaskAsync<ArithTaskDefinition>(skill: Skill.Math.Turbo10);
+
+        _generator = _currentTaskDef.Task.Generator;
+
+        _endTime = DateTime.UtcNow.AddSeconds(TurboSeconds);
+
+        _state = PageState.Running;
+
+        await NextTask();
+    }
+
+    #endregion
+
+    #region Task Flow
+
+    private async Task NextTask()
+    {
+        if (_generator == null)
+            return;
+
+        (_x, _y, _z, _operator) = _generator(_rng);
+
+        _userInput = "";
+
+        StateHasChanged();
+
+        await Task.Delay(1);
+        await _inputRef.FocusAsync();
+    }
+
+    #endregion
+
+    #region Input
+
+    private async Task OnSubmit()
+    {
+        if (!int.TryParse(_userInput, out var userValue))
+            return;
+
+        await Evaluate(userValue);
+    }
+
+    #endregion
+
+    #region Evaluation
+
+    private async Task Evaluate(int userValue)
+    {
+        _blockTotal++;
+
+        int expected;
+
+        if (_z is null)
+            expected = Calc(_x!.Value, _y!.Value);
+        else if (_x is null)
+            expected = CalcReverseLeft(_y!.Value, _z!.Value);
+        else
+            expected = CalcReverseRight(_x!.Value, _z!.Value);
+
+        var correct = userValue == expected;
+
+        if (correct)
+            _blockCorrect++;
+
+        var id = $"{_x}{OpSymbol()}{_y}={_z}";
+
+        var log = await ArithDb.GetItemAsync<ArithemticLog>(id)
+                  ?? new ArithemticLog { Id = id };
+
+        log.Zahl1 = _x;
+        log.Zahl2 = _y;
+        log.Zahl3 = _z;
+        log.Op = OpSymbol();
+        log.UserZahl = userValue;
+        log.Richtig = correct;
+        if (correct)
+        {
+            log.Kompetenz.AddRichtig();
+
+            Hud.IncrementCombo();
+        }
+        else
+        {
+            log.Kompetenz.AddFalsch();
+            Hud.SetCombo(0);
+        }
+
+        await ArithDb.StoreItemAsync(log);
+
+        Logger.Log(log.ToRenderFragment());
+
+        if (DateTime.UtcNow > _endTime && _blockTotal > 0)
+        {
+            await FinishBlock(log);
+            return;
+        }
+
+        await NextTask();
+    }
+
+    #endregion
+
+    #region Block End
+
+    private async Task FinishBlock(ArithemticLog log)
+    {
+        Score.AddPoints(30, 10);
+        await (_currentTaskDef?.Success(log.Kompetenz)
+               ?? Task.CompletedTask);
+        _lastBlockCount = _blockTotal;
+
+        if (_blockTotal == 0)
+            return;
+
+        _lastCorrectRate = (double)_blockCorrect / _blockTotal;
+        _lastErrorRate = 1 - _lastCorrectRate;
+
+        if (_lastErrorRate <= 0.10)
+            _lastStars = "⭐⭐⭐";
+        else if (_lastErrorRate <= 0.25)
+            _lastStars = "⭐⭐";
+        else
+            _lastStars = "⭐";
+
+        _state = PageState.Start;
+
+        StateHasChanged();
+    }
+
+    #endregion
+
+    #region Math
+
+    private int Calc(int a, int b)
+    {
+        return _operator == ArithOperator.Addition
+            ? a + b
+            : a - b;
+    }
+
+    private int CalcReverseLeft(int b, int result)
+    {
+        return _operator == ArithOperator.Addition
+            ? result - b
+            : result + b;
+    }
+
+    private int CalcReverseRight(int a, int result)
+    {
+        return _operator == ArithOperator.Addition
+            ? result - a
+            : a - result;
+    }
+
+    private string OpSymbol()
+    {
+        return _operator == ArithOperator.Addition ? "+" : "-";
+    }
+
+    #endregion
+
+    #region UI
+
+    private string DisplayValue(int? v)
+    {
+        return v?.ToString() ?? "_";
+    }
+
+    #endregion
+
+}

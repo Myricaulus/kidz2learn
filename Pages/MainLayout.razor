@@ -1,21 +1,21 @@
-﻿@inherits LayoutComponentBase
+﻿@using System.Globalization
+@using Kidz2Learn.Components
 @using Kidz2Learn.Model
 @using Kidz2Learn.Pages.HUD
+@using Kidz2Learn.Services
 @using Microsoft.AspNetCore.WebUtilities
 @using MudBlazor
-@using Kidz2Learn.Components
-@using Kidz2Learn.Services
-@using System.Globalization
 @using Tavenem.Blazor.IndexedDB
+@inherits LayoutComponentBase
 @* Required *@
-<MudThemeProvider />
-<MudPopoverProvider />
+<MudThemeProvider/>
+<MudPopoverProvider/>
 
 @* Needed for dialogs *@
-<MudDialogProvider />
+<MudDialogProvider/>
 
 @* Needed for snackbars *@
-<MudSnackbarProvider />
+<MudSnackbarProvider/>
 @if (_showWelcome && !_skipSplash)
 {
     <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -31,81 +31,90 @@
                 <li>Punkte reduzierung für gemeisterte Aufgaben.</li>
                 <li>Reduktion der gemeisterten Aufgaben.</li>
                 <li>Weitere Rechentypen: Subtraktion, Multiplikation, Division</li>
-                <li>Time Attack: Timer läuft runter, je mehr Aufgaben in der Zeit geschafft wurden, desto mehr Punkte.</li>
+                <li>Time Attack: Timer läuft runter, je mehr Aufgaben in der Zeit geschafft wurden, desto mehr Punkte.
+                </li>
                 <li>Schwierigkeitsregler für mutige.</li>
                 <li>Extra Button zum starten ohne Musik.</li>
                 <li>Mehr lieder</li>
             </ul>
-        <MudButton Color="Color.Primary"
-                   Variant="Variant.Filled"
-                   Disabled="_migrationRunning"
-                   OnClick="StartApp">
-            @if (_migrationRunning)
-            {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
-                <MudText>&nbsp;Bitte warten...</MudText>
-            }
-            else
-            {
-                <MudIcon Icon="@Icons.Material.Filled.RocketLaunch" />
-                <MudText>&nbsp;Starte App</MudText>
-            }
-        </MudButton>
+            <MudButton Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       Disabled="_migrationRunning"
+                       OnClick="StartApp">
+                @if (_migrationRunning)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                    <MudText>&nbsp;Bitte warten...</MudText>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.RocketLaunch"/>
+                    <MudText>&nbsp;Starte App</MudText>
+                }
+            </MudButton>
         </div>
     </div>
-} else {
-<MudLayout>
-    <MudAppBar Elevation="4" Class="appbar-with-biber">
-        <MudIconButton Icon="@BrainIcon" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
-
-        <div class="progress-container">
-            <MudProgressLinear Value="@_points" Max="100" Size="Size.Large" Rounded="true" style="height: 20px; background-color: #5d3e33;"/>
-
-            <!-- Biber-Overlay -->
-            <div class="beaver @_biberState @(_useTransition ? "smooth-decay" : "")" style="left:@_points.ToString("F1", CultureInfo.InvariantCulture)%;"></div>
-        </div>
-        <MudImage Src="youtube.png" Alt="Youtube"></MudImage>
-    </MudAppBar>
-
-    <MudDrawer @bind-Open="@_toggleMenuDrawer" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Mini">
-        <MudNavMenu>
-            <MudNavLink Href="ArithmeticChallenge"  Disabled Icon="@Icons.Material.Filled.Add">Addition</MudNavLink>
-            <!--MudNavLink Href="page1" Icon="@Icons.Material.Filled.Star">Page 1</MudNavLink-->
-            <MudNavLink Href="SilbenChallenge" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Abc">Mi Im Ma</MudNavLink>
-            <MudNavLink Href="Silbentrainer" Disabled Icon="@Icons.Material.Filled.MicExternalOn">Trainer</MudNavLink>
-            <MudNavLink Href="Profile" Icon="@Icons.Material.Filled.Person">Profil</MudNavLink>
-        </MudNavMenu>
-        <SidPlayerWidget/>
-    </MudDrawer>
-    <MudMainContent>
-        <div class="layout-root">
-            <div class="page-content">
-                @Body
-            </div>
-
-            <div class="hud-area">
-                <HUDContainer />
-            </div>
-        </div>
-    </MudMainContent>
-
-    <MudDrawer Anchor="Anchor.Right" @bind-Open="@_toggleLogDrawer" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Responsive">
-        <MudStack Breakpoint="Breakpoint.None">
-            <LiveLogger />
-        </MudStack>
-    </MudDrawer>
-    
-</MudLayout>
 }
- 
+else
+{
+    <MudLayout>
+        <MudAppBar Elevation="4" Class="appbar-with-biber">
+            <MudIconButton Icon="@BrainIcon" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer"/>
+
+            <div class="progress-container">
+                <MudProgressLinear Value="@_points" Max="100" Size="Size.Large" Rounded="true"
+                                   style="height: 20px; background-color: #5d3e33;"/>
+
+                <!-- Biber-Overlay -->
+                <div class="beaver @_biberState @(_useTransition ? "smooth-decay" : "")"
+                     style="left:@_points.ToString("F1", CultureInfo.InvariantCulture)%;"></div>
+            </div>
+            <MudImage Src="youtube.png" Alt="Youtube"></MudImage>
+        </MudAppBar>
+
+        <MudDrawer @bind-Open="@_toggleMenuDrawer" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Mini">
+            <MudNavMenu>
+                <MudNavLink Href="ArithmeticChallenge" Disabled Icon="@Icons.Material.Filled.Add">Addition</MudNavLink>
+                <MudNavLink Href="ArithmeticTurbo" Icon="@Icons.Material.Filled.Rocket">Turbo Rechnen</MudNavLink>
+                <!--MudNavLink Href="page1" Icon="@Icons.Material.Filled.Star">Page 1</MudNavLink-->
+                <MudNavLink Href="SilbenChallenge" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Abc">Mi Im Ma
+                </MudNavLink>
+                <MudNavLink Href="Silbentrainer" Disabled Icon="@Icons.Material.Filled.MicExternalOn">Trainer
+                </MudNavLink>
+                <MudNavLink Href="Profile" Icon="@Icons.Material.Filled.Person">Profil</MudNavLink>
+            </MudNavMenu>
+            <SidPlayerWidget/>
+        </MudDrawer>
+        <MudMainContent>
+            <div class="layout-root">
+                <div class="page-content">
+                    @Body
+                </div>
+
+                <div class="hud-area">
+                    <HUDContainer/>
+                </div>
+            </div>
+        </MudMainContent>
+
+        <MudDrawer Anchor="Anchor.Right" @bind-Open="@_toggleLogDrawer" ClipMode="DrawerClipMode.Always"
+                   Variant="DrawerVariant.Responsive">
+            <MudStack Breakpoint="Breakpoint.None">
+                <LiveLogger/>
+            </MudStack>
+        </MudDrawer>
+
+    </MudLayout>
+}
+
 @inject NavigationManager Navigation
 
 @code {
-    [Inject]
-    public ScoreService Score { get; set; } = null!;
-    [Inject(Key = "AufgabenDB")]
-    private IndexedDb AufgabenDb { get; set; } = null!;
+    [Inject] public ScoreService Score { get; set; } = null!;
+    [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
+
     public delegate void UpdatePointsHook(int delta);
+
     bool _showWelcome = true;
     bool _toggleMenuDrawer = true;
     bool _toggleLogDrawer = true;
@@ -117,6 +126,7 @@
     {
         _showWelcome = false;
     }
+
     private float _points;
 
     private bool _skipSplash;
@@ -157,17 +167,18 @@
         if (_points >= 100)
         {
             Console.WriteLine("Navigating to Youtube");
-            Navigation.NavigateTo("https://youtube.com", forceLoad: true);
+            Navigation.NavigateTo("https://youtube.com", true);
             _hasNavigated = true;
-        } else
+        }
+        else
         {
-            if(bonus < 2)
+            if (bonus < 2)
                 _biberState = "angry";
-            else if(bonus > 50)
+            else if (bonus > 50)
                 _biberState = "normal"; // chainsaw
-            else 
+            else
                 _biberState = "normal";
-            _useTransition = Score.TotalScore < _points; 
+            _useTransition = Score.TotalScore < _points;
             _points = Score.TotalScore;
             StateHasChanged();
         }
@@ -177,4 +188,5 @@
     {
         Score.OnScoreChanged -= HandleScoreChanged;
     }
+
 }
