@@ -108,7 +108,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
     {
         var store = new SkillMasteryStore(AufgabenDb);
         var adaptiveTask = new AdaptiveTaskGenerator(store, _rng);
-        _currentTaskDef = await adaptiveTask.ChooseTaskAsync<SilbenTaskDefinition>();
+        _currentTaskDef = await adaptiveTask.ChooseTaskAsync<SilbenTaskDefinition>(skill: Skill.ReadPrecise);
         var task = _currentTaskDef.Task.Generator(_rng);
 
         // 1. Silbe auswählen
@@ -139,7 +139,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
             _correctCount++;
             _feedbackText = "Richtig!";
             _feedbackClass = "k4l-feedback-correct";
-            Score.AddPoints(3, 5);
+            Score.AddPoints(10, 10);
             if (_currentTaskDef is null)
                 throw new InvalidOperationException(
                     "Cannot Check answer if no task has been given."); // should never land here
@@ -176,9 +176,8 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         }
         else
         {
-            if (_wrongCount == 0)
-                Score.AddPoints(-5, -5);
             _wrongCount++;
+            Score.AddPoints(-5 * _wrongCount, -5 * _wrongCount);
             _wrongSelectedOption.Add(answer);
 
             _feedbackText = "Nochmal versuchen!";
