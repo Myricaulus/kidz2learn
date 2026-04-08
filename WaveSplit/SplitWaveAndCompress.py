@@ -21,11 +21,11 @@ import argparse
 # =======================
 # KONFIGURATION
 # =======================
-INPUT_AUDIO = "WaveSplit/input.ogg"
+INPUT_AUDIO = "WaveSplit/input.opus"
 NAMES_FILE = "WaveSplit/names_cleaned.txt"
-OUTPUT_DIR = "wwwroot/audio2"
+OUTPUT_DIR = "wwwroot/audio"
 
-MIN_SILENCE_LEN = 150     # ms – Pause zwischen Wörtern
+MIN_SILENCE_LEN = 250     # ms – Pause zwischen Wörtern
 KEEP_PADDING = 100         # ms – etwas Luft am Rand behalten
 THRESHOLD_OFFSET = -37     # dB unter Durchschnittslautstärke
 BITRATE = "24k"           # Opus Bitrate für Sprache
@@ -140,6 +140,8 @@ def interactive_review(audio, ranges, names ):
 
         cur_start = padded_start
         cur_end = padded_end
+        if name.lower().endswith(("t", "d", "ch")):
+            cur_end += 100
         print(f"{names_index+1}/{len(ranges)}  Name: {name}                                                ")
         segment:AudioSegment = audio[cur_start:cur_end]
         print(f"Länge: {end-start}ms | Start: {cur_start}ms | Ende: {cur_end}ms | Pad.Länge: {cur_end-cur_start}ms                          ", end='\r', flush=True)
