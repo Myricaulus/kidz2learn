@@ -139,7 +139,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
             _correctCount++;
             _feedbackText = "Richtig!";
             _feedbackClass = "k4l-feedback-correct";
-            Score.AddPoints(10, 10);
+            Score.AddPoints(5, 5);
             if (_currentTaskDef is null)
                 throw new InvalidOperationException(
                     "Cannot Check answer if no task has been given."); // should never land here
@@ -177,7 +177,8 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         else
         {
             _wrongCount++;
-            Score.AddPoints(-5 * _wrongCount, -5 * _wrongCount);
+            // TODO Es so machen, die zu vergebenen +-Punkte ebenfalls aus der _currentTaskDef kommen, so kann jede Aufgabe die Punkte aufteilen.
+            Score.AddPoints(-10 * _wrongCount, -10 * _wrongCount);
             _wrongSelectedOption.Add(answer);
 
             _feedbackText = "Nochmal versuchen!";

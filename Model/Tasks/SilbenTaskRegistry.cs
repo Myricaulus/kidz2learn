@@ -30,7 +30,7 @@ public static class SilbenTaskRegistry
             {
                 var candidates = WordMeta.Data.Where(w => w.Key.Length >= 3).ToList();
                 var target = candidates[r.Next(candidates.Count)];
-                var selectedOptions = ErstleserDistraktorGenerator.Generate(target.Key, 5, r).Concat([target.Key])
+                var selectedOptions = ErstleserDistraktorGenerator.Generate(target.Key, 2, r).Concat([target.Key])
                     .ToArray();
                 return (target.Value.filename, options: selectedOptions);
             }
