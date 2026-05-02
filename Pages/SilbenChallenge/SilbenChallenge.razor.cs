@@ -66,6 +66,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
 
     private bool _showFeedback;
     private int _wrongCount;
+    private bool _isProcessing;
 
     private List<string> _wrongSelectedOption = [];
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
@@ -131,6 +132,12 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
 
     private async Task CheckAnswer(string answer)
     {
+        if(_isProcessing)
+            return;
+        _isProcessing = true;
+        try
+        {
+            
         var correctAnswer = _correctSyllable.Replace("-", "");
         var correct = answer == correctAnswer;
 
@@ -185,6 +192,9 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
             _feedbackClass = "k4l-feedback-wrong";
 
             _showFeedback = true;
+        }
+        } finally {
+            _isProcessing = false;
         }
     }
 

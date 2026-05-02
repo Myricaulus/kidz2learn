@@ -13,6 +13,7 @@
         @foreach (var option in _currentOptions)
         {
             <button class="k4l-option @GetOptionClass(option)"
+                    disabled="_isProcessing"
                     @onclick="() => CheckAnswer(option)">
                 @((MarkupString)GetColoredHtml(option))
             </button>
