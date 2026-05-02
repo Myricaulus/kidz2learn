@@ -135,8 +135,6 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         if(_isProcessing)
             return;
         _isProcessing = true;
-        try
-        {
             
         var correctAnswer = _correctSyllable.Replace("-", "");
         var correct = answer == correctAnswer;
@@ -168,9 +166,10 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
             // Reset für nächste Runde
             _ = Task.Delay(900).ContinueWith(async _ =>
             {
-                await NextTask();
+                await NextTask();               
                 _wrongSelectedOption = [];
                 _showFeedback = false;
+                _isProcessing = false;
                 StateHasChanged();
                 await PlayAudio();
             });
@@ -192,8 +191,6 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
             _feedbackClass = "k4l-feedback-wrong";
 
             _showFeedback = true;
-        }
-        } finally {
             _isProcessing = false;
         }
     }
