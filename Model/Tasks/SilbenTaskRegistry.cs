@@ -28,16 +28,64 @@ public static class SilbenTaskRegistry
             DifficultyLevel = 2,
             Generator = r =>
             {
-                var candidates = WordMeta.Data.Where(w => w.Key.Length >= 3).ToList();
+                var candidates = WordMeta.Data.Where(w => w.Key.Length >= 3 && w.Value.audio).ToList();
                 var target = candidates[r.Next(candidates.Count)];
                 var selectedOptions = ErstleserDistraktorGenerator.Generate(target.Key, 2, r).Concat([target.Key])
                     .ToArray();
                 return (target.Value.filename, options: selectedOptions);
             }
+        },
+        new()
+        {
+            Skills = [Skill.GraphemPhonem],
+            DifficultyLevel = 2,
+            Generator = r =>
+            {
+                var groups = WordMeta.Data
+                    .SelectMany(w => w.Value.Tags
+                        .Where(t => t.StartsWith("g2p-v-f|", StringComparison.OrdinalIgnoreCase))
+                        .Select(t => new
+                        {
+                            Word = w,
+                            Key = t.Split('|')[1]
+                        })
+                    )
+                    .GroupBy(x => x.Key)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(x => x.Word).ToList()
+                    );
+                var mainGroup = groups.ElementAt(r.Next(0, groups.Count));
+                var bla = SelectMixed(groups, mainGroup.Key,2,r);
+                var target = mainGroup.Value[r.Next(0, mainGroup.Value.Count)].Key;
+                return (target, options: bla.Select(wi=>wi.Key).Concat([target]).ToArray());
+            }
         }
     ];
 
     public static IReadOnlyList<SilbenTaskDefinition> All => Defs;
+
+    public static List<KeyValuePair<string, WordInfo>> SelectMixed(
+        Dictionary<string, List<KeyValuePair<string, WordInfo>>> groups,
+        string mainGroupKey,
+        int additionalCount, Random r)
+    {
+        var result = new List<KeyValuePair<string, WordInfo>>();
+
+        // Restliche Gruppen flatten
+        var others = groups
+            .Where(g => g.Key != mainGroupKey)
+            .SelectMany(g => g.Value)
+            .ToList();
+
+        // optional: Shuffle für echte Randomisierung
+        others = others.OrderBy(_ => r.Next()).ToList();
+
+        // N zusätzliche
+        result.AddRange(others.Take(additionalCount));
+
+        return result;
+    }
 
     private static int LevenshteinDistance(string a, string b)
     {

@@ -9,6 +9,7 @@ public static class Skill
     public const string ReadSyllables = "read_syllables";
     public const string ReadPrecise = "read_precise";
     public const string TurboRead = "read_turbo";
+    public const string GraphemPhonem = "GraphemPhonem";
 
     public static class Math
     {
@@ -112,6 +113,14 @@ public static class SkillRegistry
             {
                 Id = Skill.ReadPrecise, Domain = TaskDomain.Reading, Category = "phonetics", Difficulty = 2,
                 DisplayName = "Präzise lesen"
+            }
+        },
+        {
+            Skill.GraphemPhonem,
+            new SkillDefinition
+            {
+                Id = Skill.GraphemPhonem, Domain = TaskDomain.Reading, Category = "phonetics", Difficulty = 2,
+                DisplayName = "Buchstaben unterschiedlicher Aussprache"
             }
         }
     };
