@@ -137,7 +137,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         _isProcessing = true;
             
         var correctAnswer = _correctSyllable.Replace("-", "");
-        var correct = answer == correctAnswer;
+        var correct = answer.Equals( correctAnswer, StringComparison.OrdinalIgnoreCase);
 
         if (correct)
         {

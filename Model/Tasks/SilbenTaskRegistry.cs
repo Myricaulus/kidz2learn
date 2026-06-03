@@ -56,9 +56,9 @@ public static class SilbenTaskRegistry
                         g => g.Select(x => x.Word).ToList()
                     );
                 var mainGroup = groups.ElementAt(r.Next(0, groups.Count));
-                var bla = SelectMixed(groups, mainGroup.Key,2,r);
+                var bla = SelectMixed(groups, mainGroup.Key, 2, r);
                 var target = mainGroup.Value[r.Next(0, mainGroup.Value.Count)].Key;
-                return (target, options: bla.Select(wi=>wi.Key).Concat([target]).ToArray());
+                return (target, options: bla.Select(wi => wi.Key).Concat([target]).ToArray());
             }
         }
     ];
