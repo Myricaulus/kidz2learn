@@ -17,7 +17,26 @@ dotnet watch run --project Kidz2Learn.csproj
 dotnet publish Kidz2Learn.csproj
 ```
 
-There is no test project in this repo — verify changes by running the app and exercising the affected challenge in the browser.
+`Kidz2Learn.Tests` is an xUnit project referencing `Kidz2Learn.csproj` directly (no browser/JS
+interop involved), covering the pure-logic pieces: task/skill registries, `Kompetenzniveau`,
+`WordDiff`, `RingBuffer`, `StringAbbreviator`. Anything that needs `IndexedDb`/`JSRuntime` (e.g.
+`SkillMasteryStore`, `AdaptiveTaskGenerator`) isn't testable here yet — see TECH_DEBT.md #1, which
+is expected to change that as part of the registry redesign.
+
+```bash
+dotnet test Kidz2Learn.Tests/Kidz2Learn.Tests.csproj
+dotnet test Kidz2Learn.Tests/Kidz2Learn.Tests.csproj --filter "FullyQualifiedName~WordDiffTests"
+```
+
+Important: `Kidz2Learn.Tests` lives in a subfolder of `Kidz2Learn.csproj`'s directory. The
+Blazor SDK's implicit file globbing would otherwise also try to compile the test project's `.cs`
+files (and its `obj/` output) into the main project — `Kidz2Learn.csproj` has an explicit
+`<Compile Remove="Kidz2Learn.Tests/**/*.cs" />` (etc.) to prevent that. Keep that exclude in place
+if you add more test-only folders under the repo root.
+
+A couple of `RingBufferTests` are `[Fact(Skip = ...)]` on purpose — they pin down a real,
+diagnosed-but-unfixed bug in `RingBufferJsonConverter` (see TECH_DEBT.md #6). Don't "fix" them by
+loosening the assertion; un-skip them once the underlying bug is actually fixed.
 
 Python tooling (`WaveSplit/`, `main.py`) uses `uv`:
 

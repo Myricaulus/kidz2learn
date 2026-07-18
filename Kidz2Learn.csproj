@@ -15,4 +15,12 @@
     <PackageReference Include="Tavenem.Blazor.IndexedDB" Version="6.4.1" />
   </ItemGroup>
 
+  <!-- Kidz2Learn.Tests lives in a subfolder of this project; without this, SDK-style
+       implicit globbing would also compile its files (and its obj/ output) into this project. -->
+  <ItemGroup>
+    <Compile Remove="Kidz2Learn.Tests/**/*.cs" />
+    <Content Remove="Kidz2Learn.Tests/**/*" />
+    <None Remove="Kidz2Learn.Tests/**/*" />
+  </ItemGroup>
+
 </Project>

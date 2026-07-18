@@ -1,8 +1,10 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kidz2Learn", "Kidz2Learn.csproj", "{FD819115-FDBF-4100-EA20-CED4318E947B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kidz2Learn.Tests", "Kidz2Learn.Tests\Kidz2Learn.Tests.csproj", "{BB9AFE41-86B1-4BB0-AAB3-3E87DF0DDF19}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -14,6 +16,10 @@ Global
 		{FD819115-FDBF-4100-EA20-CED4318E947B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FD819115-FDBF-4100-EA20-CED4318E947B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FD819115-FDBF-4100-EA20-CED4318E947B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB9AFE41-86B1-4BB0-AAB3-3E87DF0DDF19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB9AFE41-86B1-4BB0-AAB3-3E87DF0DDF19}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB9AFE41-86B1-4BB0-AAB3-3E87DF0DDF19}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB9AFE41-86B1-4BB0-AAB3-3E87DF0DDF19}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

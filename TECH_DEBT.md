@@ -71,3 +71,36 @@ wäre Voraussetzung).
 nicht durchgängig dieselbe Task-/Skill-Infrastruktur wie die "normalen" Challenges (`ArithTaskRegistry.Turbo`
 existiert separat von `ArithTaskRegistry.Simple`/`All`). Muss geprüft werden, was genau fehlt
 oder unsauber integriert ist, sobald Punkt 1 angegangen wird.
+
+---
+
+## [ ] 6. Bug: `RingBufferJsonConverter` verliert Einträge beim Laden aus IndexedDB
+
+Gefunden beim Aufsetzen von `Kidz2Learn.Tests` (siehe `RingBufferTests.cs`, zwei Tests sind
+bewusst mit `Skip` markiert, um die Suite grün zu halten).
+
+`RingBuffer<T>` wird über `RingBufferJsonConverter<T>` serialisiert/deserialisiert, u.a. für
+`SkillState.AttemptsHistory` (`Entities/SkillStates.cs`), die bei jedem `SkillMasteryStore.Adjust`
+in IndexedDB gespeichert und beim nächsten Laden über `GetItemAsync<SkillState>` wieder
+deserialisiert wird.
+
+**Bug 1 (Haupteffekt, immer):** Der Deserialisierungs-Konstruktor `RingBuffer(int maxItemCount,
+List<T> items, int itemStart)` (`Shared/RingBuffer.cs`) setzt
+`Count = Math.Min(maxItemCount, items.Count) - 1;` — unabhängig davon, ob schon ein Wraparound
+stattgefunden hat. Das `-1` ist ein reiner Off-by-one-Fehler: nach **jedem** Laden aus IndexedDB
+fehlt der zuletzt hinzugefügte Eintrag der History.
+
+**Bug 2 (zusätzlich, nach einem Wraparound):** `Write()` serialisiert die Items bereits in
+logischer Reihenfolge (über den Indexer), aber der Konstruktor legt sie beim Lesen wieder ab
+Rohindex 0 im neuen Array ab und übernimmt trotzdem das alte physische `itemstart` aus dem JSON.
+Nach einem Wraparound (`Itemstart != 0`) zeigt der Indexer dann auf falsche/verschobene Positionen
+— zusätzlich zum Off-by-one-Verlust aus Bug 1.
+
+**Vermutlicher Fix:** In der Praxis reicht es vermutlich, `RingBufferJsonConverter.Write` weiterhin
+in logischer Reihenfolge zu schreiben, aber beim Lesen `itemstart` einfach auf `0` zu setzen (die
+Items liegen ja schon in der richtigen Reihenfolge ab Index 0) und `Count` ohne `-1` zu berechnen.
+
+**Impact:** Betrifft aktuell "nur" `SkillState.AttemptsHistory`, die laut den TODOs in
+`SkillMasteryStore.Adjust` (Model/Skills.cs) ohnehin noch nirgendwo ausgewertet wird (geplant für
+Bayesian Knowledge Tracing / `AttemptFailReason`-Inferenz). Kein akuter Nutzer-Impact, aber sobald
+diese History für irgendetwas verwendet wird, ist sie stillschweigend korrupt.
