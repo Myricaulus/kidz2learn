@@ -279,6 +279,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         {
             _letterCorrections[index] = text[^1];
             _markedIndices.Remove(index);
+            _openLetterIndex = null;
         }
         else
         {

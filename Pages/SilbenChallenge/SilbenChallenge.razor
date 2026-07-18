@@ -110,11 +110,13 @@
                                     }
                                     <span class="k4l-letter @(isMarked ? "k4l-letter-marked" : "") @(hasCorrection ? "k4l-letter-corrected" : "")"
                                           @onclick="() => OpenLetterEdit(li)">
-                                        @letters[li]
                                         @if (hasCorrection)
                                         {
-                                            <span class="k4l-letter-correction-chip">@correctionChar</span>
+                                            <span class="k4l-letter-correction-chip">@letters[li]</span>
+                                            @correctionChar
                                         }
+                                        else
+                                            @letters[li]
                                     </span>
                                 </span>
                             }
@@ -124,7 +126,7 @@
             </div>
 
             <div class="k4l-popup-actions">
-                @if (_failedPopupAttempts > 0)
+                @if (_failedPopupAttempts > 100)
                 {
                     <button class="k4l-popup-hint-button" @onclick="GiveHint">💡 Tipp</button>
                 }
@@ -478,6 +480,9 @@
         top: -18px;
         left: 50%;
         transform: translateX(-50%);
+        text-decoration: line-through;
+        text-decoration-color: #e53935;
+        text-decoration-thickness: 2px;
         font-size: 0.9rem;
         font-weight: bold;
         color: #4a90e2;
@@ -487,6 +492,7 @@
         min-width: 18px;
         padding: 0 3px;
         line-height: 1.3;
+        strike
     }
 
     .k4l-letter-popover {
