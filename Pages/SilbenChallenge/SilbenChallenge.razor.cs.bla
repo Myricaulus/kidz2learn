@@ -90,6 +90,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
     private int _failedPopupAttempts;
     private bool _shakeWrongBox;
     private bool _hoverArmed;
+    private bool _wrongWordHidden;
 
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
     [Inject] private LoggerService Logger { get; set; } = null!;
@@ -252,6 +253,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         _failedPopupAttempts = 0;
         _shakeWrongBox = false;
         _hoverArmed = false;
+        _wrongWordHidden = false;
 
         _showMarkierPopup = true;
     }
@@ -345,6 +347,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         if (marksOk && substitutionsOk && gapsOk)
         {
             _showMarkierPopup = false;
+            _wrongWordHidden = false;
             _isProcessing = false;
             return;
         }
@@ -355,6 +358,18 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         await Task.Delay(500);
         _shakeWrongBox = false;
         StateHasChanged();
+    }
+
+    // Wird vom Razor-Markup aufgerufen, sobald das falsche Wort tatsächlich ausgeblendet wurde.
+    private void OnWrongWordHidden()
+    {
+        _wrongWordHidden = true;
+    }
+
+    // Wird vom Razor-Markup aufgerufen, sobald das falsche Wort wieder angezeigt wird.
+    private void OnWrongWordShown()
+    {
+        _wrongWordHidden = false;
     }
 
     private void GiveHint()
