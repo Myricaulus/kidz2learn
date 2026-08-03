@@ -111,6 +111,7 @@ else
 @code {
     [Inject] public ScoreService Score { get; set; } = null!;
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
+    [Inject] private IJSRuntime Js { get; set; } = null!;
 
     public delegate void UpdatePointsHook(int delta);
 
@@ -123,6 +124,10 @@ else
 
     private void StartApp()
     {
+        // Synchronous JS call (no async hop) so the browser ties its audio-autoplay permission
+        // directly to this click - the real syllable audio only plays later, after an
+        // IndexedDB round trip, which is too far removed from the gesture for some browsers.
+        ((IJSInProcessRuntime)Js).InvokeVoid("k4l_unlockAudio");
         _showWelcome = false;
     }
 
