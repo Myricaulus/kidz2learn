@@ -11,7 +11,7 @@ public enum Difficulty
 
 public sealed class LearningTask<T> where T : BaseTaskDefinition
 {
-    private readonly SkillMasteryStore _store;
+    private readonly ISkillMasteryStore _store;
 
     /// <summary>
     ///     Jaja, die Aufgabe muss noch angezeigt werden, und Menschen mit langsamenen Rechner werden hier systematisch
@@ -25,7 +25,7 @@ public sealed class LearningTask<T> where T : BaseTaskDefinition
     internal LearningTask(
         T task,
         Difficulty difficulty,
-        SkillMasteryStore store)
+        ISkillMasteryStore store)
     {
         Task = task;
         Difficulty = difficulty;
@@ -50,41 +50,44 @@ public sealed class LearningTask<T> where T : BaseTaskDefinition
     }
 }
 
-public sealed class AdaptiveTaskGenerator(SkillMasteryStore store, Random rng)
+public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
 {
-    public async Task<LearningTask<T>> ChooseTaskAsync<T>(string? category = null, string? skill = null)
+    /// <summary>
+    ///     How many DifficultyLevel-equivalent "steps" a fully-mastered skill (Mastery == 1) is
+    ///     penalized by, relative to a completely untrained one (Mastery == 0). Kept in the same
+    ///     rough magnitude as <see cref="BaseTaskDefinition.DifficultyLevel" /> (1-4 in practice) so
+    ///     neither difficulty nor mastery dominates the pick.
+    /// </summary>
+    private const int MasteryWeightRange = 4;
+
+    /// <summary>
+    ///     Picks a task for <typeparamref name="T" />, weighted towards easier difficulties and
+    ///     towards whichever of the task's own skills the learner has mastered least so far.
+    /// </summary>
+    /// <param name="skills">
+    ///     Restricts candidates to tasks that train at least one of these skill ids. When
+    ///     <c>null</c>, every registered task for <typeparamref name="T" /> (i.e. the whole
+    ///     <see cref="IBaseTaskDefinition.Domain" />) is eligible.
+    /// </param>
+    public async Task<LearningTask<T>> ChooseTaskAsync<T>(IReadOnlyCollection<string>? skills = null)
         where T : BaseTaskDefinition, IBaseTaskDefinition
     {
-        var domain = T.Domain;
-        var skillstates = await store.GetSkillViewEnumerableAsync();
-        // 1. Schwächste Skills priorisieren
-        var weakestSkills = skillstates
-            .Where(sv => sv.Definition.Domain == domain && (category == null || sv.Definition.Category == category))
-            .OrderBy(sv => sv.State.Mastery)
-            .ThenBy(kv => kv.Definition.Difficulty)
-            .Take(3)
-            .Select(kv => kv.State.Id)
-            .ToHashSet();
-
-        // 2. Aufgaben suchen, die diese Skills trainieren
         var candidates = TaskRegistry.GetTasks<T>();
+        if (skills is not null)
+            candidates = candidates.Where(c => c.Skills.Any(skills.Contains)).ToList();
 
-        if (skill is not null) candidates = candidates.Where(c => c.Skills.Contains(skill)).ToList();
+        if (candidates.Count == 0)
+            throw new InvalidOperationException(
+                $"No {typeof(T).Name} tasks match skills [{string.Join(", ", skills ?? [])}].");
 
-        /*candidates = candidates
-            .Where(d => d.Skills.Any(s => weakestSkills.Contains(s)))
-            .ToList();*/
-
-        // Fallback, falls alles voll mastered
-        // if (candidates.Count == 0)
-        //    candidates = [.. TaskRegistry.All];
-
-        // 3. Bevorzugung normaler Tasks
-        var weighted = candidates
-            .Select(d => (def: d, weight: d.DifficultyLevel))
-            .ToList();
+        var masteryBySkill = (await store.GetSkillViewEnumerableAsync())
+            .ToDictionary(sv => sv.State.Id, sv => sv.State.Mastery);
 
         var easiestDifficulty = candidates.Min(c => c.DifficultyLevel);
+
+        var weighted = candidates
+            .Select(d => (def: d, weight: d.DifficultyLevel + MasteryWeight(WeakestSkillMastery(d, masteryBySkill))))
+            .ToList();
 
         var chosen = InvertedWeightedPick(weighted);
         var difficulty = chosen.DifficultyLevel switch
@@ -98,6 +101,23 @@ public sealed class AdaptiveTaskGenerator(SkillMasteryStore store, Random rng)
             chosen,
             difficulty,
             store);
+    }
+
+    /// <summary>
+    ///     A task is exactly as "needed" as the least-mastered skill it trains, so we key the
+    ///     weighting off the minimum, not the average.
+    /// </summary>
+    private static float WeakestSkillMastery(BaseTaskDefinition def, IReadOnlyDictionary<string, float> masteryBySkill)
+    {
+        return def.Skills
+            .Select(s => masteryBySkill.GetValueOrDefault(s, 0f))
+            .DefaultIfEmpty(0f)
+            .Min();
+    }
+
+    private static int MasteryWeight(float mastery)
+    {
+        return (int)Math.Round(Math.Clamp(mastery, 0f, 1f) * MasteryWeightRange);
     }
 
     private T InvertedWeightedPick<T>(List<(T def, int weight)> items)

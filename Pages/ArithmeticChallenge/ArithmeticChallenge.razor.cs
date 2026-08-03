@@ -70,7 +70,7 @@ public partial class ArithmeticChallenge : ComponentBase
         var store = new SkillMasteryStore(AufgabenDb);
         var adaptiveTask = new AdaptiveTaskGenerator(store, _rng);
 
-        _currentTaskDef = await adaptiveTask.ChooseTaskAsync<ArithTaskDefinition>("simple");
+        _currentTaskDef = await adaptiveTask.ChooseTaskAsync<ArithTaskDefinition>(ArithTaskRegistry.SimpleSkills);
         (var number1N, var number2N, _, _operator) = _currentTaskDef.Task.Generator(_rng);
         _number1 = number1N!.Value;
         _number2 = number2N!.Value;

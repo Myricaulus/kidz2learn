@@ -118,4 +118,12 @@ public static class ArithTaskRegistry
     public static IReadOnlyList<ArithTaskDefinition> All => Defs.Union(TurboDefs).ToList();
     public static IReadOnlyList<ArithTaskDefinition> Simple => Defs;
     public static IReadOnlyList<ArithTaskDefinition> Turbo => TurboDefs;
+
+    /// <summary>
+    ///     Skill ids covered by <see cref="Simple" />, i.e. everything except the Turbo skills.
+    ///     Used to scope <see cref="AdaptiveTaskGenerator.ChooseTaskAsync{T}" /> to "normal" tasks
+    ///     without hardcoding a single skill.
+    /// </summary>
+    public static readonly IReadOnlyCollection<string> SimpleSkills =
+        Defs.SelectMany(d => d.Skills).ToHashSet();
 }

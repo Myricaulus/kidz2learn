@@ -147,7 +147,19 @@ public static class SkillRegistry
 
 public record SkillView(SkillDefinition Definition, SkillState State);
 
-public sealed class SkillMasteryStore(IndexedDb skillDb)
+/// <summary>
+///     Storage boundary for skill mastery. Extracted so <see cref="AdaptiveTaskGenerator" /> can be
+///     unit-tested with a fake store instead of a real IndexedDB/JSInterop-backed one.
+/// </summary>
+public interface ISkillMasteryStore
+{
+    Task Adjust(string skillId, Difficulty difficulty, int timeMs, Kompetenzniveau specificTaskHistory,
+        bool success);
+
+    Task<IEnumerable<SkillView>> GetSkillViewEnumerableAsync();
+}
+
+public sealed class SkillMasteryStore(IndexedDb skillDb) : ISkillMasteryStore
 {
     private readonly IndexedDbStore _store = skillDb["SkillStates"]
                                              ?? throw new InvalidOperationException("SkillStates DB failed to init");

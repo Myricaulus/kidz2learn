@@ -19,7 +19,7 @@ builder.Services.AddIndexedDbService();
 builder.Services.AddIndexedDb(
     "AufgabenDB", // the database name
     ["ArithmetikAufgaben", "LeseAufgaben", "SkillMeta", "SkillStates"], // the names of value stores
-    2); // the version number of the current database schema 
+    3); // the version number of the current database schema
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 

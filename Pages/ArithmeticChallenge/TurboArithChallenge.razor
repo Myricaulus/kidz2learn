@@ -211,7 +211,7 @@
         var adaptiveTask = new AdaptiveTaskGenerator(store, _rng);
 
         _currentTaskDef =
-            await adaptiveTask.ChooseTaskAsync<ArithTaskDefinition>(skill: Skill.Math.Turbo10);
+            await adaptiveTask.ChooseTaskAsync<ArithTaskDefinition>([Skill.Math.Turbo10]);
 
         _generator = _currentTaskDef.Task.Generator;
 

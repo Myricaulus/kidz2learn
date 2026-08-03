@@ -65,7 +65,7 @@ public partial class GraphemChallenge : ComponentBase, IAsyncDisposable
     {
         var store = new SkillMasteryStore(AufgabenDb);
         var adaptiveTask = new AdaptiveTaskGenerator(store, _rng);
-        _currentTaskDef = await adaptiveTask.ChooseTaskAsync<SilbenTaskDefinition>(skill: Skill.GraphemPhonem);
+        _currentTaskDef = await adaptiveTask.ChooseTaskAsync<SilbenTaskDefinition>([Skill.GraphemPhonem]);
         var task = _currentTaskDef.Task.Generator(_rng);
 
         // 1. Silbe auswählen

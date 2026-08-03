@@ -63,7 +63,7 @@
                     @{
                         var letters = _popupWrongWord.ToCharArray();
                     }
-                    <div class="k4l-wrong-word-row">
+                    <div class="k4l-wrong-word-row" style="@WrongWordRowStyle">
                         @for (var gapIndex = 0; gapIndex <= letters.Length; gapIndex++)
                         {
                             var gi = gapIndex;
@@ -130,6 +130,7 @@
                 {
                     <button class="k4l-popup-hint-button" @onclick="GiveHint">💡 Tipp</button>
                 }
+                <button class="k4l-popup-reset-button" @onclick="ResetMarkierPopup">↺ Zurücksetzen</button>
                 <button class="k4l-popup-weiter-button" @onclick="OnWeiterClicked">Weiter</button>
             </div>
         </div>
@@ -438,6 +439,7 @@
         align-items: center;
         justify-content: center;
         flex-wrap: wrap;
+        row-gap: 110px;
     }
 
     .k4l-letter-cell {
@@ -449,9 +451,9 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 34px;
-        height: 44px;
-        font-size: 1.6rem;
+        min-width: calc(34px * var(--k4l-scale, 1));
+        height: calc(44px * var(--k4l-scale, 1));
+        font-size: calc(1.6rem * var(--k4l-scale, 1));
         font-weight: bold;
         border-radius: 8px;
         cursor: pointer;
@@ -547,11 +549,11 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 14px;
-        height: 44px;
+        width: calc(14px * var(--k4l-scale, 1));
+        height: calc(44px * var(--k4l-scale, 1));
         color: #ccc;
         cursor: pointer;
-        font-size: 1.2rem;
+        font-size: calc(1.2rem * var(--k4l-scale, 1));
     }
 
     .k4l-gap-empty:hover {
@@ -562,9 +564,9 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 28px;
-        height: 44px;
-        font-size: 1.4rem;
+        min-width: calc(28px * var(--k4l-scale, 1));
+        height: calc(44px * var(--k4l-scale, 1));
+        font-size: calc(1.4rem * var(--k4l-scale, 1));
         font-weight: bold;
         color: #4a90e2;
         border-bottom: 3px dotted #4a90e2;
@@ -572,10 +574,10 @@
     }
 
     .k4l-gap-input {
-        width: 30px;
-        height: 40px;
+        width: calc(30px * var(--k4l-scale, 1));
+        height: calc(40px * var(--k4l-scale, 1));
         text-align: center;
-        font-size: 1.4rem;
+        font-size: calc(1.4rem * var(--k4l-scale, 1));
         font-weight: bold;
         border: 2px solid #4a90e2;
         border-radius: 6px;
@@ -589,7 +591,8 @@
     }
 
     .k4l-popup-weiter-button,
-    .k4l-popup-hint-button {
+    .k4l-popup-hint-button,
+    .k4l-popup-reset-button {
         font-size: 1.1rem;
         padding: 10px 24px;
         border-radius: 12px;
@@ -608,6 +611,12 @@
         border: 2px solid #ffe08a;
     }
 
+    .k4l-popup-reset-button {
+        background: #f8d7da;
+        color: #842029;
+        border: 2px solid #f1aeb5;
+    }
+
     @@keyframes k4l-shake {
         10%, 90% { transform: translateX(-2px); }
         20%, 80% { transform: translateX(4px); }
@@ -624,5 +633,12 @@
     window.k4l_playAudio = function (id) {
         const el = document.getElementById(id);
         if (el) el.play();
+    }
+
+    window.k4l_focusAndSelect = function (el) {
+        if (el) {
+            el.focus();
+            el.select();
+        }
     }
 </script>

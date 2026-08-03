@@ -127,7 +127,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         if (_needsLetterFocus)
         {
             _needsLetterFocus = false;
-            await _letterInputRef.FocusAsync();
+            await Js.InvokeVoidAsync("k4l_focusAndSelect", _letterInputRef);
         }
     }
 
@@ -143,7 +143,8 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
     {
         var store = new SkillMasteryStore(AufgabenDb);
         var adaptiveTask = new AdaptiveTaskGenerator(store, _rng);
-        _currentTaskDef = await adaptiveTask.ChooseTaskAsync<SilbenTaskDefinition>(skill: Skill.ReadPrecise);
+        _currentTaskDef =
+            await adaptiveTask.ChooseTaskAsync<SilbenTaskDefinition>([Skill.ReadSyllables, Skill.ReadPrecise]);
         var task = _currentTaskDef.Task.Generator(_rng);
 
         // 1. Silbe auswählen
@@ -358,6 +359,15 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
         StateHasChanged();
     }
 
+    private void ResetMarkierPopup()
+    {
+        _markedIndices = [];
+        _letterCorrections = [];
+        _insertedLetters = [];
+        _openGapIndex = null;
+        _openLetterIndex = null;
+    }
+
     private void GiveHint()
     {
         foreach (var mark in _requiredMarks)
@@ -390,6 +400,17 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
                 _insertedLetters[gapIndex] = expected;
                 return;
             }
+    }
+
+    private string WrongWordRowStyle
+    {
+        get
+        {
+            const int comfortableLength = 8;
+            var length = _popupWrongWord.Length;
+            var scale = length <= comfortableLength ? 1.0 : Math.Max(0.6, (double)comfortableLength / length);
+            return $"--k4l-scale:{scale.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+        }
     }
 
     private static string GetColoredHtml(string silbe)
