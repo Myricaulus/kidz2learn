@@ -26,7 +26,7 @@ ausgewählt werden, ohne dass jede Page den Skill hart vorgeben muss.
 
 ---
 
-## [ ] 2. Bug: SilbenChallenge — `LeseAufgaben` IndexedDB Store nicht bekannt
+## [x] 2. Bug: SilbenChallenge — `LeseAufgaben` IndexedDB Store nicht bekannt
 
 Fehler in der Konsole: `DOMException: IDBDatabase.transaction: 'LeseAufgaben' is not a known
 object store name`. Dadurch wird die Kompetenz-Historie in der SilbenChallenge nicht korrekt
@@ -43,7 +43,9 @@ angelegt.
 
 **Vermutlicher Fix:** `version` in `Program.cs` von 2 auf 3 erhöhen. Sollte das nicht reichen,
 prüfen ob `Tavenem.Blazor.IndexedDB` das Upgrade-Handling überhaupt korrekt weiterreicht.
-(Noch nicht angewendet — nur diagnostiziert, s. Anfrage vom 2026-07-18.)
+
+**Erledigt:** `version` in `Program.cs` auf `3` erhöht, damit `onupgradeneeded` bei bereits auf
+Version 2 initialisierten DBs erneut feuert und `LeseAufgaben` nachträglich anlegt.
 
 ---
 
@@ -74,7 +76,7 @@ oder unsauber integriert ist, sobald Punkt 1 angegangen wird.
 
 ---
 
-## [ ] 6. Bug: `RingBufferJsonConverter` verliert Einträge beim Laden aus IndexedDB
+## [x] 6. Bug: `RingBufferJsonConverter` verliert Einträge beim Laden aus IndexedDB
 
 Gefunden beim Aufsetzen von `Kidz2Learn.Tests` (siehe `RingBufferTests.cs`, zwei Tests sind
 bewusst mit `Skip` markiert, um die Suite grün zu halten).
@@ -104,3 +106,8 @@ Items liegen ja schon in der richtigen Reihenfolge ab Index 0) und `Count` ohne 
 `SkillMasteryStore.Adjust` (Model/Skills.cs) ohnehin noch nirgendwo ausgewertet wird (geplant für
 Bayesian Knowledge Tracing / `AttemptFailReason`-Inferenz). Kein akuter Nutzer-Impact, aber sobald
 diese History für irgendetwas verwendet wird, ist sie stillschweigend korrupt.
+
+**Erledigt:** `RingBuffer(int, List<T>, int)` setzt `Itemstart` jetzt fest auf `0` (die
+übergebenen `items` liegen durch `RingBufferJsonConverter.Write` bereits in logischer Reihenfolge,
+der alte physische `itemstart` ist dagegen wertlos) und berechnet `Count` ohne das `-1`. Die beiden
+zuvor geskippten Tests in `RingBufferTests.cs` sind entsperrt und grün.

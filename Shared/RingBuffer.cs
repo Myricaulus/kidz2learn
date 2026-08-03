@@ -24,7 +24,10 @@ public class RingBuffer<T>
     }
 
     /// <summary>
-    ///     Json init constructor
+    ///     Json init constructor. <paramref name="items" /> is expected already in logical order (as
+    ///     written by <see cref="RingBufferJsonConverter{T}.Write" />, which walks the indexer from 0
+    ///     to Count), so it is placed back at raw index 0 and <paramref name="itemStart" /> (the old
+    ///     physical offset, now meaningless against the freshly rebuilt array) is ignored.
     /// </summary>
     /// <param name="maxItemCount"></param>
     /// <param name="items"></param>
@@ -35,9 +38,8 @@ public class RingBuffer<T>
         _buffer = new T[maxItemCount];
         for (var i = 0; i < Math.Min(maxItemCount, items.Count); i++)
             _buffer[i] = items[i];
-        Itemstart = itemStart;
-        Count = Math.Min(maxItemCount, items.Count) - 1;
-        Count = Count < 0 ? 0 : Count;
+        Itemstart = 0;
+        Count = Math.Min(maxItemCount, items.Count);
     }
 
     /// <summary>

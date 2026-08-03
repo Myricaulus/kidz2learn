@@ -94,11 +94,7 @@ public class RingBufferTests
         public RingBuffer<int> Buffer { get; set; } = new(3);
     }
 
-    [Fact(Skip =
-        "Known bug, see TECH_DEBT.md #6: the RingBuffer(int, List<T>, int) constructor used by " +
-        "RingBufferJsonConverter sets Count = items.Count - 1 unconditionally, so every JSON " +
-        "round-trip drops the most recently added item, even with no wraparound. Un-skip once " +
-        "that off-by-one is fixed.")]
+    [Fact]
     public void JsonRoundTrip_WithoutWraparound_PreservesItemsAndOrder()
     {
         var holder = new RingBufferHolder();
@@ -112,12 +108,7 @@ public class RingBufferTests
         Assert.Equal([1, 2], new[] { restored.Buffer[0], restored.Buffer[1] });
     }
 
-    [Fact(Skip =
-        "Known bug, see TECH_DEBT.md #6: on top of the Count off-by-one above, the constructor " +
-        "places the already-reordered 'items' at raw buffer index 0 but keeps the old physical " +
-        "'itemstart' from before serialization. Once a buffer has wrapped around at least once, " +
-        "this additionally misaligns the indexer, dropping/misreading data beyond just the " +
-        "off-by-one. Un-skip this once RingBuffer(int, List<T>, int) is fixed.")]
+    [Fact]
     public void JsonRoundTrip_AfterWraparound_PreservesAllItems()
     {
         var holder = new RingBufferHolder();
