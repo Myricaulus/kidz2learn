@@ -278,6 +278,6 @@ public sealed class SkillMasteryStore(IndexedDb skillDb) : ISkillMasteryStore
 
         // Alle Skills in SkillRegistry einbeziehen
         return SkillRegistry.All.Values
-            .Select(def => new SkillView(def, statesById.GetValueOrDefault(def.Id) ?? new SkillState()));
+            .Select(def => new SkillView(def, statesById.GetValueOrDefault(def.Id) ?? new SkillState { Id = def.Id }));
     }
 }

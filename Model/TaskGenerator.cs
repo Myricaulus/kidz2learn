@@ -61,6 +61,14 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
     private const int MasteryWeightRange = 4;
 
     /// <summary>
+    ///     Debug hook so a wrapper page can force a specific task instead of the adaptive pick,
+    ///     without the real challenge pages having to know about it. Set by a debug page before
+    ///     rendering the real page as a child component; must be reset to <c>null</c> when that
+    ///     page goes away, or every later real session would keep getting the forced task.
+    /// </summary>
+    public static ITaskDebugOverride? DebugOverride { get; set; }
+
+    /// <summary>
     ///     Picks a task for <typeparamref name="T" />, weighted towards easier difficulties and
     ///     towards whichever of the task's own skills the learner has mastered least so far.
     /// </summary>
@@ -79,6 +87,9 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
         if (candidates.Count == 0)
             throw new InvalidOperationException(
                 $"No {typeof(T).Name} tasks match skills [{string.Join(", ", skills ?? [])}].");
+
+        if (DebugOverride?.TryForce(candidates) is { } forced)
+            return new LearningTask<T>(forced, Difficulty.Normal, store);
 
         var masteryBySkill = (await store.GetSkillViewEnumerableAsync())
             .ToDictionary(sv => sv.State.Id, sv => sv.State.Mastery);

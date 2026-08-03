@@ -12,9 +12,9 @@ public static class SilbenTaskRegistry
             DifficultyLevel = 1,
             Generator = r =>
             {
-                var candidates = WordMeta.Data.ToList();
-                var target = candidates[r.Next(candidates.Count)].Value.filename;
-                var options = candidates.Where(c => c.Value.filename != target)
+                var targetCandidates = WordMeta.Data.Where(w => w.Value.audio).ToList();
+                var target = targetCandidates[r.Next(targetCandidates.Count)].Value.filename;
+                var options = WordMeta.Data.Where(c => c.Value.filename != target)
                     .OrderBy(a => LevenshteinDistance(a.Key, target.Replace("-", string.Empty))).Take(20)
                     .Select(o => o.Key).ToList();
                 var selectedOptions = options.OrderBy(o => r.Next(options.Count)).Take(5)
