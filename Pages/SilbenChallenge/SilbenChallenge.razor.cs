@@ -227,9 +227,18 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
 
             _showFeedback = true;
 
-            OpenMarkierPopup(correctAnswer, answer);
-            // _isProcessing bleibt true, solange das Popup offen ist -
-            // erst nach korrekter Fehleranalyse (CloseMarkierPopup) geht's weiter.
+            if (_currentTaskDef?.Task.Skills.Contains(Skill.ReadPrecise) ?? false)
+            {
+                OpenMarkierPopup(correctAnswer, answer);
+                // _isProcessing bleibt true, solange das Popup offen ist -
+                // erst nach korrekter Fehleranalyse (CloseMarkierPopup) geht's weiter.
+            }
+            else
+            {
+                // Bei anderen Aufgabentypen ist die falsche Auswahl oft ein völlig
+                // anderes Wort (kein Tippfehler) - Buchstaben-Korrektur ergibt da keinen Sinn.
+                _isProcessing = false;
+            }
         }
     }
 
