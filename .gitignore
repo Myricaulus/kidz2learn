@@ -57,3 +57,6 @@ nunit-*.xml
 WaveSplit/*
 !WaveSplit/SplitWaveAndCompress.py
 !WaveSplit/DeduplicateNames.py
+
+# Debug
+/**/Bildschirmfoto_*.png
