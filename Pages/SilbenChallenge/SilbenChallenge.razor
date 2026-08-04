@@ -137,8 +137,6 @@
     </div>
 }
 
-<audio id="audioPlayer" src="@_currentAudio"></audio>
-
 <style>
     .k4l-task-container {
         max-width: 600px;
@@ -643,11 +641,6 @@
 </style>
 
 <script>
-    window.k4l_playAudio = function (id) {
-        const el = document.getElementById(id);
-        if (el) el.play();
-    }
-
     window.k4l_focusAndSelect = function (el) {
         if (el) {
             el.focus();

@@ -107,17 +107,21 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
     {
         ReadingDb = AufgabenDb["LeseAufgaben"] ?? throw new Exception("IndexedDb not instanced");
         await NextTask();
+
+        // Play the very first word's audio here, right after _currentAudio is set - not from
+        // OnAfterRenderAsync(firstRender: true). That fires after the FIRST render pass, which
+        // Blazor performs as soon as this method hits its first await (inside NextTask's
+        // IndexedDB round trip) - i.e. before _currentAudio is actually populated. Calling
+        // PlayAudio() from firstRender there always played with an empty/stale src, so no audio
+        // was ever requested for the first word. The shared #audioPlayer element (MainLayout.razor)
+        // is already mounted by this point since it lives outside this component entirely.
+        await Player.SetVolume(0.1);
+        await PlayAudio();
     }
 
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            await Player.SetVolume(0.1);
-            await PlayAudio();
-        }
-
         if (_needsGapFocus)
         {
             _needsGapFocus = false;
@@ -162,7 +166,7 @@ public partial class SilbenChallenge : ComponentBase, IAsyncDisposable
 
     private async Task PlayAudio()
     {
-        await Js.InvokeVoidAsync("k4l_playAudio", "audioPlayer");
+        await Js.InvokeVoidAsync("k4l_playAudioFile", "audioPlayer", _currentAudio);
     }
 
     private async Task CheckAnswer(string answer)
