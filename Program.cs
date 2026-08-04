@@ -13,6 +13,7 @@ builder.Services.AddSingleton<LoggerService>();
 builder.Services.AddSingleton<ScoreService>();
 builder.Services.AddSingleton<SidWidgetService>();
 builder.Services.AddSingleton<HudStateService>();
+builder.Services.AddScoped<AffirmationService>();
 
 builder.Services.AddIndexedDbService();
 // all options

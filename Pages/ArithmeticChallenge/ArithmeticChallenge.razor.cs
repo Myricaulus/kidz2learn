@@ -44,6 +44,7 @@ public partial class ArithmeticChallenge : ComponentBase
     [Inject] private LoggerService Logger { get; set; } = null!;
     [Inject] public ScoreService Score { get; set; } = null!;
     [Inject] private HudStateService Hud { get; set; } = null!;
+    [Inject] private AffirmationService Affirmation { get; set; } = null!;
 
     private int CurrentIndex { get; set; }
     private IndexedDbStore ArithDb { get; set; } = null!;
@@ -174,6 +175,7 @@ public partial class ArithmeticChallenge : ComponentBase
             log.Kompetenz.AddRichtig();
             Hud.IncrementCombo();
             Score.AddPoints(2, 8);
+            await Affirmation.PlayErfolgAsync();
             await (_currentTaskDef?.Success(log.Kompetenz) ?? Task.CompletedTask);
             stats.Erfolgreich++;
             stats.Versuche++;
@@ -185,6 +187,7 @@ public partial class ArithmeticChallenge : ComponentBase
             await (_currentTaskDef?.Fail(log.Kompetenz) ?? Task.CompletedTask);
             Hud.SetCombo(0);
             stats.Versuche++;
+            await Affirmation.PlayMisserfolgAsync();
             _feedback =
                 $"Falsch! Richtige Lösung: {_expectedResult}.<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
             Score.AddPoints(-5, 0);

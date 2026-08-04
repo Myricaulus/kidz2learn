@@ -23,4 +23,18 @@
     <None Remove="Kidz2Learn.Tests/**/*" />
   </ItemGroup>
 
+  <!-- Regenerates the SID and audio-affirmation file manifests (wwwroot/sids/sidfiles.json,
+       wwwroot/audio/affirmations/affirmations.json) from whatever files are actually present in
+       those folders, so dropping in a new file and rebuilding is enough - no manual regen step
+       to forget. Needs PowerShell Core (pwsh); ContinueOnError keeps the build working on
+       machines/CI without it installed, just skipping the regen with a warning. -->
+  <Target Name="RegenerateAudioManifests" BeforeTargets="Build">
+    <Exec Command="pwsh -NoProfile -File generate_sid_json.ps.ps1"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          ContinueOnError="WarnAndContinue" />
+    <Exec Command="pwsh -NoProfile -File generate_affirmations_json.ps1"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          ContinueOnError="WarnAndContinue" />
+  </Target>
+
 </Project>

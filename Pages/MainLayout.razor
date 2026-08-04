@@ -24,6 +24,11 @@
    "Starte App" click and later playback always target the identical element. *@
 <audio id="audioPlayer"></audio>
 
+@* Same idea, separate element, for AffirmationService's success/failure sounds - kept apart
+   from #audioPlayer so an affirmation can't abort (or get aborted by) word/syllable playback,
+   since a single <audio> element can only play one source at a time. *@
+<audio id="affirmationPlayer"></audio>
+
 @if (_showWelcome && !_skipSplash)
 {
     <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -136,6 +141,7 @@ else
         // directly to this click - the real syllable audio only plays later, after an
         // IndexedDB round trip, which is too far removed from the gesture for some browsers.
         ((IJSInProcessRuntime)Js).InvokeVoid("k4l_primeAudioPlayer", "audioPlayer");
+        ((IJSInProcessRuntime)Js).InvokeVoid("k4l_primeAudioPlayer", "affirmationPlayer");
         _showWelcome = false;
     }
 

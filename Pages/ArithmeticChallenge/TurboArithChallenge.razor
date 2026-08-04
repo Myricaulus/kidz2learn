@@ -128,6 +128,7 @@
     [Inject] private LoggerService Logger { get; set; } = null!;
     [Inject] private ScoreService Score { get; set; } = null!;
     [Inject] private HudStateService Hud { get; set; } = null!;
+    [Inject] private AffirmationService Affirmation { get; set; } = null!;
 
     #endregion
 
@@ -274,6 +275,8 @@
 
         if (correct)
             _blockCorrect++;
+
+        await Affirmation.PlayAsync(correct);
 
         var id = $"{_x}{OpSymbol()}{_y}={_z}";
 

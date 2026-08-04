@@ -35,6 +35,7 @@ public partial class GraphemChallenge : ComponentBase, IAsyncDisposable
     [Inject] private IJSRuntime Js { get; set; } = null!;
     [Inject] public ScoreService Score { get; set; } = null!;
     [Inject] public SidWidgetService Player { get; set; } = null!;
+    [Inject] public AffirmationService Affirmation { get; set; } = null!;
     private IndexedDbStore ReadingDb { get; set; } = null!;
 
     public async ValueTask DisposeAsync()
@@ -95,6 +96,7 @@ public partial class GraphemChallenge : ComponentBase, IAsyncDisposable
             _feedbackText = "Richtig!";
             _feedbackClass = "k4l-feedback-correct";
             Score.AddPoints(5, 5);
+            await Affirmation.PlayErfolgAsync();
             if (_currentTaskDef is null)
                 throw new InvalidOperationException(
                     "Cannot Check answer if no task has been given."); // should never land here
@@ -141,6 +143,7 @@ public partial class GraphemChallenge : ComponentBase, IAsyncDisposable
 
             _showFeedback = true;
             _isProcessing = false;
+            await Affirmation.PlayMisserfolgAsync();
         }
     }
 
