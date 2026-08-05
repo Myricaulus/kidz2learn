@@ -13,7 +13,9 @@ namespace Kidz2Learn.Model.Tasks;
 /// </summary>
 public interface ITaskView
 {
-    IChosenTask Task { get; set; }
+    // Named ChosenTask, not Task - view implementations are async-heavy (CheckAnswer etc.) and a
+    // bare "Task" property would constantly collide with System.Threading.Tasks.Task in scope.
+    IChosenTask ChosenTask { get; set; }
 
     /// <summary>Raised by the view once it's done with this task and ready for the next one.</summary>
     EventCallback OnNext { get; set; }

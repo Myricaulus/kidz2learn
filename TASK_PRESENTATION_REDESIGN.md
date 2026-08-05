@@ -195,7 +195,7 @@ Ersetzt/ergänzt die heutigen Challenge-Pages als Container:
 
 - ruft `ChooseAnyAsync(skills)`
 - schlägt `View` in `TaskPresentationRegistry` nach
-- rendert per `DynamicComponent` mit `Task` (`IChosenTask`) + `OnNext` (`EventCallback`) als
+- rendert per `DynamicComponent` mit `ChosenTask` (`IChosenTask`) + `OnNext` (`EventCallback`) als
   Parameter (Vertrag: `ITaskView`)
 
 **Präzisiert beim Bauen (Phase 4a):** Ursprünglich stand hier "TaskHost ruft die gemeinsame
@@ -204,11 +204,13 @@ Scoring-Glue auf" - das geht so nicht, weil `TaskSessionController.RecordSuccess
 absichtlich *nicht* vereinheitlicht wird. `TaskHost` kennt dieses Entity gar nicht. Stattdessen: die
 View injiziert `TaskSessionController` selbst (genau wie die Pages es heute tun) und ruft
 `RecordSuccess`/`RecordFailure` direkt auf. `TaskHost`s Vertrag mit der View ist dadurch minimal -
-nur `Task` (das `IChosenTask`) rein, `OnNext` (parameterloser `EventCallback`) raus, ausgelöst wenn
-die View mit dieser Aufgabe fertig ist und die nächste will. Timing (z.B. Silbens 900ms-Verzögerung
-nach richtiger Antwort) bleibt UI-Präsentationsdetail der View, nicht von `TaskHost` vorgegeben.
-Umgesetzt in `Model/Tasks/ITaskView.cs`, `Model/Tasks/TaskPresentationRegistry.cs`,
+nur `ChosenTask` (das `IChosenTask`) rein, `OnNext` (parameterloser `EventCallback`) raus, ausgelöst
+wenn die View mit dieser Aufgabe fertig ist und die nächste will. Timing (z.B. Silbens
+900ms-Verzögerung nach richtiger Antwort) bleibt UI-Präsentationsdetail der View, nicht von
+`TaskHost` vorgegeben. Umgesetzt in `Model/Tasks/ITaskView.cs`, `Model/Tasks/TaskPresentationRegistry.cs`,
 `Components/TaskHost.razor` - noch ohne konkrete View, daher noch nirgendwo gerendert.
+Property heißt bewusst `ChosenTask`, nicht `Task` - Views sind async-lastig (`CheckAnswer` etc.),
+ein `Task`-Property hätte ständig mit `System.Threading.Tasks.Task` kollidiert.
 
 ### 6. Scoring-/Logging-Glue extrahieren
 

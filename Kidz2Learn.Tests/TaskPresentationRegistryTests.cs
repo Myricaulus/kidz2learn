@@ -8,7 +8,7 @@ public class TaskPresentationRegistryTests
 {
     private sealed class FakeTaskView : ITaskView
     {
-        public IChosenTask Task { get; set; } = null!;
+        public IChosenTask ChosenTask { get; set; } = null!;
         public EventCallback OnNext { get; set; }
     }
 

@@ -32,7 +32,7 @@
         _viewType = TaskPresentationRegistry.Resolve(_chosen.View);
         _parameters = new Dictionary<string, object>
         {
-            [nameof(ITaskView.Task)] = _chosen,
+            [nameof(ITaskView.ChosenTask)] = _chosen,
             [nameof(ITaskView.OnNext)] = EventCallback.Factory.Create(this, LoadNext)
         };
     }
