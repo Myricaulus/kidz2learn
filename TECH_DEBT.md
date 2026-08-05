@@ -24,6 +24,22 @@ wirklich adaptiv nach Skill-Schwäche gefiltert, nur nach `DifficultyLevel` gewi
 **Ziel:** Ein saubereres Modell finden, wie Tasks aus einer Domain (oder einer Menge von Skills)
 ausgewählt werden, ohne dass jede Page den Skill hart vorgeben muss.
 
+**Ergänzung (Szenario-Testbarkeit):** `AdaptiveTaskGenerator` selbst ist über `ISkillMasteryStore` +
+geseedeten `Random` schon szenario-testbar (siehe `Kidz2Learn.Tests/AdaptiveTaskGeneratorTests.cs`).
+Die eigentliche Mastery-*Formel* (Basis-Delta nach `Difficulty`, `SkillRowFactor`, `TaskRowFactor`,
+`TimeFactor`, Clamping) ist es nicht: Sie steckt komplett in `SkillMasteryStore.Adjust`
+(`Model/Skills.cs`), fest verdrahtet gegen ein echtes `IndexedDbStore`.
+`Kidz2Learn.Tests/FakeSkillMasteryStore.cs` zeichnet aktuell nur auf, *dass* `Adjust` aufgerufen
+wurde, rechnet aber nichts nach – ein Szenario wie "0 Mastery, immer richtig, Schwierigkeit soll
+exponentiell steigen bis zum Plateau des tatsächlichen Nutzerlevels" lässt sich damit nicht
+durchspielen. Fix: die reine Rechenlogik aus `SkillMasteryStore.Adjust` in eine I/O-freie Einheit
+extrahieren (z.B. `MasteryMath.Adjust(SkillState current, Difficulty difficulty, int timeMs,
+Kompetenzniveau taskHistory, bool success) -> SkillState`), `SkillMasteryStore.Adjust` wird dann nur
+noch dünne I/O-Glue (Laden → `MasteryMath.Adjust` → Speichern) drumherum. Damit kann ein
+In-Memory-Store die *echte* Formel über beliebig viele simulierte Runden laufen lassen, ganz ohne
+Browser/IndexedDB – Voraussetzung für die geplanten Szenario-Testläufe, mit denen die
+Task-Auswahl-Mechanik selbst optimiert werden soll (siehe Punkt 7).
+
 ---
 
 ## [x] 2. Bug: SilbenChallenge — `LeseAufgaben` IndexedDB Store nicht bekannt
@@ -111,3 +127,25 @@ diese History für irgendetwas verwendet wird, ist sie stillschweigend korrupt.
 übergebenen `items` liegen durch `RingBufferJsonConverter.Write` bereits in logischer Reihenfolge,
 der alte physische `itemstart` ist dagegen wertlos) und berechnet `Count` ohne das `-1`. Die beiden
 zuvor geskippten Tests in `RingBufferTests.cs` sind entsperrt und grün.
+
+---
+
+## [ ] 7. Zukunftsprojekt: Mastery-History für dynamische Schwierigkeit/Punkte/"Events"
+
+Beim Konzipieren von `TASK_PRESENTATION_REDESIGN.md` aufgekommen, aber bewusst nicht Teil dieses
+Umbaus. Ideensammlung für ein späteres, eigenes Vorhaben:
+
+- **Pro-Skill/Pro-Task-Typ-Historie**, die die Mastery-Logik auswertet, um z.B. zu erkennen, ob
+  ein länger nicht trainierter ("alter") Skill mal wieder abgefragt werden sollte, oder ob die
+  Schwierigkeit vorübergehend gesenkt werden muss, weil Frustration erkannt wurde (Signale dafür:
+  Zeit pro Versuch, Fehlerlog – beides selbst noch offen, siehe `SkillMasteryStore`-TODOs in
+  CLAUDE.md zu Bayesian Knowledge Tracing/Fail-Reason-Inferenz). Bug #6 (`RingBuffer`) betraf
+  bereits die Datenstruktur, die dafür in Frage käme.
+- **Dynamische Punktvergabe im `TaskChooser`/Picker nach effektiver Schwierigkeit** statt fester
+  Werte pro Task-Definition (siehe Baustein 6 in `TASK_PRESENTATION_REDESIGN.md`): unerfahrene Kinder
+  sollen für dieselbe Aufgabenkategorie mehr Punkte bekommen als schon fortgeschrittene, ggf. auch
+  gezielt Bonuspunkte bei erkannter Frustration.
+- **Zufällig eingestreute "Events" durch den Picker**, um Monotonie entgegenzuwirken – Teil des
+  Wunsches, das Lernkonzept maximal gamifiziert zu halten.
+- Hängt lose mit Punkt 1 (Picker-Design) und Punkt 3 ("Allgemeiner Modus") zusammen, ist aber deutlich
+  größer als beide und sollte als eigene Phase *nach* dem Presentation-Redesign angegangen werden.
