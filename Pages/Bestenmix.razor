@@ -1,0 +1,8 @@
+@page "/bestenmix"
+@using Kidz2Learn.Components
+
+@* Phase 6 (TASK_PRESENTATION_REDESIGN.md): ungefiltertes "alles gemischt" - Skills=null lässt
+   ChooseAnyAsync aus TaskRegistry.All wählen (Mathe und Deutsch zusammen), gewichtet nach
+   Mastery/Difficulty wie jeder andere TaskHost-Pool. Turbo10 wird dabei automatisch ausgeklammert
+   (kein registrierter View, siehe TaskPresentationRegistry.IsRegistered / Phase 5). *@
+<TaskHost />

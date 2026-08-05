@@ -132,6 +132,22 @@ public class ChooseAnyAsyncTests
     }
 
     [Fact]
+    public async Task ChooseAnyAsync_NeverReturnsATaskWithAnUnregisteredView()
+    {
+        // "arith-turbo" (Skill.Math.Turbo10) has no TaskPresentationRegistry entry yet -
+        // TurboArithChallenge is a standalone page, not on TaskHost (see TASK_PRESENTATION_REDESIGN.md,
+        // "Event-artige Session-Bausteine im Mixer"). ChooseAnyAsync must not hand it back, or
+        // TaskHost's TaskPresentationRegistry.Resolve would throw.
+        var generator = new AdaptiveTaskGenerator(new FakeSkillMasteryStore(), new Random(7));
+
+        for (var i = 0; i < 400; i++)
+        {
+            var chosen = await generator.ChooseAnyAsync();
+            Assert.True(TaskPresentationRegistry.IsRegistered(chosen.View));
+        }
+    }
+
+    [Fact]
     public async Task ChooseAnyAsync_UnknownSkillFilter_Throws()
     {
         var generator = new AdaptiveTaskGenerator(new FakeSkillMasteryStore(), new Random(1));
@@ -164,7 +180,7 @@ public class ChooseAnyAsyncTests
         var store = new FakeSkillMasteryStore();
         var generator = new AdaptiveTaskGenerator(store, new Random(1));
 
-        var chosen = await generator.ChooseAnyAsync([Skill.Math.Turbo10]);
+        var chosen = await generator.ChooseAnyAsync([Skill.Math.Add15]);
         await chosen.Success(new Kompetenzniveau());
 
         Assert.Equal(chosen.Skills, store.AdjustCalls.Select(c => c.SkillId));
@@ -177,7 +193,7 @@ public class ChooseAnyAsyncTests
         var store = new FakeSkillMasteryStore();
         var generator = new AdaptiveTaskGenerator(store, new Random(1));
 
-        var chosen = await generator.ChooseAnyAsync([Skill.Math.Turbo10]);
+        var chosen = await generator.ChooseAnyAsync([Skill.Math.Add15]);
         await chosen.Fail(new Kompetenzniveau());
 
         Assert.Equal(chosen.Skills, store.AdjustCalls.Select(c => c.SkillId));

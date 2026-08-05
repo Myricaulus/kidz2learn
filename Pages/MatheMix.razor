@@ -1,0 +1,9 @@
+@page "/mathe-mix"
+@using Kidz2Learn.Components
+@using Kidz2Learn.Model
+
+@* Phase 5 (TASK_PRESENTATION_REDESIGN.md): domain-wide filter entry, additive next to the existing
+   narrower "/ArithmeticChallenge" route - not a replacement. ChooseAnyAsync silently drops
+   Turbo10 (no registered view yet, see AdaptiveTaskGeneratorTests.ChooseAnyAsync_NeverReturnsATaskWithAnUnregisteredView),
+   so this stays safe even though Turbo10 is nominally part of the Math domain. *@
+<TaskHost Skills="@SkillRegistry.ByDomain(TaskDomain.Math).Select(s => s.Id).ToList()" />

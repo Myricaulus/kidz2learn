@@ -1,11 +1,14 @@
 @using Kidz2Learn.Components.TaskViews
 
 <div class="k4l-task-container">
-    <h2 class="k4l-title">Hörübung: Welches Wort hörst du?</h2>
+    <h2 class="k4l-title">@Title</h2>
 
-    <div class="k4l-audio-box">
-        <button class="k4l-audio-button" @onclick="PlayAudio">▶️ Anhören</button>
-    </div>
+    @if (_hasAudio)
+    {
+        <div class="k4l-audio-box">
+            <button class="k4l-audio-button" @onclick="PlayAudio">▶️ Anhören</button>
+        </div>
+    }
 
     <div class="k4l-options">
         @foreach (var option in _currentOptions)

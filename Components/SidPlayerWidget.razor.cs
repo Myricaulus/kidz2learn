@@ -20,8 +20,8 @@ public partial class SidPlayerWidget : ComponentBase
 
     protected override async Task OnInitializedAsync()
     {
-        Player.OnVolumeChanged += SetVolume;
-        await SetVolume(0.4);
+        Player.OnVolumeChanged += ApplyVolume;
+        await Player.SetVolume(0.4); // seeds SidWidgetService's base volume, cascades via ApplyVolume below
         _sidFiles = await Http.GetFromJsonAsync<List<string>>("sids/sidfiles.json");
         await TogglePlay();
     }
@@ -59,7 +59,11 @@ public partial class SidPlayerWidget : ComponentBase
         }
     }
 
-    private async Task SetVolume(double volume)
+    // Reacts to SidWidgetService.OnVolumeChanged (manual slider moves *and* a challenge page's
+    // Duck()/Restore()) by pushing the effective volume into the actual JS SID player + this
+    // widget's own slider position. Manual slider drags themselves go through Player.SetVolume
+    // (see the .razor markup), which loops back here - single source of truth either way.
+    private async Task ApplyVolume(double volume)
     {
         _volume = volume;
         await SidPlayer.SetVolume(volume / 4);
@@ -68,6 +72,6 @@ public partial class SidPlayerWidget : ComponentBase
 
     public void Dispose()
     {
-        Player.OnVolumeChanged -= SetVolume;
+        Player.OnVolumeChanged -= ApplyVolume;
     }
 }

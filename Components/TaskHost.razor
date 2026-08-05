@@ -1,5 +1,6 @@
 @using Kidz2Learn.Model
 @using Kidz2Learn.Model.Tasks
+@using Kidz2Learn.Services
 @using Tavenem.Blazor.IndexedDB
 
 @if (_chosen is not null && _viewType is not null)
@@ -13,6 +14,7 @@
     [Parameter] public IReadOnlyCollection<string>? Skills { get; set; }
 
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
+    [Inject] private HudStateService Hud { get; set; } = null!;
 
     private readonly Random _rng = new();
     private IChosenTask? _chosen;
@@ -21,6 +23,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Belongs here, not in a view's OnInitializedAsync: TaskHost is the one component that
+        // stays a single instance for the whole page visit. Views come and go - DynamicComponent
+        // recreates the component whenever _viewType changes (e.g. Bestenmix/Deutsch-Mix switching
+        // between "silben-multiple-choice" and "arith-numpad") - so a reset in a view's own
+        // OnInitializedAsync would refire on every such switch, wiping the combo mid-session. Found
+        // during manual testing, see TASK_PRESENTATION_REDESIGN.md.
+        Hud.ResetAll();
         await LoadNext();
     }
 

@@ -1,0 +1,8 @@
+@page "/deutsch-mix"
+@using Kidz2Learn.Components
+@using Kidz2Learn.Model
+
+@* Phase 5 (TASK_PRESENTATION_REDESIGN.md): domain-wide filter entry, additive next to the existing
+   narrower "/" and "/graphem" routes - not a replacement. Combines read_syllables, read_precise
+   and GraphemPhonem into one mixed pool. *@
+<TaskHost Skills="@SkillRegistry.ByDomain(TaskDomain.Reading).Select(s => s.Id).ToList()" />

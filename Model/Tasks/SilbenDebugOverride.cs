@@ -12,7 +12,12 @@ public sealed class SilbenDebugOverride(string word, string? skillId, IReadOnlyL
 {
     public T? TryForce<T>(IReadOnlyCollection<T> candidates) where T : BaseTaskDefinition
     {
-        if (candidates is not IReadOnlyCollection<SilbenTaskDefinition> silbenCandidates)
+        // Filter element-by-element instead of casting the whole collection: candidates can be a
+        // mixed BaseTaskDefinition pool (AdaptiveTaskGenerator.ChooseAnyAsync), which never
+        // satisfies "is IReadOnlyCollection<SilbenTaskDefinition>" regardless of its actual
+        // contents - see TASK_PRESENTATION_REDESIGN.md, Baustein 4.
+        var silbenCandidates = candidates.OfType<SilbenTaskDefinition>().ToList();
+        if (silbenCandidates.Count == 0)
             return null;
 
         var entry = WordMeta.Data.FirstOrDefault(w =>

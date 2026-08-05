@@ -42,6 +42,17 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
     // actually carry a new ChosenTask - see TASK_PRESENTATION_REDESIGN.md Baustein 5.
     private IChosenTask? _loadedForTask;
 
+    // GraphemPhonem shares this view's payload shape (string correct, string[] options) but is a
+    // silent visual-discrimination exercise, not a listening one - unlike ReadSyllables/ReadPrecise,
+    // it never had an audio button, and its Generator's "correct" is the WordMeta dictionary key,
+    // not the .filename used for audio lookup, so playing it could 404 anyway. Kept skill-gated
+    // here rather than as a separate view, same pattern as the ReadPrecise-only popup below.
+    private bool _hasAudio;
+
+    private string Title => _hasAudio
+        ? "Hörübung: Welches Wort hörst du?"
+        : "Übung: Welches Wort gehört nicht dazu? Manche Buchstaben werden manchmal anders ausgesprochen.";
+
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
     [Inject] private LoggerService Logger { get; set; } = null!;
     [Inject] private IJSRuntime Js { get; set; } = null!;
@@ -53,12 +64,11 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
     protected override async Task OnInitializedAsync()
     {
         ReadingDb = AufgabenDb["LeseAufgaben"] ?? throw new Exception("IndexedDb not instanced");
-        await Player.SetVolume(0.1);
     }
 
     public async ValueTask DisposeAsync()
     {
-        await Player.SetVolume(1.0);
+        await Player.Restore();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -71,6 +81,16 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
             return;
         _loadedForTask = ChosenTask;
 
+        _hasAudio = ChosenTask.Skills.Contains(Skill.ReadSyllables) || ChosenTask.Skills.Contains(Skill.ReadPrecise);
+        // Ducked/restored per task, not just once on init: "Deutsch-Mix" (TASK_PRESENTATION_REDESIGN.md
+        // Phase 5) can alternate audio (read_syllables/read_precise) and silent (GraphemPhonem) tasks
+        // within the same session. Duck()/Restore() (not SetVolume(1.0)) so a silent task restores
+        // the user's own manually-chosen volume instead of blasting it back to full.
+        if (_hasAudio)
+            await Player.Duck(0.1);
+        else
+            await Player.Restore();
+
         var (correct, options) = ((string correct, string[] options))ChosenTask.Payload;
         _correctSyllable = correct;
         _currentAudio = $"audio/{_correctSyllable}.opus";
@@ -80,7 +100,8 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
         _showFeedback = false;
         _isProcessing = false;
 
-        await PlayAudio();
+        if (_hasAudio)
+            await PlayAudio();
     }
 
     private string GetOptionClass(string option)

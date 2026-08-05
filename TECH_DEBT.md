@@ -85,10 +85,22 @@ wäre Voraussetzung).
 
 ## [ ] 5. Neue Task-Arten (z.B. TurboArithChallenge) nicht vollständig unterstützt
 
-`TurboArithChallenge` (`Pages/ArithmeticChallenge/TurboArithChallenge.razor`) nutzt vermutlich
-nicht durchgängig dieselbe Task-/Skill-Infrastruktur wie die "normalen" Challenges (`ArithTaskRegistry.Turbo`
-existiert separat von `ArithTaskRegistry.Simple`/`All`). Muss geprüft werden, was genau fehlt
-oder unsauber integriert ist, sobald Punkt 1 angegangen wird.
+**Konkretisiert (im Rahmen von TASK_PRESENTATION_REDESIGN.md Phase 4/5):** `SilbenChallenge`,
+`GraphemChallenge` und `ArithmeticChallenge` laufen inzwischen alle über `TaskHost` +
+`ITaskView`-Komponenten (`ChosenTask` rein, `OnNext` raus, ein neuer Pick pro Aufgabe).
+`TurboArithChallenge` (`Pages/ArithmeticChallenge/TurboArithChallenge.razor`) passt strukturell
+**nicht** in diesen Vertrag: es ist eine feste 3-Minuten-Zeitrunde auf einem einzigen, fest
+verdrahteten Skill (`Turbo10`, kein Re-Pick pro Aufgabe - `ArithTaskRegistry.Turbo` bleibt bewusst
+getrennt von `Simple`/`All`), mit eigenem Start/Running/Zusammenfassung-Zustand und
+Punktevergabe am Rundenende statt pro Aufgabe. Bleibt deshalb bewusst eine eigene, nicht migrierte
+Seite/Route.
+
+Der User hat dazu eine konkrete Weiterentwicklungsidee: Turbo soll kein Sonderfall bleiben, sondern
+zu einem allgemeinen "Event"-Baustein werden, den der Mixer/`TaskHost` selbst mitten in einer
+normalen Session auslösen kann (z.B. nach ein paar normalen Aufgaben unangekündigt 20 Sekunden
+Turbo einstreuen, danach wieder normale/andere Aufgabentypen, mit einstellbarer Wahrscheinlichkeit).
+Ausführlich festgehalten in TASK_PRESENTATION_REDESIGN.md unter "Offener Punkt: Event-artige
+Session-Bausteine im Mixer" - eigenes Konzept/eigene Phase, nicht Teil der aktuellen Umbauphase.
 
 ---
 
@@ -219,3 +231,74 @@ per Repro-Skript vor/nach dem Fix verifiziert. Neuer Regressionstest
 `KompetenzniveauTests.JsonRoundTrip_PreservesVersucheAndRichtig` (Serialisieren + Deserialisieren
 direkt, ohne IndexedDB/JSRuntime - reiner `System.Text.Json`-Test, kein IndexedDB-Zugriff nötig).
 Build + volle Testsuite (60 Tests) grün.
+
+---
+
+## [ ] 11. Bug: Markier-Popup lässt sich während des Spicken-Hovers blind bedienen
+
+Beim manuellen Testen von `/` (nach dem TaskHost-Cutover) gefunden, **keine Regression durch den
+Umbau** - Verhalten war schon im alten `SilbenChallenge.razor` identisch (Popup wurde in Phase 4b
+nur wortwörtlich nach `MarkierPopup.razor` verschoben).
+
+Hält man die Maus auf dem grünen "richtiges Wort"-Kästchen (3 Sek. zum Spicken), blendet
+`MarkierPopup.razor` das falsche Wort per CSS aus (`.k4l-correct-box:hover ~ .k4l-wrong-reveal-wrap
+.k4l-wrong-word-box { opacity: 0; ... }`, Zeile ~246). `opacity: 0` deaktiviert aber keine
+Pointer-Events - die `<span class="k4l-letter">`/Lücken-`<span>`s darunter (`@onclick="() =>
+OpenLetterEdit(li)"` bzw. `OpenGap(gi)`, Zeile 79/50/54) bleiben normal klickbar, nur unsichtbar.
+Ein Kind kann also während des Spickens weiter (blind) Buchstaben markieren/korrigieren, an
+Positionen, die es sich vom vorherigen sichtbaren Zustand gemerkt hat oder einfach durchprobiert.
+
+**Vermutlicher Fix:** `pointer-events: none` auf `.k4l-wrong-word-box` ergänzen, solange sie über
+den Hover-Trigger ausgeblendet ist (gleiche Selektor-Kombination wie die bestehende
+`opacity: 0`-Regel).
+
+---
+
+## [ ] 12. Bug: Markier-Popup akzeptiert nur eine von mehreren gültigen Korrekturen bei mehrdeutigem Alignment
+
+Beim manuellen Testen von `/` gefunden, **keine Regression durch den Umbau** - `WordDiff.cs` und die
+`OnWeiterClicked`-Prüflogik sind seit Phase 4b unverändert nach `MarkierPopup.razor.cs` verschoben.
+
+Konkretes Repro: falsches Wort "anfasssen" (drei "s" statt zwei) - das letzte "s" als überzählig
+markiert wurde abgelehnt, nur das erste "s" wurde akzeptiert.
+
+**Ursache:** `WordDiff.Align` (`Model/WordDiff.cs` bzw. `Pages/SilbenChallenge/WordDiff.cs`) ist
+Standard-Wagner-Fischer mit Backtracking in fester Prioritätsreihenfolge (Match → Substitute →
+Delete → Insert). Bei mehreren gleich guten Alignments - z.B. drei aufeinanderfolgenden identischen
+Buchstaben, von denen einer zu viel ist - liefert das Backtracking deterministisch **genau eine**
+Lösung (hier: das erste "s"), nicht die Menge aller gleichwertigen Alternativen.
+`MarkierPopup.OnWeiterClicked` (`Components/TaskViews/MarkierPopup.razor.cs:142`) prüft dann per
+`_markedIndices.SetEquals(_requiredMarks)` exakt gegen **dieses eine** Alignment, statt zu prüfen,
+ob das tatsächliche Ergebnis der Kind-Korrektur (Marks/Substitutionen/Lücken angewandt auf
+`WrongWord`) zu `CorrectWord` führt. Bei Wörtern mit wiederholten Buchstaben (Doppel-/Dreifach-
+Konsonanten, worauf Deutsch als Sprache besonders anfällig ist) gibt es das oft mehrfach.
+
+**Vermutlicher Fix:** Zwei unabhängige Bausteine, wahrscheinlich beide nötig:
+1. `WordDiff.Align` so erweitern, dass es bei Ties alle gleichwertigen Alignments liefert (oder
+   zumindest eine Kanonisierung, die bei Wiederholungsgruppen konsistent das "sinnvollste" wählt),
+   statt sich nur auf die Backtracking-Reihenfolge zu verlassen.
+2. `OnWeiterClicked`s Prüfung ergebnisorientiert machen: Marks/Substitutionen/Lücken auf `WrongWord`
+   anwenden und das Resultat gegen `CorrectWord` vergleichen, statt Index-für-Index gegen ein
+   einziges vorab berechnetes Alignment zu prüfen - das akzeptiert automatisch jede korrekte
+   Lösung, unabhängig davon, welche der mehreren möglichen Alignments `WordDiff` intern gewählt
+   hat.
+
+---
+
+## [ ] 13. Bug: Debug-Override zeigt bei `skill=read_precise` 5 statt 3 Optionen
+
+Beim manuellen Testen von `/debug/SilbenChallenge?task=silben&word=Sonnensystem&skill=read_precise`
+gefunden - **nicht** vom TaskHost-Umbau verursacht, `SilbenDebugOverride.cs` war hiervon inhaltlich
+unberührt (nur der `OfType`-Filter kam dazu).
+
+**Ursache:** `SilbenDebugOverride.TryForce` (`Model/Tasks/SilbenDebugOverride.cs`) generiert die
+Distraktoren ohne `options=`-Parameter hart mit `ErstleserDistraktorGenerator.Generate(target, 4,
+Random.Shared)` → 4 Distraktoren + Zielwort = 5 Optionen, **unabhängig davon, welcher Skill
+erzwungen wird**. Die echten Generatoren in `SilbenTaskRegistry.cs` liefern aber je nach Skill
+unterschiedlich viele Optionen: `read_precise` nutzt `ErstleserDistraktorGenerator.Generate(...,
+2, r)` → 3 Optionen, `GraphemPhonem` ebenfalls 3, `read_syllables` dagegen 6. Die hartcodierte `4`
+im Debug-Override passt zu keinem der drei.
+
+**Vermutlicher Fix:** Distraktor-Anzahl im Override von der jeweils erzwungenen
+`SilbenTaskDefinition` ableiten statt hartcodiert - am saubersten, indem die Definition selbst (oder
+ihr `Generator`) die erwartete Optionsanzahl exponiert, statt sie im Debug-Code zu erraten.

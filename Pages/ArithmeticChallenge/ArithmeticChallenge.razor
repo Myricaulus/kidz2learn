@@ -1,67 +1,10 @@
-﻿@page "/ArithmeticChallenge"
-@using MudBlazor
+@page "/ArithmeticChallenge"
+@using Kidz2Learn.Components
+@using Kidz2Learn.Model.Tasks
 
-<h2 style="text-align:center; margin-top: 20px;">Schriftliche Aufgabe</h2>
-
-<MudPaper Class="pa-4" Elevation="2">
-    <MudStack Spacing="3" AlignItems="AlignItems.Center">
-
-        <!-- Deine Aufgabe -->
-        <MudPaper Class="pa-4" Elevation="1">
-            <!-- Hier dein Aufgabenlayout (Grid etc.) -->
-            <div
-                style="display:grid; grid-template-columns: repeat(@(MaxLength + 1), 20px); gap: 0; text-align:center; font-size: 32px;">
-                <div></div>
-                @foreach (var digit in _number1Digits)
-                {
-                    <div>@digit</div>
-                }
-                <div>@(_isAddition ? "+" : "-")</div>
-                @foreach (var digit in _number2Digits)
-                {
-                    <div>@digit</div>
-                }
-
-                <div
-                    style="grid-column: 1 / span @(MaxLength + 1); border-bottom: 3px solid black; height: 10px;"></div>
-
-                @for (var i = 0; i < MaxLength + 1; i++)
-                {
-                    var i1 = i;
-                    <input @bind="_userDigits[i1]"
-                           T="int"
-                           id="@($"digit-{i1}")"
-                           maxlength="1"
-                           size="1"
-                           style="width: 20px; font-size: 32px; text-align:center; border: #1b6ec2"
-                           @onfocus="() => CurrentIndex = i1"
-                           @onkeydown="e => OnKeyDown(e, i1)"
-                           @ref="@(_refs[i1])"/>
-                }
-            </div>
-            <div style="margin-top:20px; font-weight:bold; text-align:center; color: rgb(221, 44, 68);">
-                @((MarkupString)_feedback)
-            </div>
-        </MudPaper>
-        <MudPaper Class="pa-4" Elevation="1" Width="200">
-            <!-- Dein Numpad -->
-            <MudStack Spacing="1" Justify="Justify.Center">
-            @foreach (var row in _numpadLayout)
-            {
-                <MudStack Row="true" Spacing="1" Justify="Justify.Center">
-                    @foreach (var key in row)
-                    {
-                        <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="() => OnVirtualKeyPress(key.Value)"
-                                   Style="min-width: 60px;">
-                            @key.Key
-                        </MudButton>
-                    }
-                </MudStack>
-            }
-            </MudStack>
-        </MudPaper>
-    </MudStack>
-</MudPaper>
-
-
-
+@* Cutover onto TaskHost, same pattern as "/" (SilbenChallenge, see TASK_PRESENTATION_REDESIGN.md
+   Phase 4c/5). ArithTaskRegistry.SimpleSkills is exactly the skill set the old page hardcoded via
+   ChooseTaskAsync<ArithTaskDefinition>(ArithTaskRegistry.SimpleSkills) - Turbo10 stays excluded,
+   TurboArithChallenge is its own page (see TASK_PRESENTATION_REDESIGN.md, "Event-artige
+   Session-Bausteine im Mixer"). *@
+<TaskHost Skills="@ArithTaskRegistry.SimpleSkills" />

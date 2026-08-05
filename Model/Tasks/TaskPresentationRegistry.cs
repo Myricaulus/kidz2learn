@@ -15,6 +15,7 @@ public static class TaskPresentationRegistry
     static TaskPresentationRegistry()
     {
         Register("silben-multiple-choice", typeof(SilbenMultipleChoiceView));
+        Register("arith-numpad", typeof(ArithNumpadView));
     }
 
     public static void Register(string view, Type componentType)
@@ -33,5 +34,16 @@ public static class TaskPresentationRegistry
             ? type
             : throw new InvalidOperationException(
                 $"No view registered for '{view}' (known: {string.Join(", ", Views.Keys)}).");
+    }
+
+    /// <summary>
+    ///     Lets a mixed-pool picker (<see cref="AdaptiveTaskGenerator.ChooseAnyAsync" />) skip
+    ///     candidates it couldn't render anyway, instead of picking one and blowing up in
+    ///     <see cref="Resolve" /> - e.g. <c>"arith-turbo"</c>, which only <c>TurboArithChallenge</c>
+    ///     (not on <c>TaskHost</c>) knows how to present today.
+    /// </summary>
+    public static bool IsRegistered(string view)
+    {
+        return Views.ContainsKey(view);
     }
 }

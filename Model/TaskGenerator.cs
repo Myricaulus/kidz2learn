@@ -145,9 +145,8 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
     ///     instead of one fixed <c>T</c>, so candidates from different domains/payload shapes can be
     ///     mixed in the same pool. Same weighting logic, same signature shape as
     ///     <see cref="ChooseTaskAsync{T}" /> - <c>skills = null</c> means "everything", across every
-    ///     domain, not just one. Not wired into any page yet - see TASK_PRESENTATION_REDESIGN.md
-    ///     (Baustein 4). Deliberately does not consult <see cref="DebugOverride" /> yet - that needs
-    ///     its own rework once a page actually calls this (see the doc's note on Baustein 4).
+    ///     domain, not just one. Wired into <c>TaskHost</c> - see TASK_PRESENTATION_REDESIGN.md
+    ///     (Baustein 4).
     /// </summary>
     public async Task<IChosenTask> ChooseAnyAsync(IReadOnlyCollection<string>? skills = null)
     {
@@ -155,9 +154,17 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
         if (skills is not null)
             candidates = candidates.Where(c => c.Skills.Any(skills.Contains)).ToList();
 
+        // Skip candidates whose View has no registered presentation yet (e.g. "arith-turbo" -
+        // only the standalone TurboArithChallenge page knows how to render that today) instead of
+        // picking one and having TaskPresentationRegistry.Resolve throw later.
+        candidates = candidates.Where(c => TaskPresentationRegistry.IsRegistered(c.View)).ToList();
+
         if (candidates.Count == 0)
             throw new InvalidOperationException(
                 $"No tasks match skills [{string.Join(", ", skills ?? [])}].");
+
+        if (DebugOverride?.TryForce(candidates) is { } forced)
+            return forced.Choose(rng, Difficulty.Normal, store);
 
         var masteryBySkill = (await store.GetSkillViewEnumerableAsync())
             .ToDictionary(sv => sv.State.Id, sv => sv.State.Mastery);

@@ -1,16 +1,19 @@
-﻿using Kidz2Learn.Model;
 using Kidz2Learn.Model.Tasks;
-using Kidz2Learn.Model.Tasks.TaskDefs;
 using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using Tavenem.Blazor.IndexedDB;
 
-namespace Kidz2Learn.Pages.ArithmeticChallenge;
+namespace Kidz2Learn.Components.TaskViews;
 
-// ReSharper disable once ClassNeverInstantiated.Global
-public partial class ArithmeticChallenge : ComponentBase
+/// <summary>
+///     "arith-numpad" view: written-addition/subtraction digit grid + virtual numpad. Extracted out
+///     of the old ArithmeticChallenge.razor(.cs); see TASK_PRESENTATION_REDESIGN.md Baustein 4/5.
+///     Registered under "arith-numpad" in TaskPresentationRegistry - rendered generically by
+///     TaskHost via DynamicComponent, not routed to directly.
+/// </summary>
+public partial class ArithNumpadView : ComponentBase, ITaskView
 {
     // Konfiguration
     private const int MaxLength = 2;
@@ -23,59 +26,54 @@ public partial class ArithmeticChallenge : ComponentBase
         new() { { "0", "0" }, { "➡️", "Backspace" }, { "↩️", "Enter" } }
     ];
 
-    private readonly Random _rng = new();
+    [Parameter] public IChosenTask ChosenTask { get; set; } = null!;
+    [Parameter] public EventCallback OnNext { get; set; }
+
     private readonly int?[] _userDigits = new int?[MaxLength + 1];
-    private LearningTask<ArithTaskDefinition>? _currentTaskDef;
     private int _expectedResult;
 
     private string _feedback = "";
     private bool _isAddition;
 
     private int _number1;
-
     private int[] _number1Digits = new int[MaxLength];
     private int _number2;
     private int[] _number2Digits = new int[MaxLength];
-    private ArithOperator _operator;
 
     private ElementReference[] _refs = new ElementReference[MaxLength + 1];
+
+    // Guards the reset below against firing again on incidental re-renders that don't actually
+    // carry a new ChosenTask - see SilbenMultipleChoiceView / TASK_PRESENTATION_REDESIGN.md Baustein 5.
+    private IChosenTask? _loadedForTask;
+
     [Inject] private IJSRuntime Js { get; set; } = null!;
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
     [Inject] private LoggerService Logger { get; set; } = null!;
-    [Inject] private HudStateService Hud { get; set; } = null!;
     [Inject] private TaskSessionController Session { get; set; } = null!;
 
     private int CurrentIndex { get; set; }
     private IndexedDbStore ArithDb { get; set; } = null!;
 
-
     protected override async Task OnInitializedAsync()
     {
-        _refs = new ElementReference[MaxLength + 1];
         ArithDb = AufgabenDb["ArithmetikAufgaben"] ?? throw new Exception("IndexedDb not instanced");
-        await GenerateNewTask();
+
+        var stats = await ArithDb.GetItemAsync<ArithemticLogStats>("0") ?? new ArithemticLogStats();
+        Logger.Erfolgreich = stats.RichtigProzent();
+        Logger.GesamtAnzahl = stats.Versuche;
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        var log = await ArithDb.GetItemAsync<ArithemticLogStats>("0") ?? new ArithemticLogStats();
-        Logger.Erfolgreich = log.RichtigProzent();
-        Logger.GesamtAnzahl = log.Versuche;
-        Hud.ResetAll();
-        StateHasChanged();
-    }
+        if (ReferenceEquals(ChosenTask, _loadedForTask))
+            return;
+        _loadedForTask = ChosenTask;
 
-    private async Task GenerateNewTask()
-    {
-        var store = new SkillMasteryStore(AufgabenDb);
-        var adaptiveTask = new AdaptiveTaskGenerator(store, _rng);
-
-        _currentTaskDef = await adaptiveTask.ChooseTaskAsync<ArithTaskDefinition>(ArithTaskRegistry.SimpleSkills);
-        (var number1N, var number2N, _, _operator) = _currentTaskDef.Task.Generator(_rng);
-        _number1 = number1N!.Value;
-        _number2 = number2N!.Value;
-        _expectedResult = _operator == ArithOperator.Addition ? _number1 + _number2 : _number1 - _number2;
-        _isAddition = _operator == ArithOperator.Addition;
+        var (x, y, _, op) = ((int? x, int? y, int? z, ArithOperator op))ChosenTask.Payload;
+        _number1 = x!.Value;
+        _number2 = y!.Value;
+        _isAddition = op == ArithOperator.Addition;
+        _expectedResult = _isAddition ? _number1 + _number2 : _number1 - _number2;
 
         _number1Digits = ExtractDigits(_number1, MaxLength);
         _number2Digits = ExtractDigits(_number2, MaxLength);
@@ -90,10 +88,9 @@ public partial class ArithmeticChallenge : ComponentBase
             for (var i = 0; i < _userDigits.Length; i++) _userDigits[i] = null;
             await Fokus(MaxLength);
         });
-        StateHasChanged();
     }
 
-    private int[] ExtractDigits(int number, int length)
+    private static int[] ExtractDigits(int number, int length)
     {
         var digits = new int[length];
         for (var i = length - 1; i >= 0; i--)
@@ -169,22 +166,18 @@ public partial class ArithmeticChallenge : ComponentBase
         log.Op = _isAddition ? "+" : "-";
         log.UserZahl = userValue;
         log.Richtig = userValue == _expectedResult;
+
         if (userValue == _expectedResult)
         {
             log.Kompetenz.AddRichtig();
-            Hud.IncrementCombo();
-            if (_currentTaskDef is not null)
-                await Session.RecordSuccess(_currentTaskDef, log.Kompetenz, 2, 8);
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, 2, 8);
             stats.Erfolgreich++;
             stats.Versuche++;
-            await GenerateNewTask();
         }
         else
         {
             log.Kompetenz.AddFalsch();
-            if (_currentTaskDef is not null)
-                await Session.RecordFailure(_currentTaskDef, log.Kompetenz, -5, 0);
-            Hud.SetCombo(0);
+            await Session.RecordFailure(ChosenTask, log.Kompetenz, -5, 0);
             stats.Versuche++;
             _feedback =
                 $"Falsch! Richtige Lösung: {_expectedResult}.<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
@@ -204,6 +197,10 @@ public partial class ArithmeticChallenge : ComponentBase
         Logger.Erfolgreich = stats.RichtigProzent();
         Logger.GesamtAnzahl = stats.Versuche;
         await ArithDb.StoreItemAsync(stats);
+
+        if (log.Richtig)
+            await OnNext.InvokeAsync();
+
         StateHasChanged();
     }
 }
