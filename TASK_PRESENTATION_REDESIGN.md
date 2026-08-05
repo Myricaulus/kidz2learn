@@ -195,8 +195,20 @@ Ersetzt/ergänzt die heutigen Challenge-Pages als Container:
 
 - ruft `ChooseAnyAsync(skills)`
 - schlägt `View` in `TaskPresentationRegistry` nach
-- rendert per `DynamicComponent` mit `Payload` + `EventCallback<TaskAnswer>` als Parameter
-- bekommt die Antwort zurück und ruft die gemeinsame Scoring-Glue auf
+- rendert per `DynamicComponent` mit `Task` (`IChosenTask`) + `OnNext` (`EventCallback`) als
+  Parameter (Vertrag: `ITaskView`)
+
+**Präzisiert beim Bauen (Phase 4a):** Ursprünglich stand hier "TaskHost ruft die gemeinsame
+Scoring-Glue auf" - das geht so nicht, weil `TaskSessionController.RecordSuccess/Fail` ein
+`Kompetenzniveau` braucht, und das kommt aus dem domänenspezifischen Log-Entity, das laut Baustein 6
+absichtlich *nicht* vereinheitlicht wird. `TaskHost` kennt dieses Entity gar nicht. Stattdessen: die
+View injiziert `TaskSessionController` selbst (genau wie die Pages es heute tun) und ruft
+`RecordSuccess`/`RecordFailure` direkt auf. `TaskHost`s Vertrag mit der View ist dadurch minimal -
+nur `Task` (das `IChosenTask`) rein, `OnNext` (parameterloser `EventCallback`) raus, ausgelöst wenn
+die View mit dieser Aufgabe fertig ist und die nächste will. Timing (z.B. Silbens 900ms-Verzögerung
+nach richtiger Antwort) bleibt UI-Präsentationsdetail der View, nicht von `TaskHost` vorgegeben.
+Umgesetzt in `Model/Tasks/ITaskView.cs`, `Model/Tasks/TaskPresentationRegistry.cs`,
+`Components/TaskHost.razor` - noch ohne konkrete View, daher noch nirgendwo gerendert.
 
 ### 6. Scoring-/Logging-Glue extrahieren
 

@@ -1,0 +1,39 @@
+@using Kidz2Learn.Model
+@using Kidz2Learn.Model.Tasks
+@using Tavenem.Blazor.IndexedDB
+
+@if (_chosen is not null && _viewType is not null)
+{
+    <DynamicComponent Type="_viewType" Parameters="_parameters" />
+}
+
+@code {
+    // Filters candidates to these skills (see AdaptiveTaskGenerator.ChooseAnyAsync); null means
+    // "everything, across every domain" - see TASK_PRESENTATION_REDESIGN.md, Baustein 4/5.
+    [Parameter] public IReadOnlyCollection<string>? Skills { get; set; }
+
+    [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
+
+    private readonly Random _rng = new();
+    private IChosenTask? _chosen;
+    private Type? _viewType;
+    private IDictionary<string, object>? _parameters;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadNext();
+    }
+
+    private async Task LoadNext()
+    {
+        var store = new SkillMasteryStore(AufgabenDb);
+        var generator = new AdaptiveTaskGenerator(store, _rng);
+        _chosen = await generator.ChooseAnyAsync(Skills);
+        _viewType = TaskPresentationRegistry.Resolve(_chosen.View);
+        _parameters = new Dictionary<string, object>
+        {
+            [nameof(ITaskView.Task)] = _chosen,
+            [nameof(ITaskView.OnNext)] = EventCallback.Factory.Create(this, LoadNext)
+        };
+    }
+}
