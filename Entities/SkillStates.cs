@@ -25,7 +25,11 @@ public enum AttemptFailReason
 
 public sealed class SkillState : IIdItem
 {
-    public readonly static int AttemptHistorySize = 20;
+    // 20 was originally sized for a *specific task* history (Kompetenzniveau, e.g. per "5+6") -
+    // too small once shared across every task that trains a skill, since many different tasks
+    // feed the same SkillState. Bumped to 50 (SkillMigrationHelper v2) so it stays a meaningfully
+    // "recent" but not too noisy window.
+    public readonly static int AttemptHistorySize = 50;
 
     [JsonPropertyName("id")]
     public string Id { get; set; } = string.Empty; // skillId
@@ -48,6 +52,30 @@ public sealed class SkillState : IIdItem
     }
 
     public string DisplayName => $"{Id}:{Mastery:2}";
+
+    /// <summary>
+    ///     "Forgetful" accuracy over just <see cref="AttemptsHistory"/> (the last <see cref="AttemptHistorySize"/>
+    ///     attempts for this skill, oldest ones fall out automatically) instead of the lifetime
+    ///     <see cref="Attempts"/>/<see cref="Success"/> totals - old mistakes stop counting once
+    ///     enough new attempts have happened. Same "at least 5 attempts" floor as
+    ///     <see cref="Kompetenzniveau.GetProzentValue"/> uses for the analogous per-task metric, so
+    ///     both read the same "not enough data yet" as null/"--%" instead of a misleading 100%.
+    /// </summary>
+    public float? RecentAccuracy
+    {
+        get
+        {
+            if (AttemptsHistory.Count < 5)
+                return null;
+
+            var correct = 0;
+            for (var i = 0; i < AttemptsHistory.Count; i++)
+                if (AttemptsHistory[i].Correct)
+                    correct++;
+
+            return (float)correct / AttemptsHistory.Count;
+        }
+    }
 }
 
 public sealed class SkillMeta : IIdItem

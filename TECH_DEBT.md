@@ -187,6 +187,10 @@ Blick, ob das Duplikat wiederkommt.
 `wwwroot/audio/Dort.opus` (falls vorhanden) bewusst nicht gelöscht - harmlose verwaiste Datei, keine
 Laufzeitwirkung. Build + volle Testsuite (64) grün (reine Datenänderung, keine Codepfade betroffen).
 
+**Nachtrag:** `Model/WordMeta.g.cs` wurde inzwischen regenerativ aktualisiert - `["Dort"]` taucht
+darin nicht mehr auf, nur noch `["dort"]`. Der Interimsfix oben ist damit gegenstandslos, das
+eigentliche Problem scheint an der Quelle behoben.
+
 ---
 
 ## [x] 9. Bug: `Logger.Erfolgreich`/`GesamtAnzahl` driften seitenübergreifend, HUD zeigt z.B. "800%"
@@ -217,6 +221,40 @@ in `TaskHost.OnInitializedAsync` - dieselbe Lebenszyklus-Überlegung wie beim Co
 langfristig persistierte Arithmetik-Statistik, war nicht die Fehlerquelle - nur das *Füttern* von
 `Logger.Erfolgreich` daraus ist entfallen). `LiveLogger.razor` liest jetzt `TaskSessionController`
 statt `LoggerService` für die Prozentanzeige. Build + volle Testsuite (64) grün.
+
+**Nachtrag (Wunsch nach Fix, direkt mit umgesetzt):** Der ursprüngliche Plan hinter `Logger` war eine
+Statistik **pro Aufgabentyp/Skill**, nicht nur ein einziger Gesamtwert - das ist im Lauf der Zeit auf
+den einen Session-Wert reduziert worden. Umgesetzt:
+- `SkillState.RecentAccuracy` (neu, `Entities/SkillStates.cs`) - "vergessliche" Quote über
+  `AttemptsHistory` (die schon vorhandenen, aber bis dato nie ausgewerteten letzten 20 Versuche
+  **pro Skill**, nicht pro Task - nicht zu verwechseln mit `Kompetenzniveau`, das ist pro Task wie
+  "5+6"). Dieselbe "mind. 5 Versuche"-Schwelle wie `Kompetenzniveau.GetProzentValue()`, sonst `null`/"--%".
+- `TaskSessionController.SkillAttempts` - Session-lokale Versuchszähler pro Skill, geleert in
+  `ResetStats()`.
+- `LiveLogger.razor` zeigt jetzt pro in der Session berührtem Skill eine Zeile (`DisplayName`,
+  Session-Versuche, `RecentAccuracy`), geholt über `SkillMasteryStore.GetSkillViewEnumerableAsync()`
+  wie schon auf `/profile`.
+- `Profile.razor` bekam dieselbe `RecentAccuracy` als neue Spalte, gleiche Formel wie im LiveLogger.
+Neue Tests: `SkillStateTests.cs` (inkl. Beweis, dass alte Einträge nach `AttemptHistorySize` neuen
+Versuchen wirklich "vergessen" werden). Build + volle Testsuite (74 Tests) grün.
+
+**Nachtrag 2 (Fensterbreite):** 20 war ursprünglich für die *pro-Task*-Historie (`Kompetenzniveau`)
+kalibriert - für `SkillState.AttemptsHistory` (pro Skill, gespeist von vielen verschiedenen Tasks)
+zu klein, füllt sich viel schneller. Auf 50 erhöht. Da die Ringpuffer-Kapazität mit in der IndexedDB
+persistiert wird (`RingBufferJsonConverter` schreibt/liest `"capacity"`), hätte das bloße Ändern der
+Konstante nur für noch nie angefasste Skills gewirkt - `SkillMigrationHelper` bekam dafür erstmals
+eine echte `MigrateAsync`-Implementierung (vorher ein `NotImplementedException`-Stub, nie benutzt):
+v1→v2 baut bestehende `AttemptsHistory`-Ringpuffer auf die neue Kapazität um, vorhandene Einträge
+bleiben erhalten. `SkillMigrationHelper.CurrentSchemaVersion` auf `2` erhöht.
+
+`SkillMigrationHelper` selbst hängt direkt an `IndexedDbStore` (kein Interface wie
+`ISkillMasteryStore`), ist also nicht unit-testbar. Die eigentliche Resize-Logik dafür wurde deshalb
+als pure Funktion `RingBuffer<T>.Resize(source, newCapacity)` rausgezogen (`Shared/RingBuffer.cs`) -
+`ResizeAttemptsHistoryAsync` ist jetzt nur noch dünne I/O-Glue drumherum, genau das Muster, das
+Punkt 1 dieser Liste für `SkillMasteryStore.Adjust` vorschlägt. Neue Tests in `RingBufferTests.cs`
+(u.a. Resize nach einem Wraparound - logische statt physische Reihenfolge - und dass gewachsene
+Puffer danach wirklich mehr aufnehmen, bevor sie wieder überschreiben). Build + volle Testsuite
+(79 Tests) grün.
 
 ---
 

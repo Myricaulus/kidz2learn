@@ -34,10 +34,18 @@ public sealed class TaskSessionController(ScoreService score, AffirmationService
     public int SuccessfulAttempts { get; private set; }
     public float SuccessRatio => TotalAttempts == 0 ? 0f : (float)SuccessfulAttempts / TotalAttempts;
 
+    // Per-skill breakdown for the current session only (LiveLogger's "kurze Stat-Liste", enriched
+    // with SkillState.RecentAccuracy for display) - separate from the persisted SkillState.Attempts/
+    // Success (lifetime) and RecentAccuracy (last-20-window, cross-session). A task can train
+    // several skills at once, same as LearningTask.Success/Fail's per-skill loop.
+    private readonly Dictionary<string, (int Attempts, int Successes)> _skillAttempts = new();
+    public IReadOnlyDictionary<string, (int Attempts, int Successes)> SkillAttempts => _skillAttempts;
+
     public void ResetStats()
     {
         TotalAttempts = 0;
         SuccessfulAttempts = 0;
+        _skillAttempts.Clear();
     }
 
     public async Task RecordSuccess(IChosenTask task, Kompetenzniveau kompetenz, int basePoints, int bonusPoints)
@@ -46,6 +54,7 @@ public sealed class TaskSessionController(ScoreService score, AffirmationService
         hud.IncrementCombo();
         TotalAttempts++;
         SuccessfulAttempts++;
+        RecordPerSkill(task, success: true);
         await affirmation.PlayErfolgAsync();
         await task.Success(kompetenz);
     }
@@ -55,7 +64,17 @@ public sealed class TaskSessionController(ScoreService score, AffirmationService
         score.AddPoints(basePoints, bonusPoints);
         hud.SetCombo(0);
         TotalAttempts++;
+        RecordPerSkill(task, success: false);
         await affirmation.PlayMisserfolgAsync();
         await task.Fail(kompetenz);
+    }
+
+    private void RecordPerSkill(IChosenTask task, bool success)
+    {
+        foreach (var skill in task.Skills)
+        {
+            var (attempts, successes) = _skillAttempts.GetValueOrDefault(skill);
+            _skillAttempts[skill] = (attempts + 1, successes + (success ? 1 : 0));
+        }
     }
 }

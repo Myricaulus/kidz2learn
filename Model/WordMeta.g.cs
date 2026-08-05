@@ -220,7 +220,6 @@ public static class WordMeta
         ["nett"] = new WordInfo("nett", "nˈɛt", 1 , new[] { "adv", "double-consonant" }),
         ["nieder"] = new WordInfo("nie-der", "nˈiːdɜ", 2 , new[] { "adv", "ie", "long-vowel" }),
         ["oben"] = new WordInfo("o-ben", "ˈoːbən", 2 , new[] { "adv", "long-vowel" }),
-        ["oben"] = new WordInfo("ob-en", "ˈoːbən", 2 , new[] { "adv", "long-vowel" }),
         ["raten"] = new WordInfo("ra-ten", "rˈɑːtən", 2 , new[] { "long-vowel", "verb" }),
         ["raufen"] = new WordInfo("rau-fen", "rˈaʊfən", 2 , new[] { "diphthong-au", "verb" }),
         ["rechts"] = new WordInfo("rechts", "rˈɛçts", 1 , new[] { "adv", "cluster-ch" }),

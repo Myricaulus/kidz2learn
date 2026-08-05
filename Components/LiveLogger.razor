@@ -1,10 +1,35 @@
+@using Kidz2Learn.Model
 @using Kidz2Learn.Services
+@using Tavenem.Blazor.IndexedDB
 @inject LoggerService Logger
 @inject TaskSessionController Session
 <div>
     <p> Lösungsversuche: @Session.TotalAttempts</p>
     <p> Davon Erfolgreich: @((Session.SuccessRatio * 100).ToString("0.\\%"))</p>
 </div>
+
+@if (_sessionSkillStats.Count > 0)
+{
+    <div class="session-skill-stats">
+        <h4>Diese Session, pro Skill</h4>
+        <ul class="skill-badges">
+            @foreach (var skillView in _sessionSkillStats)
+            {
+                var (attempts, successes) = Session.SkillAttempts[skillView.Definition.Id];
+                var sessionRatio = attempts == 0 ? 0f : (float)successes / attempts;
+                <li class="skill-badge" @key="skillView.Definition.Id">
+                    <span class="skill-badge-name">@skillView.Definition.DisplayName</span>
+                    <span class="skill-badge-stats">
+                        Versuche: @attempts,
+                        Richtig: @(sessionRatio.ToString("P0"))
+                        (gesamt: @(skillView.State.RecentAccuracy is { } acc ? acc.ToString("P0") : "--%"))
+                    </span>
+                </li>
+            }
+        </ul>
+    </div>
+}
+
 <div class="live-logger">
     <h3>Live Logger</h3>
     <ul class="log">
@@ -18,6 +43,9 @@
 @code {
 
     private readonly List<KeyValuePair<string,RenderFragment>> _logEntries = [];
+    private List<SkillView> _sessionSkillStats = [];
+
+    [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
 
     protected override void OnInitialized()
     {
@@ -27,10 +55,31 @@
     private void AddEntry(RenderFragment fragment)
     {
         _logEntries.Insert(0, new KeyValuePair<string, RenderFragment>(Guid.NewGuid().ToString(),fragment));
-        InvokeAsync(StateHasChanged);
+        _ = RefreshSessionSkillStatsAndRender();
     }
 
+    // Session.SkillAttempts (in-memory, updated synchronously in RecordSuccess/RecordFailure) tells
+    // us *which* skills to show; the RecentAccuracy% itself comes from the persisted SkillState, so
+    // this needs an async IndexedDB round-trip - same store/method Profile.razor already uses.
+    private async Task RefreshSessionSkillStatsAndRender()
+    {
+        if (Session.SkillAttempts.Count == 0)
+        {
+            _sessionSkillStats = [];
+        }
+        else
+        {
+            var store = new SkillMasteryStore(AufgabenDb);
+            var all = await store.GetSkillViewEnumerableAsync();
+            _sessionSkillStats = all
+                .Where(v => Session.SkillAttempts.ContainsKey(v.Definition.Id))
+                .OrderBy(v => v.Definition.Domain)
+                .ThenBy(v => v.Definition.Difficulty)
+                .ToList();
+        }
 
+        await InvokeAsync(StateHasChanged);
+    }
 
     public void Dispose()
     {

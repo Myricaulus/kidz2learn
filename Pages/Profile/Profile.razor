@@ -15,6 +15,7 @@
             <MudTh>Attempts</MudTh>
             <MudTh>Success</MudTh>
             <MudTh>Mastery</MudTh>
+            <MudTh>Richtig (letzte 20)</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>@context.Definition.DisplayName</MudTd>
@@ -24,6 +25,7 @@
             <MudTd>@(context.State.Attempts)</MudTd>
             <MudTd>@(context.State.Success)</MudTd>
             <MudTd>@(context.State.Mastery.ToString("P0"))</MudTd>
+            <MudTd>@(context.State.RecentAccuracy is { } acc ? acc.ToString("P0") : "--%")</MudTd>
         </RowTemplate>
     </MudTable>
 </MudPaper>

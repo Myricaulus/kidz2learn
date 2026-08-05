@@ -108,6 +108,27 @@ public class RingBuffer<T>
         Count = 0;
         Itemstart = 0;
     }
+
+    /// <summary>
+    ///     Returns a new buffer with capacity <paramref name="newCapacity" />, holding
+    ///     <paramref name="source" />'s items in the same logical order (works regardless of
+    ///     whether <paramref name="source" /> has wrapped around - the indexer already normalizes
+    ///     that). Pure/I/O-free on purpose, so migrations that need to grow a persisted buffer's
+    ///     capacity (e.g. <c>SkillMigrationHelper</c>) can be unit-tested without IndexedDB/JSRuntime -
+    ///     see TECH_DEBT.md #9 addendum ("Fensterbreite"). Returns <paramref name="source" /> itself,
+    ///     unchanged, if it's already at least as large as requested.
+    /// </summary>
+    public static RingBuffer<T> Resize(RingBuffer<T> source, int newCapacity)
+    {
+        if (source.MaxCapacity >= newCapacity)
+            return source;
+
+        var items = new List<T>(source.Count);
+        for (var i = 0; i < source.Count; i++)
+            items.Add(source[i]);
+
+        return new RingBuffer<T>(newCapacity, items, 0);
+    }
 }
 
 public sealed class RingBufferJsonConverter<T> : JsonConverter<RingBuffer<T>>

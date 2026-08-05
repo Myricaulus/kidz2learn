@@ -123,4 +123,74 @@ public class RingBufferTests
         Assert.Equal(3, restored.Buffer.Count);
         Assert.Equal([2, 3, 4], new[] { restored.Buffer[0], restored.Buffer[1], restored.Buffer[2] });
     }
+
+    [Fact]
+    public void Resize_ToLargerCapacity_PreservesItemsAndOrder()
+    {
+        var rb = new RingBuffer<int>(3);
+        rb.Add(1);
+        rb.Add(2);
+        rb.Add(3);
+
+        var resized = RingBuffer<int>.Resize(rb, 5);
+
+        Assert.Equal(5, resized.MaxCapacity);
+        Assert.Equal(3, resized.Count);
+        Assert.Equal([1, 2, 3], new[] { resized[0], resized[1], resized[2] });
+    }
+
+    [Fact]
+    public void Resize_AfterWraparound_PreservesLogicalOrderNotPhysicalOrder()
+    {
+        // Same "SkillMigrationHelper v1->v2" scenario this exists for: a buffer that's already
+        // wrapped around (oldest physical slot isn't index 0 anymore) still needs to resize into
+        // the correct logical order, not whatever's physically sitting in the old backing array.
+        var rb = new RingBuffer<int>(3);
+        rb.Add(1);
+        rb.Add(2);
+        rb.Add(3);
+        rb.Add(4); // capacity 3 -> wraps, logical contents are [2, 3, 4]
+
+        var resized = RingBuffer<int>.Resize(rb, 10);
+
+        Assert.Equal(10, resized.MaxCapacity);
+        Assert.Equal(3, resized.Count);
+        Assert.Equal([2, 3, 4], new[] { resized[0], resized[1], resized[2] });
+    }
+
+    [Fact]
+    public void Resize_MoreItemsCanBeAddedAfterGrowingWithoutEvictingOldOnes()
+    {
+        var rb = new RingBuffer<int>(3);
+        rb.Add(1);
+        rb.Add(2);
+        rb.Add(3); // full at capacity 3 - one more Add would evict "1"
+
+        var resized = RingBuffer<int>.Resize(rb, 4);
+        resized.Add(4); // should NOT evict "1" now that capacity grew to 4
+
+        Assert.Equal(4, resized.Count);
+        Assert.Equal([1, 2, 3, 4], new[] { resized[0], resized[1], resized[2], resized[3] });
+    }
+
+    [Fact]
+    public void Resize_AlreadyAtOrAboveTargetCapacity_ReturnsSameInstanceUnchanged()
+    {
+        var rb = new RingBuffer<int>(5);
+        rb.Add(1);
+
+        var resized = RingBuffer<int>.Resize(rb, 3);
+
+        Assert.Same(rb, resized);
+    }
+
+    [Fact]
+    public void Resize_EmptyBuffer_StaysEmpty()
+    {
+        var rb = new RingBuffer<int>(3);
+
+        var resized = RingBuffer<int>.Resize(rb, 10);
+
+        Assert.Equal(0, resized.Count);
+    }
 }

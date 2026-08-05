@@ -10,7 +10,7 @@ namespace Kidz2Learn.Model;
 public sealed class SkillMigrationHelper
 {
     // BUMP THIS WHENEVER YOU CHANGE SKILL SCHEMA OR MIGRATION LOGIC
-    private const int CurrentSchemaVersion = 1;
+    private const int CurrentSchemaVersion = 2;
     private readonly IndexedDb _db;
     private readonly IndexedDbStore _metaStore;
     private readonly IndexedDbStore _skillStore;
@@ -59,8 +59,39 @@ public sealed class SkillMigrationHelper
 
     private async Task MigrateAsync(int schemaVersion, int currentSchemaVersion, IndexedDbStore metaStore)
     {
-        await Task.Delay(100);
-        throw new NotImplementedException();
+        if (schemaVersion < 2)
+            await ResizeAttemptsHistoryAsync();
+
+        await metaStore.StoreItemAsync(new SkillMeta { Initialized = true, SchemaVersion = currentSchemaVersion });
+    }
+
+    /// <summary>
+    ///     v1 -&gt; v2: <see cref="SkillState.AttemptHistorySize" /> grew from 20 to 50. Existing
+    ///     <see cref="SkillState.AttemptsHistory" /> ring buffers have their old capacity baked into
+    ///     the persisted JSON (<see cref="Shared.RingBufferJsonConverter{T}" /> round-trips
+    ///     "capacity"), so bumping the constant alone only affects skills nobody has touched yet -
+    ///     already-persisted ones need to be explicitly rebuilt at the new size, keeping whatever
+    ///     attempts they already recorded. Thin I/O glue on purpose - the actual resize logic lives
+    ///     in <see cref="Shared.RingBuffer{T}.Resize" />, which is pure and unit-tested
+    ///     (<c>RingBufferTests</c>) without needing IndexedDB/JSRuntime.
+    /// </summary>
+    private async Task ResizeAttemptsHistoryAsync()
+    {
+        // Materialize before writing back - same pattern MigrateLegacyAsync uses, avoids mutating
+        // the store while GetAllAsync's cursor is still enumerating it.
+        var states = new List<SkillState>();
+        await foreach (var state in _skillStore.GetAllAsync<SkillState>())
+            states.Add(state);
+
+        foreach (var state in states)
+        {
+            var resized = Shared.RingBuffer<SkillAttempt>.Resize(state.AttemptsHistory, SkillState.AttemptHistorySize);
+            if (ReferenceEquals(resized, state.AttemptsHistory))
+                continue; // already large enough - Resize returns the same instance unchanged
+
+            state.AttemptsHistory = resized;
+            await _skillStore.StoreItemAsync(state);
+        }
     }
 
     private async Task MigrateLegacyAsync()

@@ -45,6 +45,37 @@ ul .log {
     font-weight: bold;
 }
 
+.skill-badges {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.skill-badge {
+    background-color: #ede7f6; /* pastellila, eigene Farbe neben blau/orange/grün der Log-Einträge */
+    border-radius: 12px;
+    padding: 0.25rem 0.5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    width: fit-content;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.skill-badge-name {
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.skill-badge-stats {
+    font-size: 0.8rem;
+    color: #555;
+}
+
 @keyframes slideInLeft {
     from {
         transform: translateX(-40%);
