@@ -19,9 +19,12 @@ dotnet publish Kidz2Learn.csproj
 
 `Kidz2Learn.Tests` is an xUnit project referencing `Kidz2Learn.csproj` directly (no browser/JS
 interop involved), covering the pure-logic pieces: task/skill registries, `Kompetenzniveau`,
-`WordDiff`, `RingBuffer`, `StringAbbreviator`. Anything that needs `IndexedDb`/`JSRuntime` (e.g.
-`SkillMasteryStore`, `AdaptiveTaskGenerator`) isn't testable here yet — see TECH_DEBT.md #1, which
-is expected to change that as part of the registry redesign.
+`WordDiff`, `RingBuffer`, `StringAbbreviator`, and — via the `ISkillMasteryStore` abstraction +
+`FakeSkillMasteryStore` — `AdaptiveTaskGenerator` itself (see `AdaptiveTaskGeneratorTests.cs`).
+What's still untestable here is the mastery *formula* itself: it lives entirely in
+`SkillMasteryStore.Adjust` (`Model/Skills.cs`), hard-wired against a real `IndexedDbStore` instead
+of being a pure, extractable function - tracked as a GitHub issue ("Mastery & adaptive
+Aufgabenauswahl"), not in-repo.
 
 ```bash
 dotnet test Kidz2Learn.Tests/Kidz2Learn.Tests.csproj
@@ -33,10 +36,6 @@ Blazor SDK's implicit file globbing would otherwise also try to compile the test
 files (and its `obj/` output) into the main project — `Kidz2Learn.csproj` has an explicit
 `<Compile Remove="Kidz2Learn.Tests/**/*.cs" />` (etc.) to prevent that. Keep that exclude in place
 if you add more test-only folders under the repo root.
-
-A couple of `RingBufferTests` are `[Fact(Skip = ...)]` on purpose — they pin down a real,
-diagnosed-but-unfixed bug in `RingBufferJsonConverter` (see TECH_DEBT.md #6). Don't "fix" them by
-loosening the assertion; un-skip them once the underlying bug is actually fixed.
 
 Python tooling (`WaveSplit/`, `main.py`) uses `uv`:
 
@@ -100,8 +99,9 @@ are now a one-line page - `<TaskHost Skills="[...]" />` - instead of bespoke per
 - `TurboArithChallenge` is deliberately **not** on `TaskHost` - it's a fixed 3-minute timed round on
   one hardcoded skill (`Turbo10`) with its own start/running/summary state and end-of-round scoring,
   not a "one task, one presentation" case. See `TASK_PRESENTATION_REDESIGN.md`, "Offener Punkt:
-  Event-artige Session-Bausteine im Mixer" for where this is headed (Turbo becoming a general
-  "event" the mixer can inject mid-session) and `TECH_DEBT.md` #5.
+  Event-artige Session-Bausteine im Mixer" for where this is headed - turning Turbo into a general
+  "event" the mixer can inject mid-session is tracked as its own GitHub issue ("Turbo als Event im
+  Mixer"), not in-repo.
 
 ### Debug mode (Pages/Debug/) — forcing a specific task for manual testing
 
