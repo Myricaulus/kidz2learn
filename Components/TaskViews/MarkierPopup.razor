@@ -1,0 +1,514 @@
+@using Microsoft.AspNetCore.Components.Web
+
+<div class="k4l-popup-overlay">
+    <div class="k4l-popup">
+        <h3 class="k4l-popup-title">Welche Buchstaben sind falsch?</h3>
+
+        <div class="k4l-correct-box @(_hoverArmed ? "k4l-armed" : "")" @onmouseenter="OnCorrectBoxEnter">
+            <div class="k4l-timer-circle-wrap">
+                <svg class="k4l-timer-circle" width="36" height="36" viewBox="0 0 36 36">
+                    <circle class="k4l-timer-circle-bg" cx="18" cy="18" r="16"></circle>
+                    <circle class="k4l-timer-circle-progress" cx="18" cy="18" r="16"></circle>
+                </svg>
+            </div>
+            <div class="k4l-correct-word-stack">
+                <span class="k4l-correct-word-mask">@(new string('•', CorrectWord.Length))</span>
+                <span class="k4l-correct-word-real">@CorrectWord</span>
+            </div>
+            <div class="k4l-correct-hint">3 Sek. still halten zum Spicken</div>
+        </div>
+
+        <div class="k4l-wrong-reveal-wrap">
+            <div class="k4l-wrong-timer-wrap">
+                <svg class="k4l-wrong-timer-circle" width="26" height="26" viewBox="0 0 26 26">
+                    <circle class="k4l-wrong-timer-bg" cx="13" cy="13" r="10"></circle>
+                    <circle class="k4l-wrong-timer-progress" cx="13" cy="13" r="10"></circle>
+                </svg>
+            </div>
+
+            <div class="k4l-wrong-word-box @(_shakeWrongBox ? "k4l-shake" : "")">
+                @{
+                    var letters = WrongWord.ToCharArray();
+                }
+                <div class="k4l-wrong-word-row" style="@WrongWordRowStyle">
+                    @for (var gapIndex = 0; gapIndex <= letters.Length; gapIndex++)
+                    {
+                        var gi = gapIndex;
+
+                        @if (_openGapIndex == gi)
+                        {
+                            <input class="k4l-gap-input"
+                                   @ref="_gapInputRef"
+                                   maxlength="1"
+                                   value="@(_insertedLetters.TryGetValue(gi, out var cur) ? cur.ToString() : "")"
+                                   @oninput="e => OnGapInput(gi, e)"
+                                   @onkeydown="e => OnGapKeyDown(e, gi)"
+                                   @onblur="CloseGap" />
+                        }
+                        else if (_insertedLetters.TryGetValue(gi, out var filled))
+                        {
+                            <span class="k4l-gap-filled" @onclick="() => OpenGap(gi)">@filled</span>
+                        }
+                        else
+                        {
+                            <span class="k4l-gap-empty" title="Fehlt hier ein Buchstabe?" @onclick="() => OpenGap(gi)">┊</span>
+                        }
+
+                        @if (gi < letters.Length)
+                        {
+                            var li = gi;
+                            var isMarked = _markedIndices.Contains(li);
+                            var hasCorrection = _letterCorrections.TryGetValue(li, out var correctionChar);
+
+                            <span class="k4l-letter-cell">
+                                @if (_openLetterIndex == li)
+                                {
+                                    <div class="k4l-letter-popover">
+                                        <input class="k4l-letter-input"
+                                               @ref="_letterInputRef"
+                                               maxlength="1"
+                                               placeholder="@letters[li]"
+                                               value="@(_letterCorrections.TryGetValue(li, out var cur) ? cur.ToString() : "")"
+                                               @oninput="e => OnLetterInput(li, e)"
+                                               @onkeydown="e => OnLetterKeyDown(e, li)" />
+                                        <button class="k4l-letter-extra-button" @onclick="() => MarkLetterAsExtra(li)">✕ zu viel</button>
+                                        <button class="k4l-letter-close-button" @onclick="CloseLetterEdit">✓</button>
+                                    </div>
+                                }
+                                <span class="k4l-letter @(isMarked ? "k4l-letter-marked" : "") @(hasCorrection ? "k4l-letter-corrected" : "")"
+                                      @onclick="() => OpenLetterEdit(li)">
+                                    @if (hasCorrection)
+                                    {
+                                        <span class="k4l-letter-correction-chip">@letters[li]</span>
+                                        @correctionChar
+                                    }
+                                    else
+                                        @letters[li]
+                                </span>
+                            </span>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="k4l-popup-actions">
+            @if (_failedPopupAttempts > 100)
+            {
+                <button class="k4l-popup-hint-button" @onclick="GiveHint">💡 Tipp</button>
+            }
+            <button class="k4l-popup-reset-button" @onclick="ResetMarkierPopup">↺ Zurücksetzen</button>
+            <button class="k4l-popup-weiter-button" @onclick="OnWeiterClicked">Weiter</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ---- Fehler-Markier-Popup ---- */
+
+    .k4l-popup-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .k4l-popup {
+        background: #fff;
+        border-radius: 20px;
+        padding: 28px 32px;
+        max-width: 520px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .k4l-popup-title {
+        font-size: 1.4rem;
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    /* Richtiges Wort - grünes Kästchen, standardmäßig maskiert */
+    .k4l-correct-box {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        background: #e3f9e5;
+        border: 3px solid #3aa757;
+        border-radius: 14px;
+        padding: 16px;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .k4l-timer-circle-wrap {
+        flex-shrink: 0;
+    }
+
+    .k4l-timer-circle {
+        transform: rotate(-90deg);
+    }
+
+    .k4l-timer-circle-bg {
+        fill: none;
+        stroke: #c3ecc8;
+        stroke-width: 3;
+    }
+
+    .k4l-timer-circle-progress {
+        fill: none;
+        stroke: #3aa757;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-dasharray: 100.5;
+        stroke-dashoffset: 100.5;
+    }
+
+    .k4l-correct-box:hover .k4l-timer-circle-progress {
+        animation: k4l-countdown 3s linear forwards;
+    }
+
+    @@keyframes k4l-countdown {
+        from {
+            stroke-dashoffset: 100.5;
+        }
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    .k4l-correct-word-stack {
+        position: relative;
+        min-width: 140px;
+        min-height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .k4l-correct-word-mask,
+    .k4l-correct-word-real {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        font-weight: bold;
+        letter-spacing: 4px;
+        color: #2c7a3f;
+        transition: opacity 0s 0s;
+    }
+
+    .k4l-correct-word-real {
+        opacity: 0;
+    }
+
+    .k4l-correct-box:hover .k4l-correct-word-real {
+        opacity: 1;
+        transition: opacity 0s 3s;
+    }
+
+    .k4l-correct-box:hover .k4l-correct-word-mask {
+        opacity: 0;
+        transition: opacity 0s 3s;
+    }
+
+    .k4l-correct-hint {
+        position: absolute;
+        bottom: -22px;
+        left: 0;
+        right: 0;
+        font-size: 0.7rem;
+        color: #888;
+    }
+
+    /* Falsches Wort - sofort sichtbar. Verschwindet erst, wenn wirklich 3s
+       durchgehend gehovert wurde (synchron zum Aufdecken des richtigen Worts),
+       nicht schon bei einem kurzen, versehentlichen Drüberstreifen. */
+    .k4l-wrong-reveal-wrap {
+        position: relative;
+        margin-top: 46px;
+    }
+
+    .k4l-wrong-word-box {
+        opacity: 1;
+        transition: opacity 0s 3s;
+    }
+
+    .k4l-correct-box:hover ~ .k4l-wrong-reveal-wrap .k4l-wrong-word-box {
+        opacity: 0;
+        transition: opacity 0s 3s;
+    }
+
+    /* Timer-Kreis fürs Wiederauftauchen - nur sichtbar, nachdem einmal wirklich
+       gehovert wurde (k4l-armed) und die Maus das Kästchen gerade verlassen hat */
+    .k4l-wrong-timer-wrap {
+        position: absolute;
+        top: -34px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        opacity: 0;
+    }
+
+    .k4l-wrong-timer-circle {
+        transform: rotate(-90deg);
+    }
+
+    .k4l-wrong-timer-bg {
+        fill: none;
+        stroke: #eee;
+        stroke-width: 3;
+    }
+
+    .k4l-wrong-timer-progress {
+        fill: none;
+        stroke: #4a90e2;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-dasharray: 63;
+        stroke-dashoffset: 0;
+    }
+
+    .k4l-correct-box.k4l-armed:not(:hover) ~ .k4l-wrong-reveal-wrap .k4l-wrong-timer-wrap {
+        animation: k4l-wrong-reveal-timer 3s linear forwards;
+    }
+
+    @@keyframes k4l-wrong-reveal-timer {
+        0% {
+            opacity: 1;
+        }
+        95% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+        }
+    }
+
+    .k4l-correct-box.k4l-armed:not(:hover) ~ .k4l-wrong-reveal-wrap .k4l-wrong-timer-progress {
+        animation: k4l-wrong-reveal-progress 3s linear forwards;
+    }
+
+    @@keyframes k4l-wrong-reveal-progress {
+        from {
+            stroke-dashoffset: 0;
+        }
+        to {
+            stroke-dashoffset: 63;
+        }
+    }
+
+    .k4l-wrong-word-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        row-gap: 110px;
+    }
+
+    .k4l-letter-cell {
+        position: relative;
+        display: inline-flex;
+    }
+
+    .k4l-letter {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: calc(34px * var(--k4l-scale, 1));
+        height: calc(44px * var(--k4l-scale, 1));
+        font-size: calc(1.6rem * var(--k4l-scale, 1));
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        color: #333;
+        position: relative;
+    }
+
+    .k4l-letter:hover {
+        background: #f0f0f0;
+    }
+
+    .k4l-letter-marked {
+        background: #ffdddd;
+        color: #e53935;
+        text-decoration: line-through;
+        text-decoration-color: #e53935;
+        text-decoration-thickness: 2px;
+    }
+
+    .k4l-letter-corrected {
+        background: #ddeeff;
+    }
+
+    .k4l-letter-correction-chip {
+        position: absolute;
+        top: -18px;
+        left: 50%;
+        transform: translateX(-50%);
+        text-decoration: line-through;
+        text-decoration-color: #e53935;
+        text-decoration-thickness: 2px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        color: #4a90e2;
+        background: #fff;
+        border: 2px solid #4a90e2;
+        border-radius: 6px;
+        min-width: 18px;
+        padding: 0 3px;
+        line-height: 1.3;
+        strike
+    }
+
+    .k4l-letter-popover {
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #fff;
+        border: 2px solid #4a90e2;
+        border-radius: 10px;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+        z-index: 10;
+        white-space: nowrap;
+    }
+
+    .k4l-letter-input {
+        width: 34px;
+        height: 38px;
+        text-align: center;
+        font-size: 1.3rem;
+        font-weight: bold;
+        border: 2px solid #4a90e2;
+        border-radius: 6px;
+    }
+
+    .k4l-letter-extra-button,
+    .k4l-letter-close-button {
+        font-size: 0.8rem;
+        padding: 4px 8px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+    }
+
+    .k4l-letter-extra-button {
+        background: #ffdddd;
+        color: #e53935;
+    }
+
+    .k4l-letter-close-button {
+        background: #ddffdd;
+        color: #3aa757;
+        font-weight: bold;
+    }
+
+    .k4l-gap-empty {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: calc(14px * var(--k4l-scale, 1));
+        height: calc(44px * var(--k4l-scale, 1));
+        color: #ccc;
+        cursor: pointer;
+        font-size: calc(1.2rem * var(--k4l-scale, 1));
+    }
+
+    .k4l-gap-empty:hover {
+        color: #4a90e2;
+    }
+
+    .k4l-gap-filled {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: calc(28px * var(--k4l-scale, 1));
+        height: calc(44px * var(--k4l-scale, 1));
+        font-size: calc(1.4rem * var(--k4l-scale, 1));
+        font-weight: bold;
+        color: #4a90e2;
+        border-bottom: 3px dotted #4a90e2;
+        cursor: pointer;
+    }
+
+    .k4l-gap-input {
+        width: calc(30px * var(--k4l-scale, 1));
+        height: calc(40px * var(--k4l-scale, 1));
+        text-align: center;
+        font-size: calc(1.4rem * var(--k4l-scale, 1));
+        font-weight: bold;
+        border: 2px solid #4a90e2;
+        border-radius: 6px;
+    }
+
+    .k4l-popup-actions {
+        margin-top: 30px;
+        display: flex;
+        gap: 14px;
+        justify-content: center;
+    }
+
+    .k4l-popup-weiter-button,
+    .k4l-popup-hint-button,
+    .k4l-popup-reset-button {
+        font-size: 1.1rem;
+        padding: 10px 24px;
+        border-radius: 12px;
+        border: none;
+        cursor: pointer;
+    }
+
+    .k4l-popup-weiter-button {
+        background: #4a90e2;
+        color: white;
+    }
+
+    .k4l-popup-hint-button {
+        background: #fff3cd;
+        color: #856404;
+        border: 2px solid #ffe08a;
+    }
+
+    .k4l-popup-reset-button {
+        background: #f8d7da;
+        color: #842029;
+        border: 2px solid #f1aeb5;
+    }
+
+    @@keyframes k4l-shake {
+        10%, 90% { transform: translateX(-2px); }
+        20%, 80% { transform: translateX(4px); }
+        30%, 50%, 70% { transform: translateX(-8px); }
+        40%, 60% { transform: translateX(8px); }
+    }
+
+    .k4l-shake {
+        animation: k4l-shake 0.5s;
+    }
+</style>
+
+<script>
+    window.k4l_focusAndSelect = function (el) {
+        if (el) {
+            el.focus();
+            el.select();
+        }
+    }
+</script>

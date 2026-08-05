@@ -1,3 +1,5 @@
+using Kidz2Learn.Components.TaskViews;
+
 namespace Kidz2Learn.Model.Tasks;
 
 /// <summary>
@@ -9,6 +11,11 @@ namespace Kidz2Learn.Model.Tasks;
 public static class TaskPresentationRegistry
 {
     private static readonly Dictionary<string, Type> Views = new(StringComparer.Ordinal);
+
+    static TaskPresentationRegistry()
+    {
+        Register("silben-multiple-choice", typeof(SilbenMultipleChoiceView));
+    }
 
     public static void Register(string view, Type componentType)
     {

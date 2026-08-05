@@ -1,0 +1,9 @@
+@page "/taskhost-silben"
+@using Kidz2Learn.Components
+@using Kidz2Learn.Model
+
+@* Temporary preview route for Phase 4 of TASK_PRESENTATION_REDESIGN.md: exercises TaskHost +
+   SilbenMultipleChoiceView + MarkierPopup exactly like "/" (SilbenChallenge) does today, on a side
+   route so "/" itself stays untouched until this is verified. Remove this page once "/" is cut over
+   to TaskHost and the old SilbenChallenge.razor(.cs) is retired. *@
+<TaskHost Skills="@(new[] { Skill.ReadSyllables, Skill.ReadPrecise })" />

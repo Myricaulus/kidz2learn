@@ -1,0 +1,139 @@
+@using Kidz2Learn.Components.TaskViews
+
+<div class="k4l-task-container">
+    <h2 class="k4l-title">Hörübung: Welches Wort hörst du?</h2>
+
+    <div class="k4l-audio-box">
+        <button class="k4l-audio-button" @onclick="PlayAudio">▶️ Anhören</button>
+    </div>
+
+    <div class="k4l-options">
+        @foreach (var option in _currentOptions)
+        {
+            <button class="k4l-option @GetOptionClass(option)"
+                    disabled="@_isProcessing"
+                    @onclick="() => CheckAnswer(option)">
+                @((MarkupString)GetColoredHtml(option))
+            </button>
+        }
+    </div>
+
+    @if (_showFeedback)
+    {
+        <div class="k4l-feedback @_feedbackClass">@_feedbackText</div>
+    }
+
+    <div class="k4l-progress">
+        <span>Richtig: @_correctCount</span>
+        <span>Fehlversuche: @_wrongCount</span>
+    </div>
+</div>
+
+@if (_showMarkierPopup)
+{
+    <MarkierPopup CorrectWord="@_popupCorrectWord" WrongWord="@_popupWrongWord" OnResolved="OnPopupResolved" />
+}
+
+<style>
+    .k4l-task-container {
+        max-width: 600px;
+        margin: auto;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .k4l-title {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+
+    .k4l-audio-button {
+        font-size: 1.6rem;
+        padding: 15px 40px;
+        border-radius: 16px;
+        border: none;
+        background: #4a90e2;
+        color: white;
+        cursor: pointer;
+    }
+
+    .k4l-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+
+        /* Jede Option nimmt sich so viel Breite, wie ihr Inhalt braucht;
+           unterschiedlich lange Wörter dürfen also unterschiedlich breite
+           Kacheln erzeugen (wie bei einer Foto-Galerie mit verschiedenen
+           Seitenverhältnissen), statt in ein starres Raster gezwungen zu werden. */
+        justify-content: center;
+        align-content: center;
+
+        /* Container bleibt kompakt */
+        margin: 30px auto; /* zentriert */
+    }
+
+    .k4l-option {
+        flex: 0 0 auto;
+        min-width: 120px;
+        min-height: 120px;
+        max-width: 100%;
+        box-sizing: border-box;
+        padding: 10px 18px;
+
+        border-radius: 20px;
+        background: #fff;
+        border: 3px solid #444;
+        cursor: pointer;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        text-align: center;
+        font-size: clamp(1rem, 4vw, 2rem);
+
+        /* Kurze Wörter bleiben einzeilig und quadratisch; ein Wort, das breiter
+           ist als eine Kachel, darf so breit werden wie nötig (bis max-width),
+           erst danach greift der Umbruch innerhalb der Kachel als Notlösung. */
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .k4l-option:hover {
+        background: #f0f0f0;
+    }
+
+    .k4l-feedback {
+        margin-top: 25px;
+        font-size: 1.6rem;
+        font-weight: bold;
+    }
+
+    .k4l-feedback-correct {
+        color: #3aa757;
+    }
+
+    .k4l-feedback-wrong {
+        color: #e53935;
+    }
+
+    .k4l-progress {
+        margin-top: 20px;
+        font-size: 1.2rem;
+        color: #555;
+        display: flex;
+        justify-content: space-around;
+    }
+
+    .k4l-option-wrong {
+        background: #ffdddd;
+        border-color: #e53935;
+    }
+
+    .k4l-option-correct {
+        background: #ddffdd;
+        border-color: #3aa757;
+    }
+</style>

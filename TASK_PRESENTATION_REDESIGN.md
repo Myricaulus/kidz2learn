@@ -33,9 +33,16 @@ Punkt unten bereits grün.
   "--%". **War kein Phase-1-3b-Regression** (Ursache unabhängig, `Kompetenzniveau`-Properties ohne
   `[JsonInclude]` verloren ihren Wert bei jedem IndexedDB-Reload) - Root Cause bestätigt und
   gefixt, siehe TECH_DEBT.md #10.
-- [ ] **Nach Fix #10:** kurzer Re-Check ArithmeticChallenge (gerne wieder dieselbe Aufgabe mehrfach
+- [x] **Nach Fix #10:** kurzer Re-Check ArithmeticChallenge (gerne wieder dieselbe Aufgabe mehrfach
   falsch lösen) - Versuchszähler sollte jetzt hochzählen, ab dem 5. Versuch sollte eine %-Anzeige
-  erscheinen statt "--%".
+  erscheinen statt "--%". **Verifiziert.**
+- [ ] **Phase 4b, neue Vorschau-Route `/taskhost-silben`:** Splash wegklicken ("Starte App"), dann
+  `/taskhost-silben` aufrufen (direkt in der URL, kein Menüpunkt). Erwartet: verhält sich exakt wie
+  `/` heute (Wort wird beim Laden automatisch abgespielt, "Anhören"-Button, Options-Grid,
+  Richtig/Falsch-Feedback, bei `read_precise`-Wörtern das Markier-Popup inkl. Hover-Timer-Verhalten,
+  Fortlaufen zur nächsten Aufgabe nach ~900ms). `/` selbst ist unverändert und dient als Vergleich,
+  falls etwas abweicht. Bekannte, bereits vorbestehende Bugs (#8 Case-Duplikat, #9 HUD-Drift) können
+  hier genauso auftreten wie auf `/` - das wäre keine neue Regression.
 
 ## Problem
 
@@ -319,6 +326,31 @@ Tendenz zu Option A (kein zweiter Mechanismus nötig), aber nicht Teil der jetzi
      Datenmodell-Wechsel. Build + volle Testsuite grün.
 4. `TaskHost` + `TaskPresentationRegistry` bauen, `SilbenChallenge`-UI in
    `SilbenMultipleChoiceView` extrahieren, `SilbenChallenge`-Page auf `TaskHost` umstellen.
+   - [x] **4a (Gerüst, erledigt):** `ITaskView`, `TaskPresentationRegistry`, `Components/TaskHost.razor`
+     gebaut, additiv, noch ohne konkrete View (siehe Entscheidungen oben zur `ChosenTask`-Umbenennung).
+   - [x] **4b (Extraktion, erledigt - auf Nebenroute, "/" unangetastet):** `SilbenChallenge.razor(.cs)`
+     (650 Zeilen inkl. ~350 Zeilen Popup-CSS) aufgeteilt in zwei neue, kleinere Komponenten unter
+     `Components/TaskViews/`:
+     - `SilbenMultipleChoiceView` (`ITaskView`-Implementierung, registriert als
+       `"silben-multiple-choice"`) - Audio, Options-Grid, Feedback, ruft `TaskSessionController`
+       direkt auf (siehe Baustein-5-Präzisierung oben). `OnParametersSetAsync` erkennt eine neue
+       `ChosenTask`-Referenz und baut daraufhin Optionen/Audio neu auf und spielt die Datei ab -
+       ein einziger Pfad für "erstes Wort" und "nächstes Wort nach Erfolg", wo die alte Page zwei
+       separate Call-Sites brauchte (`OnInitializedAsync` + der `Task.Delay(900)`-Continuation).
+     - `MarkierPopup` - das komplette Fehler-Markier-Popup (Markierungen, Buchstaben-Korrektur,
+       Lücken, Hints, Hover-Timer) als eigene, in sich geschlossene Komponente mit eigenem
+       `CorrectWord`/`WrongWord`/`OnResolved`-Vertrag. Reine Größen-/Lesbarkeits-Aufteilung, kein
+       neuer Wiederverwendungsmechanismus (offene Frage dazu bleibt wie entschieden beantwortet).
+     - Neue **temporäre** Vorschau-Route `/taskhost-silben` (`Pages/TaskHostSilbenPreview.razor`) →
+       `<TaskHost Skills="[read_syllables, read_precise]" />`, exakt der Skill-Pool, den `/` heute
+       nutzt. `/` selbst (die alte `SilbenChallenge`) bleibt vollständig unverändert, bis diese Route
+       von dir verifiziert ist - siehe Abnahme-Checkliste. Wird beim eigentlichen Cutover (4c)
+       wieder entfernt.
+     - Build + volle Testsuite (63) grün. Kein automatisiertes UI-Testing (siehe
+       [[feedback_no_playwright_ui_testing]]).
+   - [ ] **4c (Cutover, offen):** `/` auf `TaskHost` umstellen, alte `SilbenChallenge.razor(.cs)`
+     entfernen, `/taskhost-silben`-Vorschau-Route wieder entfernen. Erst nach deiner Verifikation
+     von 4b.
 5. Hauptmenü: Filter-Einträge (Domain/Category via `SkillRegistry.ByDomain`/`ByCategory`) →
    `TaskHost` mit entsprechender Skill-Liste.
 6. Neue Seite "Bestenmix" (Name offen) → `TaskHost` mit `Skills = null`.
