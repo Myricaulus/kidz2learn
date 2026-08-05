@@ -10,15 +10,18 @@ UI-Verhalten wird nicht automatisiert durch Claude im Browser getestet (siehe
 einmal durchklicken solltest, sobald du Zeit hast. Build + volle Unit-Testsuite sind für jeden
 Punkt unten bereits grün.
 
-- [ ] **SilbenChallenge, `read_syllables`/`GraphemPhonem`:** eine falsche Option anklicken, danach
+- [x] **SilbenChallenge, `read_syllables`/`GraphemPhonem`:** eine falsche Option anklicken, danach
   die richtige. Erwartet: Feedback "Nochmal versuchen!" bei Falsch, danach normaler Ablauf wie
   bisher (keine sichtbare Änderung erwartet - der Unterschied ist nur, dass jetzt auch bei der
   falschen Antwort ein `SkillState`-Adjust in IndexedDB passiert, sichtbar z.B. via
-  `SkillMasteryStore`s `Console.WriteLine` in der Browser-Devtools-Konsole).
-- [ ] **SilbenChallenge, `read_precise`:** falsche Option anklicken → Markier-Popup öffnet sich wie
-  bisher, Ablauf/Optik unverändert.
-- [ ] **GraphemChallenge:** dieselbe Prüfung wie oben (falsch → richtig), keine sichtbare
-  Verhaltensänderung erwartet.
+  `SkillMasteryStore`s `Console.WriteLine` in der Browser-Devtools-Konsole). **Verifiziert:** Popup,
+  Meldung und Konsole sauber. Dabei zwei vorbestehende, unabhängige Bugs gefunden und in
+  TECH_DEBT.md #8/#9 geparkt (Case-Duplikat "dort"/"Dort" in `WordMeta.Data`; `Logger.Erfolgreich`
+  driftet seitenübergreifend, HUD zeigt teils >100%) - keine Regression durch Phase 1-3a.
+- [x] **SilbenChallenge, `read_precise`:** falsche Option anklicken → Markier-Popup öffnet sich wie
+  bisher, Ablauf/Optik unverändert. **Verifiziert.**
+- [x] **GraphemChallenge:** dieselbe Prüfung wie oben (falsch → richtig), keine sichtbare
+  Verhaltensänderung erwartet. **Verifiziert.**
 
 ## Problem
 

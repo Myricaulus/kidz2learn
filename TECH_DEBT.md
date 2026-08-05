@@ -149,3 +149,45 @@ Umbaus. Ideensammlung für ein späteres, eigenes Vorhaben:
   Wunsches, das Lernkonzept maximal gamifiziert zu halten.
 - Hängt lose mit Punkt 1 (Picker-Design) und Punkt 3 ("Allgemeiner Modus") zusammen, ist aber deutlich
   größer als beide und sollte als eigene Phase *nach* dem Presentation-Redesign angegangen werden.
+
+---
+
+## [ ] 8. Bug: `WordMeta.Data` enthält "dort"/"Dort" als zwei separate Wörter
+
+Beim manuellen Testen von Phase 3a gefunden (siehe TASK_PRESENTATION_REDESIGN.md): Bei einer
+`read_syllables`-Aufgabe tauchten "dort" und "Dort" gleichzeitig als zwei unterschiedliche Optionen
+auf. Ursache bestätigt in `Model/WordMeta.g.cs`: `["Dort"]` und `["dort"]` sind zwei separate
+Dictionary-Einträge (Zeilen 89 und 185), beide mit identischem IPA (`dˈɔɾt`) und Tag (`adv`) - ein
+reiner Case-Duplikat aus der `WaveSplit/`-Datenpipeline. Betrifft vermutlich weitere Wortpaare, nicht
+nur dieses eine.
+
+**Vermutlicher Fix:** Beim nächsten Lauf von `WaveSplit/DeduplicateNames.py` (oder einer Erweiterung
+davon) case-insensitive statt case-sensitive deduplizieren. Nicht händisch in `WordMeta.g.cs`
+gepatcht, weil das laut CLAUDE.md bei der nächsten Regenerierung ohnehin überschrieben würde (alles
+nach dem `// ###Endmarker for replacement###`-Marker).
+
+---
+
+## [ ] 9. Bug: `Logger.Erfolgreich`/`GesamtAnzahl` driften seitenübergreifend, HUD zeigt z.B. "800%"
+
+Ebenfalls beim manuellen Testen von Phase 3a gefunden: Nach Seitenwechsel zeigte die HUD-Anzeige oben
+rechts absurde Werte wie "800% richtig".
+
+**Ursache bestätigt:** `LoggerService.Erfolgreich`/`GesamtAnzahl` (`Services/LoggerService.cs`) sind
+öffentliche Felder auf einem **Singleton**-Service, geteilt über alle Pages hinweg.
+`LiveLogger.razor:5` rendert `Logger.Erfolgreich` als Prozentwert: `(Logger.Erfolgreich * 100)`,
+implizit vorausgesetzt, `Erfolgreich` sei ein 0..1-Verhältnis - so wie
+`ArithmeticChallenge.razor.cs` es auch befüllt (`Logger.Erfolgreich = stats.RichtigProzent()`, ein
+Bruch, plus Reset in `OnParametersSetAsync` bei jedem Seitenaufruf aus der persistierten
+`ArithemticLogStats`). `SilbenChallenge`/`GraphemChallenge` behandeln dasselbe Feld dagegen als
+**absoluten Zähler** (`Logger.Erfolgreich++`) und resetten ihn nie beim Seitenbetreten - daher
+z.B. `8 * 100 = 800%` nach ein paar richtigen Silben-Antworten. Direkte Konsequenz der in Baustein 6
+(`TASK_PRESENTATION_REDESIGN.md`) und Punkt 4 dieser Liste beschriebenen Lücke: Silben hat kein
+Äquivalent zu `ArithemticLogStats`, füllt das Feld deshalb komplett anders.
+
+**Vermutlicher Fix:** Gehört eigentlich in dieselbe Baustelle wie die Aggregat-Stats-Lücke (Punkt 4,
+Baustein 6) - `Erfolgreich` bräuchte eine einheitliche Semantik (Verhältnis, nicht gemischt
+Verhältnis/Zähler) plus einen Reset-Mechanismus, der nicht jede Page einzeln nachbauen muss. Kein
+Quick-Fix im Rahmen des aktuellen Umbaus, siehe dort.
+
+Bestätigt keine Regression durch die heutigen Änderungen (Phase 1-3a) - beide Stellen unverändert.
