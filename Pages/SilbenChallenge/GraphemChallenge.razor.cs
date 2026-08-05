@@ -33,9 +33,8 @@ public partial class GraphemChallenge : ComponentBase, IAsyncDisposable
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
     [Inject] private LoggerService Logger { get; set; } = null!;
     [Inject] private IJSRuntime Js { get; set; } = null!;
-    [Inject] public ScoreService Score { get; set; } = null!;
     [Inject] public SidWidgetService Player { get; set; } = null!;
-    [Inject] public AffirmationService Affirmation { get; set; } = null!;
+    [Inject] public TaskSessionController Session { get; set; } = null!;
     private IndexedDbStore ReadingDb { get; set; } = null!;
 
     public async ValueTask DisposeAsync()
@@ -92,14 +91,13 @@ public partial class GraphemChallenge : ComponentBase, IAsyncDisposable
 
         if (correct)
         {
-            _correctCount++;
-            _feedbackText = "Richtig!";
-            _feedbackClass = "k4l-feedback-correct";
-            Score.AddPoints(5, 5);
-            await Affirmation.PlayErfolgAsync();
             if (_currentTaskDef is null)
                 throw new InvalidOperationException(
                     "Cannot Check answer if no task has been given."); // should never land here
+
+            _correctCount++;
+            _feedbackText = "Richtig!";
+            _feedbackClass = "k4l-feedback-correct";
             var id = SilbenLog.GenId(correctAnswer, _currentTaskDef.Task.Skills.First());
             var log = await ReadingDb.GetItemAsync<SilbenLog>(id) ?? new SilbenLog
             {
@@ -111,7 +109,7 @@ public partial class GraphemChallenge : ComponentBase, IAsyncDisposable
             // bereits im else-Zweig unten je einen eigenen AddFalsch()/Fail()-Eintrag bekommen.
             log.Kompetenz.AddRichtig();
 
-            await (_currentTaskDef?.Success(log.Kompetenz) ?? Task.CompletedTask);
+            await Session.RecordSuccess(_currentTaskDef, log.Kompetenz, 5, 5);
             _showFeedback = true;
             StateHasChanged();
             // Reset für nächste Runde
@@ -134,15 +132,12 @@ public partial class GraphemChallenge : ComponentBase, IAsyncDisposable
         {
             _wrongCount++;
             // TODO Es so machen, die zu vergebenen +-Punkte ebenfalls aus der _currentTaskDef kommen, so kann jede Aufgabe die Punkte aufteilen.
-            Score.AddPoints(-10 * _wrongCount, -10 * _wrongCount);
             _wrongSelectedOption.Add(answer);
 
             _feedbackText = "Nochmal versuchen!";
             _feedbackClass = "k4l-feedback-wrong";
-
             _showFeedback = true;
             _isProcessing = false;
-            await Affirmation.PlayMisserfolgAsync();
 
             if (_currentTaskDef is not null)
             {
@@ -151,7 +146,7 @@ public partial class GraphemChallenge : ComponentBase, IAsyncDisposable
                 log.Wort = correctAnswer;
                 log.Falsch = _wrongCount;
                 log.Kompetenz.AddFalsch();
-                await _currentTaskDef.Fail(log.Kompetenz);
+                await Session.RecordFailure(_currentTaskDef, log.Kompetenz, -10 * _wrongCount, -10 * _wrongCount);
                 await ReadingDb.StoreItemAsync(log);
             }
         }

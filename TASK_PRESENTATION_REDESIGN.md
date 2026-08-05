@@ -22,6 +22,12 @@ Punkt unten bereits grün.
   bisher, Ablauf/Optik unverändert. **Verifiziert.**
 - [x] **GraphemChallenge:** dieselbe Prüfung wie oben (falsch → richtig), keine sichtbare
   Verhaltensänderung erwartet. **Verifiziert.**
+- [ ] **Nach Phase 3b (Glue-Extraktion via `TaskSessionController`):** kurzer Spotcheck
+  SilbenChallenge/GraphemChallenge (falsch → richtig, Punkte/Sound wie gehabt) - Logik unverändert,
+  nur in `TaskSessionController.RecordSuccess`/`RecordFailure` verschoben, geringes Risiko.
+- [ ] **ArithmeticChallenge, Addition und Subtraktion:** einmal falsch tippen, dann richtig lösen.
+  Erwartet: Punkte/Sound/Combo-Verhalten wie bisher (−5/0 bei Falsch, Combo-Reset; +2/8 bei Richtig,
+  Combo-Erhöhung, neue Aufgabe). Dieser Pfad wurde diese Session noch nicht manuell getestet.
 
 ## Problem
 
@@ -278,16 +284,17 @@ Tendenz zu Option A (kein zweiter Mechanismus nötig), aber nicht Teil der jetzi
    - [x] **3a (Bugfix, erledigt):** `Fail()` wird jetzt bei jedem Fehlversuch aufgerufen
      (`SilbenChallenge`, `GraphemChallenge`), nicht nur `Success()` am Ende einer Runde. Siehe
      Commit "Fix: call LearningTask.Fail() on wrong Silben/Graphem answers".
-   - [ ] **3b (eigentliche Extraktion, offen):** Der wirklich gemeinsame Kern (`Score.AddPoints`,
-     `Affirmation.Play*`, `IChosenTask.Success/Fail`) in einen kleinen Baustein (z.B.
-     `TaskSessionController`) ziehen. Bewusst noch nicht angefasst: Log-Entity-Laden/Speichern
-     (`SilbenLog` vs. `ArithemticLog`, unterschiedliche Shapes) und `Logger.Erfolgreich`/
-     `GesamtAnzahl`-Bookkeeping (Silben: In-Memory-Zähler, Arithmetik: persistierte
-     `ArithemticLogStats`, siehe TECH_DEBT.md) bleiben bewusst domänenspezifisch, siehe
-     Entscheidungen oben. Zurückgestellt, weil das die beiden komplexesten Live-UI-Dateien im
-     Projekt anfasst (Popup-States, `Task.Delay(...).ContinueWith`, mehrere `StateHasChanged`) und
-     ohne Browser-Verifikation durch dich riskanter ist als der Umfang rechtfertigt - siehe
-     Abnahme-Checkliste oben.
+   - [x] **3b (eigentliche Extraktion, erledigt):** Der wirklich gemeinsame Kern (`Score.AddPoints`,
+     `Affirmation.Play*`, `IChosenTask.Success/Fail`) ist jetzt in `Services/TaskSessionController.cs`
+     (scoped, `RecordSuccess`/`RecordFailure`) gezogen und wird von `SilbenChallenge`,
+     `GraphemChallenge` und `ArithmeticChallenge` genutzt. Bewusst nicht angefasst:
+     Log-Entity-Laden/Speichern (`SilbenLog` vs. `ArithemticLog`, unterschiedliche Shapes) und
+     `Logger.Erfolgreich`/`GesamtAnzahl`-Bookkeeping (Silben: In-Memory-Zähler, Arithmetik:
+     persistierte `ArithemticLogStats`, siehe TECH_DEBT.md #9) bleiben bewusst domänenspezifisch,
+     siehe Entscheidungen oben. `TurboArithChallenge` bewusst nicht mit umgestellt (siehe
+     TECH_DEBT.md #5, eigene Baustelle). Punktwerte bleiben unverändert hart in den Aufrufstellen
+     (nicht in die Task-Definition verschoben) - reine Glue-Extraktion, kein Verhaltens- oder
+     Datenmodell-Wechsel. Build + volle Testsuite grün.
 4. `TaskHost` + `TaskPresentationRegistry` bauen, `SilbenChallenge`-UI in
    `SilbenMultipleChoiceView` extrahieren, `SilbenChallenge`-Page auf `TaskHost` umstellen.
 5. Hauptmenü: Filter-Einträge (Domain/Category via `SkillRegistry.ByDomain`/`ByCategory`) →

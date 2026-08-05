@@ -14,6 +14,7 @@ builder.Services.AddSingleton<ScoreService>();
 builder.Services.AddSingleton<SidWidgetService>();
 builder.Services.AddSingleton<HudStateService>();
 builder.Services.AddScoped<AffirmationService>();
+builder.Services.AddScoped<TaskSessionController>();
 
 builder.Services.AddIndexedDbService();
 // all options

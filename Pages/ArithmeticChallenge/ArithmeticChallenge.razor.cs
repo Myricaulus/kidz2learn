@@ -42,9 +42,8 @@ public partial class ArithmeticChallenge : ComponentBase
     [Inject] private IJSRuntime Js { get; set; } = null!;
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
     [Inject] private LoggerService Logger { get; set; } = null!;
-    [Inject] public ScoreService Score { get; set; } = null!;
     [Inject] private HudStateService Hud { get; set; } = null!;
-    [Inject] private AffirmationService Affirmation { get; set; } = null!;
+    [Inject] private TaskSessionController Session { get; set; } = null!;
 
     private int CurrentIndex { get; set; }
     private IndexedDbStore ArithDb { get; set; } = null!;
@@ -174,9 +173,8 @@ public partial class ArithmeticChallenge : ComponentBase
         {
             log.Kompetenz.AddRichtig();
             Hud.IncrementCombo();
-            Score.AddPoints(2, 8);
-            await Affirmation.PlayErfolgAsync();
-            await (_currentTaskDef?.Success(log.Kompetenz) ?? Task.CompletedTask);
+            if (_currentTaskDef is not null)
+                await Session.RecordSuccess(_currentTaskDef, log.Kompetenz, 2, 8);
             stats.Erfolgreich++;
             stats.Versuche++;
             await GenerateNewTask();
@@ -184,13 +182,12 @@ public partial class ArithmeticChallenge : ComponentBase
         else
         {
             log.Kompetenz.AddFalsch();
-            await (_currentTaskDef?.Fail(log.Kompetenz) ?? Task.CompletedTask);
+            if (_currentTaskDef is not null)
+                await Session.RecordFailure(_currentTaskDef, log.Kompetenz, -5, 0);
             Hud.SetCombo(0);
             stats.Versuche++;
-            await Affirmation.PlayMisserfolgAsync();
             _feedback =
                 $"Falsch! Richtige Lösung: {_expectedResult}.<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";
-            Score.AddPoints(-5, 0);
             await Js.InvokeVoidAsync("elementInterop.emptyElementById", "digit-", MaxLength + 1);
 
             // Fokus auf erster Stelle rechts (wie bei schriftlichem Rechnen)
