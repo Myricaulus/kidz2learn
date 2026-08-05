@@ -107,10 +107,9 @@ public partial class GraphemChallenge : ComponentBase, IAsyncDisposable
             };
             log.Wort = correctAnswer;
             log.Falsch = _wrongCount;
-            if (_wrongCount > 0)
-                log.Kompetenz.AddFalsch();
-            else
-                log.Kompetenz.AddRichtig();
+            // Diese Antwort war richtig - die vorangegangenen Fehlversuche (falls welche) haben
+            // bereits im else-Zweig unten je einen eigenen AddFalsch()/Fail()-Eintrag bekommen.
+            log.Kompetenz.AddRichtig();
 
             await (_currentTaskDef?.Success(log.Kompetenz) ?? Task.CompletedTask);
             _showFeedback = true;
@@ -144,6 +143,17 @@ public partial class GraphemChallenge : ComponentBase, IAsyncDisposable
             _showFeedback = true;
             _isProcessing = false;
             await Affirmation.PlayMisserfolgAsync();
+
+            if (_currentTaskDef is not null)
+            {
+                var id = SilbenLog.GenId(correctAnswer, _currentTaskDef.Task.Skills.First());
+                var log = await ReadingDb.GetItemAsync<SilbenLog>(id) ?? new SilbenLog { Id = id };
+                log.Wort = correctAnswer;
+                log.Falsch = _wrongCount;
+                log.Kompetenz.AddFalsch();
+                await _currentTaskDef.Fail(log.Kompetenz);
+                await ReadingDb.StoreItemAsync(log);
+            }
         }
     }
 
