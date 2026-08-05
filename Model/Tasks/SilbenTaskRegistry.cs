@@ -10,6 +10,7 @@ public static class SilbenTaskRegistry
         {
             Skills = [Skill.ReadSyllables],
             DifficultyLevel = 1,
+            View = "silben-multiple-choice",
             Generator = r =>
             {
                 var targetCandidates = WordMeta.Data.Where(w => w.Value.audio).ToList();
@@ -26,6 +27,7 @@ public static class SilbenTaskRegistry
         {
             Skills = [Skill.ReadPrecise],
             DifficultyLevel = 2,
+            View = "silben-multiple-choice",
             Generator = r =>
             {
                 var candidates = WordMeta.Data.Where(w => w.Key.Length >= 3 && w.Value.audio).ToList();
@@ -39,6 +41,7 @@ public static class SilbenTaskRegistry
         {
             Skills = [Skill.GraphemPhonem],
             DifficultyLevel = 2,
+            View = "silben-multiple-choice",
             Generator = r =>
             {
                 var groups = WordMeta.Data

@@ -10,6 +10,7 @@ public static class ArithTaskRegistry
         {
             Skills = [Skill.Math.Add15],
             DifficultyLevel = 1,
+            View = "arith-numpad",
             Generator = r => (r.Next(1, 5), r.Next(1, 5), null, ArithOperator.Addition)
         },
 
@@ -18,6 +19,7 @@ public static class ArithTaskRegistry
         {
             Skills = [Skill.Math.Add10NoCarry],
             DifficultyLevel = 2,
+            View = "arith-numpad",
             Generator = r =>
             {
                 int a, b;
@@ -36,6 +38,7 @@ public static class ArithTaskRegistry
         {
             Skills = [Skill.Math.Add10WithCarry],
             DifficultyLevel = 3,
+            View = "arith-numpad",
             Generator = r => (r.Next(5, 10), r.Next(5, 10), null, ArithOperator.Addition)
         },
 
@@ -44,6 +47,7 @@ public static class ArithTaskRegistry
         {
             Skills = [Skill.Math.Add20],
             DifficultyLevel = 4,
+            View = "arith-numpad",
             Generator = r => (r.Next(1, 20), r.Next(1, 20), null, ArithOperator.Addition)
         },
 
@@ -53,6 +57,7 @@ public static class ArithTaskRegistry
         {
             Skills = [Skill.Math.Sub10],
             DifficultyLevel = 3,
+            View = "arith-numpad",
             Generator = r =>
             {
                 var a = r.Next(1, 10);
@@ -66,6 +71,7 @@ public static class ArithTaskRegistry
         {
             Skills = [Skill.Math.Sub20],
             DifficultyLevel = 4,
+            View = "arith-numpad",
             Generator = r =>
             {
                 var a = r.Next(1, 20);
@@ -82,6 +88,7 @@ public static class ArithTaskRegistry
         {
             Skills = [Skill.Math.Turbo10],
             DifficultyLevel = 3,
+            View = "arith-turbo",
             Generator = r =>
             {
                 if (r.Next(2) == 0)

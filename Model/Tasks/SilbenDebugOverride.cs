@@ -31,6 +31,7 @@ public sealed class SilbenDebugOverride(string word, string? skillId, IReadOnlyL
         {
             Skills = baseDef.Skills,
             DifficultyLevel = baseDef.DifficultyLevel,
+            View = baseDef.View,
             Generator = _ => (filename, resolvedOptions)
         };
 
