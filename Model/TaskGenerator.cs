@@ -9,7 +9,7 @@ public enum Difficulty
     Extreme
 }
 
-public sealed class LearningTask<T> where T : BaseTaskDefinition
+public sealed class LearningTask<T> : IChosenTask where T : BaseTaskDefinition
 {
     private readonly ISkillMasteryStore _store;
 
@@ -26,14 +26,39 @@ public sealed class LearningTask<T> where T : BaseTaskDefinition
         T task,
         Difficulty difficulty,
         ISkillMasteryStore store)
+        : this(task, null, difficulty, store)
+    {
+    }
+
+    /// <summary>
+    ///     Used by <see cref="BaseTaskDefinition.Choose" /> (the type-erased picker path), which
+    ///     generates the payload eagerly since the generic <c>TaskHost</c> can't call a
+    ///     domain-specific <c>Generator</c> itself. The legacy <see cref="AdaptiveTaskGenerator.ChooseTaskAsync{T}" />
+    ///     path above leaves <paramref name="payload" /> unset - its callers still generate the
+    ///     payload themselves via <c>Task.Generator(rng)</c>.
+    /// </summary>
+    internal LearningTask(
+        T task,
+        object? payload,
+        Difficulty difficulty,
+        ISkillMasteryStore store)
     {
         Task = task;
+        Payload = payload;
         Difficulty = difficulty;
         _store = store;
     }
 
     public T Task { get; }
+    public object? Payload { get; }
     public Difficulty Difficulty { get; }
+
+    object IChosenTask.Payload => Payload ?? throw new InvalidOperationException(
+        $"{nameof(Payload)} was never generated for this task - it was chosen via the legacy " +
+        $"{nameof(AdaptiveTaskGenerator.ChooseTaskAsync)} path, which doesn't populate it.");
+
+    string IChosenTask.View => Task.View;
+    IReadOnlyList<string> IChosenTask.Skills => Task.Skills;
 
     public async Task Success(Kompetenzniveau kompetenz)
     {
@@ -112,6 +137,46 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
             chosen,
             difficulty,
             store);
+    }
+
+    /// <summary>
+    ///     Type-erased counterpart to <see cref="ChooseTaskAsync{T}" />: picks across every
+    ///     registered <see cref="BaseTaskDefinition" /> subtype at once (<see cref="TaskRegistry.All" />)
+    ///     instead of one fixed <c>T</c>, so candidates from different domains/payload shapes can be
+    ///     mixed in the same pool. Same weighting logic, same signature shape as
+    ///     <see cref="ChooseTaskAsync{T}" /> - <c>skills = null</c> means "everything", across every
+    ///     domain, not just one. Not wired into any page yet - see TASK_PRESENTATION_REDESIGN.md
+    ///     (Baustein 4). Deliberately does not consult <see cref="DebugOverride" /> yet - that needs
+    ///     its own rework once a page actually calls this (see the doc's note on Baustein 4).
+    /// </summary>
+    public async Task<IChosenTask> ChooseAnyAsync(IReadOnlyCollection<string>? skills = null)
+    {
+        var candidates = TaskRegistry.All;
+        if (skills is not null)
+            candidates = candidates.Where(c => c.Skills.Any(skills.Contains)).ToList();
+
+        if (candidates.Count == 0)
+            throw new InvalidOperationException(
+                $"No tasks match skills [{string.Join(", ", skills ?? [])}].");
+
+        var masteryBySkill = (await store.GetSkillViewEnumerableAsync())
+            .ToDictionary(sv => sv.State.Id, sv => sv.State.Mastery);
+
+        var easiestDifficulty = candidates.Min(c => c.DifficultyLevel);
+
+        var weighted = candidates
+            .Select(d => (def: d, weight: d.DifficultyLevel + MasteryWeight(WeakestSkillMastery(d, masteryBySkill))))
+            .ToList();
+
+        var chosen = InvertedWeightedPick(weighted);
+        var difficulty = chosen.DifficultyLevel switch
+        {
+            var x when x == easiestDifficulty => Difficulty.Normal,
+            var x when x == easiestDifficulty + 1 => Difficulty.Hard,
+            _ => Difficulty.Extreme
+        };
+
+        return chosen.Choose(rng, difficulty, store);
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Kidz2Learn.Model;
 using MudBlazor;
 
 namespace Kidz2Learn.Model.Tasks;
@@ -20,4 +21,13 @@ public abstract class BaseTaskDefinition
     ///     task-presentation redesign, see TASK_PRESENTATION_REDESIGN.md.
     /// </summary>
     public required string View { get; init; }
+
+    /// <summary>
+    ///     Generates this task's payload and wraps it in an <see cref="IChosenTask" />. The only
+    ///     place that still knows the concrete payload shape at compile time, so the type-erased
+    ///     <see cref="AdaptiveTaskGenerator.ChooseAnyAsync" /> can pick across subtypes without a
+    ///     type switch. Uses the same <see cref="Random" /> instance the picker itself draws from,
+    ///     matching how pages call <c>Generator(rng)</c> with their own rng today.
+    /// </summary>
+    internal abstract IChosenTask Choose(Random rng, Difficulty difficulty, ISkillMasteryStore store);
 }

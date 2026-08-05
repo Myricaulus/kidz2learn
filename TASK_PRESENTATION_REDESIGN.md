@@ -1,6 +1,7 @@
 # Konzept: Task-Auswahl und -Darstellung entkoppeln
 
-Status: Konzept, noch nicht umgesetzt. Dient als Grundlage für ein inkrementelles Umbauvorhaben.
+Status: Umsetzung läuft inkrementell, siehe Phasenplan unten. Dient als Grundlage für ein
+inkrementelles Umbauvorhaben.
 
 ## Problem
 
@@ -245,10 +246,13 @@ Tendenz zu Option A (kein zweiter Mechanismus nötig), aber nicht Teil der jetzi
 
 ## Phasenplan (inkrementell)
 
-1. `View`-Feld auf bestehenden Task-Definitions ergänzen (`"silben-multiple-choice"`,
-   `"arith-numpad"`), Verhalten unverändert.
-2. `IChosenTask` + `ChooseAnyAsync(skills)` bauen, Kandidatenpool `TaskRegistry.All`, unit-testbar,
-   vorerst ungenutzt.
+1. [x] `View`-Feld auf bestehenden Task-Definitions ergänzen (`"silben-multiple-choice"`,
+   `"arith-numpad"`, `"arith-turbo"` für die Turbo-Variante mit fehlendem Operanden), Verhalten
+   unverändert. Build + volle Testsuite grün.
+2. [x] `IChosenTask` + `ChooseAnyAsync(skills)` gebaut, Kandidatenpool `TaskRegistry.All`,
+   unit-testbar (`ChooseAnyAsyncTests`), vorerst ungenutzt. Dabei gleich den in den Entscheidungen
+   oben beschriebenen `BaseTaskDefinition.Choose(...)`-Dispatch mitgebaut (Problem 1 gelöst) -
+   `DebugOverride` bewusst noch nicht angebunden (Problem 2, siehe Baustein 4, folgt in Phase 4).
 3. Scoring-/Logging-Glue aus `SilbenChallenge.CheckAnswer` und `ArithmeticChallenge.Evaluate` in
    einen gemeinsamen Baustein ziehen, ohne die Pages umzubauen.
 4. `TaskHost` + `TaskPresentationRegistry` bauen, `SilbenChallenge`-UI in
