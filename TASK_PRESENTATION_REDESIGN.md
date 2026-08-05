@@ -22,12 +22,20 @@ Punkt unten bereits grün.
   bisher, Ablauf/Optik unverändert. **Verifiziert.**
 - [x] **GraphemChallenge:** dieselbe Prüfung wie oben (falsch → richtig), keine sichtbare
   Verhaltensänderung erwartet. **Verifiziert.**
-- [ ] **Nach Phase 3b (Glue-Extraktion via `TaskSessionController`):** kurzer Spotcheck
+- [x] **Nach Phase 3b (Glue-Extraktion via `TaskSessionController`):** kurzer Spotcheck
   SilbenChallenge/GraphemChallenge (falsch → richtig, Punkte/Sound wie gehabt) - Logik unverändert,
   nur in `TaskSessionController.RecordSuccess`/`RecordFailure` verschoben, geringes Risiko.
-- [ ] **ArithmeticChallenge, Addition und Subtraktion:** einmal falsch tippen, dann richtig lösen.
+  **Verifiziert** (im Rahmen des Arithmetik-Tests unten mitgeprüft).
+- [x] **ArithmeticChallenge, Addition und Subtraktion:** einmal falsch tippen, dann richtig lösen.
   Erwartet: Punkte/Sound/Combo-Verhalten wie bisher (−5/0 bei Falsch, Combo-Reset; +2/8 bei Richtig,
-  Combo-Erhöhung, neue Aufgabe). Dieser Pfad wurde diese Session noch nicht manuell getestet.
+  Combo-Erhöhung, neue Aufgabe). **Verifiziert**, dabei aber Finding #10 aufgedeckt: dieselbe Aufgabe
+  20x hintereinander falsch gelöst → Versuchszähler im Feedback stieg nicht, %-Anzeige blieb bei
+  "--%". **War kein Phase-1-3b-Regression** (Ursache unabhängig, `Kompetenzniveau`-Properties ohne
+  `[JsonInclude]` verloren ihren Wert bei jedem IndexedDB-Reload) - Root Cause bestätigt und
+  gefixt, siehe TECH_DEBT.md #10.
+- [ ] **Nach Fix #10:** kurzer Re-Check ArithmeticChallenge (gerne wieder dieselbe Aufgabe mehrfach
+  falsch lösen) - Versuchszähler sollte jetzt hochzählen, ab dem 5. Versuch sollte eine %-Anzeige
+  erscheinen statt "--%".
 
 ## Problem
 

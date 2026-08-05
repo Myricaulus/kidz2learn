@@ -191,3 +191,31 @@ Verhältnis/Zähler) plus einen Reset-Mechanismus, der nicht jede Page einzeln n
 Quick-Fix im Rahmen des aktuellen Umbaus, siehe dort.
 
 Bestätigt keine Regression durch die heutigen Änderungen (Phase 1-3a) - beide Stellen unverändert.
+
+---
+
+## [x] 10. Bug: `Kompetenzniveau.Versuche`/`Richtig` überlebten IndexedDB-Roundtrip nicht
+
+Beim manuellen Testen von ArithmeticChallenge gefunden: dieselbe Aufgabe >20x hintereinander falsch
+gelöst, trotzdem stieg die im Feedback angezeigte Versuchszahl nicht an, und die %-Anzeige blieb bei
+"--%" statt ab dem 5. Versuch einen Wert zu zeigen. Erst vermutet als Regression aus der
+`RingBuffer`-Änderung (Punkt 6) - **war es nicht**: `Kompetenzniveau` nutzt gar keinen `RingBuffer`,
+sondern einen simplen String (`Historie`) plus zwei `int`-Properties.
+
+**Ursache bestätigt (per Repro mit `System.Text.Json` isoliert nachgestellt):**
+`Versuche`/`Richtig` hatten `{ get; private set; }`. System.Text.Jsons Standard-Reflektions-Deserializer
+befüllt ohne `[JsonInclude]` nur Properties mit **öffentlichem** Setter - `Historie` (öffentlicher
+Setter) überlebte jeden IndexedDB-Roundtrip korrekt, `Versuche`/`Richtig` wurden dagegen bei jedem
+`GetItemAsync<...Log>(id)` still auf `0` zurückgesetzt (die Serialisierung selbst schrieb die
+richtigen Werte raus, nur das Zurücklesen ging verloren). Da sowohl `ArithmeticChallenge.Evaluate`
+als auch `SilbenChallenge`/`GraphemChallenge`.`CheckAnswer` das Log-Entity bei **jedem einzelnen
+Versuch** frisch aus IndexedDB laden (nicht nur beim Seitenaufruf), blieb `Versuche` faktisch immer
+bei 1 hängen - `GetProzent()`s Schwelle (`Versuche >= 5`) wurde nie erreicht. Betraf alle drei
+Challenge-Pages gleichermaßen, nicht nur Arithmetik (dort nur zuerst auffällig, weil 20x dieselbe
+Aufgabe wiederholt wurde).
+
+**Erledigt:** `[JsonInclude]` auf beide Properties ergänzt (`Model/Kompetenzniveau.cs`), Verhalten
+per Repro-Skript vor/nach dem Fix verifiziert. Neuer Regressionstest
+`KompetenzniveauTests.JsonRoundTrip_PreservesVersucheAndRichtig` (Serialisieren + Deserialisieren
+direkt, ohne IndexedDB/JSRuntime - reiner `System.Text.Json`-Test, kein IndexedDB-Zugriff nötig).
+Build + volle Testsuite (60 Tests) grün.

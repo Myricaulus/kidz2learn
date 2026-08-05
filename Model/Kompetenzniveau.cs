@@ -1,10 +1,19 @@
+using System.Text.Json.Serialization;
+
 namespace Kidz2Learn.Model;
 
 public class Kompetenzniveau
 {
     private const int Size = 20;
-    public int Versuche { get; private set; }
-    public int Richtig { get; private set; }
+
+    // System.Text.Json's default reflection deserializer only writes properties with a public
+    // setter - without [JsonInclude], these two silently stayed at 0 after every IndexedDB
+    // round-trip (only Historie, with its public setter, survived), even though serialization
+    // itself included the real values. Since callers reload the entity fresh on every attempt,
+    // Versuche/Richtig never accumulated, and GetProzent()'s "at least 5 attempts" threshold was
+    // never reached. See TECH_DEBT.md #10.
+    [JsonInclude] public int Versuche { get; private set; }
+    [JsonInclude] public int Richtig { get; private set; }
     public string Historie { get; set; } = "--------------------";
 
     public void AddRichtig()
