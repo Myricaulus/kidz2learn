@@ -86,7 +86,6 @@ public static class WordMeta
         ["China"] = new WordInfo("Chi-na", "çˈiːnɑː", 2 , new[] { "cluster-ch", "long-vowel", "other" }),
         ["Daumen"] = new WordInfo("Dau-men", "dˈaʊmən", 2 , new[] { "diphthong-au", "noun" }),
         ["Dorf"] = new WordInfo("Dorf", "dˈɔɾf", 1 , new[] { "noun" }),
-        ["Dort"] = new WordInfo("Dort", "dˈɔɾt", 1 , new[] { "adv" }),
         ["Eidotter"] = new WordInfo("Ei-dot-ter", "ˈaɪdɔtɜ", 3 , new[] { "diphthong-ei", "double-consonant", "noun" }),
         ["Eimer"] = new WordInfo("Ei-mer", "ˈaɪmɜ", 2 , new[] { "diphthong-ei", "noun" }),
         ["Eisen"] = new WordInfo("Ei-sen", "ˈaɪzən", 2 , new[] { "diphthong-ei", "noun" }),

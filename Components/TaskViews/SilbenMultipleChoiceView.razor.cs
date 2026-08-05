@@ -149,8 +149,6 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
             await ReadingDb.StoreItemAsync(log);
             Logger.Log(log.ToRenderFragment());
 
-            Logger.Erfolgreich++;
-            Logger.GesamtAnzahl += 1 + _wrongCount;
             _wrongCount = 0;
         }
         else

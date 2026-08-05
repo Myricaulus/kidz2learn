@@ -132,4 +132,36 @@ public static class WordDiff
 
         return new DiffRequirements(marks, substitutions, gaps);
     }
+
+    /// <summary>
+    /// Reconstructs the word that results from applying marks (delete), substitutions (replace)
+    /// and inserted gap letters to <paramref name="wrong"/>, in left-to-right, gap-before-letter
+    /// order (gap index k sits "before the k-th letter", k == wrong.Length is the trailing gap).
+    /// Used to validate a popup answer by outcome instead of by exact-matching one specific
+    /// <see cref="BuildRequirements"/> alignment - words with repeated letters often have several
+    /// equally valid ways to mark/correct them, see TECH_DEBT.md #12.
+    /// </summary>
+    public static string Apply(
+        string wrong,
+        IReadOnlySet<int> marks,
+        IReadOnlyDictionary<int, char> substitutions,
+        IReadOnlyDictionary<int, char> gaps)
+    {
+        var result = new System.Text.StringBuilder();
+        for (var i = 0; i <= wrong.Length; i++)
+        {
+            if (gaps.TryGetValue(i, out var inserted))
+                result.Append(inserted);
+
+            if (i >= wrong.Length)
+                continue;
+
+            if (marks.Contains(i))
+                continue; // marked as extra - dropped, not carried into the result
+
+            result.Append(substitutions.TryGetValue(i, out var corrected) ? corrected : wrong[i]);
+        }
+
+        return result.ToString();
+    }
 }

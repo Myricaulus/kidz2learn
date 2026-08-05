@@ -139,17 +139,13 @@ public partial class MarkierPopup : ComponentBase
 
     private async Task OnWeiterClicked()
     {
-        var marksOk = _markedIndices.SetEquals(_requiredMarks);
-        var substitutionsOk = _requiredSubstitutions.Count == _letterCorrections.Count &&
-                               _requiredSubstitutions.All(kv =>
-                                   _letterCorrections.TryGetValue(kv.Key, out var typed) &&
-                                   char.ToLowerInvariant(typed) == char.ToLowerInvariant(kv.Value));
-        var gapsOk = _requiredGaps.Count == _insertedLetters.Count &&
-                     _requiredGaps.All(kv =>
-                         _insertedLetters.TryGetValue(kv.Key, out var typed) &&
-                         char.ToLowerInvariant(typed) == char.ToLowerInvariant(kv.Value));
-
-        if (marksOk && substitutionsOk && gapsOk)
+        // Result-oriented on purpose, not an exact index match against one precomputed WordDiff
+        // alignment: words with repeated letters (double/triple consonants) often have several
+        // equally valid ways to mark/correct them (e.g. "anfasssen" -> any of the three "s" can be
+        // the one marked as extra). Any combination that actually reconstructs CorrectWord counts,
+        // regardless of which one WordDiff.Align happened to compute - see TECH_DEBT.md #12.
+        var reconstructed = WordDiff.Apply(WrongWord, _markedIndices, _letterCorrections, _insertedLetters);
+        if (string.Equals(reconstructed, CorrectWord, StringComparison.OrdinalIgnoreCase))
         {
             await OnResolved.InvokeAsync();
             return;

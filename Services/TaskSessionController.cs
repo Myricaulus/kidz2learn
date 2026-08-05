@@ -17,12 +17,35 @@ namespace Kidz2Learn.Services;
 ///     never counted there (found during Deutsch-Mix/Bestenmix manual testing, TASK_PRESENTATION_REDESIGN.md).
 ///     Moved here since it's exactly as domain-agnostic as Score - every view goes through this.
 /// </remarks>
+/// <remarks>
+///     <see cref="TotalAttempts" />/<see cref="SuccessfulAttempts" /> replace the old
+///     <c>LoggerService.GesamtAnzahl</c>/<c>Erfolgreich</c> fields (TECH_DEBT.md #9: Silben treated
+///     them as an ever-growing counter, Arithmetik as a 0..1 ratio reloaded from
+///     <c>ArithemticLogStats</c> - same singleton fields, two incompatible semantics, hence the
+///     ">100%" HUD drift). One attempt == one <see cref="RecordSuccess" />/<see cref="RecordFailure" />
+///     call, for every domain alike - reset once per page visit via <see cref="ResetStats" /> from
+///     <c>TaskHost.OnInitializedAsync</c>, same lifecycle as <see cref="HudStateService.ResetAll" />.
+///     <c>ArithemticLogStats</c> itself keeps being persisted separately in `ArithNumpadView` - that's
+///     a different, longer-lived stat, not the source of this bug.
+/// </remarks>
 public sealed class TaskSessionController(ScoreService score, AffirmationService affirmation, HudStateService hud)
 {
+    public int TotalAttempts { get; private set; }
+    public int SuccessfulAttempts { get; private set; }
+    public float SuccessRatio => TotalAttempts == 0 ? 0f : (float)SuccessfulAttempts / TotalAttempts;
+
+    public void ResetStats()
+    {
+        TotalAttempts = 0;
+        SuccessfulAttempts = 0;
+    }
+
     public async Task RecordSuccess(IChosenTask task, Kompetenzniveau kompetenz, int basePoints, int bonusPoints)
     {
         score.AddPoints(basePoints, bonusPoints);
         hud.IncrementCombo();
+        TotalAttempts++;
+        SuccessfulAttempts++;
         await affirmation.PlayErfolgAsync();
         await task.Success(kompetenz);
     }
@@ -31,6 +54,7 @@ public sealed class TaskSessionController(ScoreService score, AffirmationService
     {
         score.AddPoints(basePoints, bonusPoints);
         hud.SetCombo(0);
+        TotalAttempts++;
         await affirmation.PlayMisserfolgAsync();
         await task.Fail(kompetenz);
     }

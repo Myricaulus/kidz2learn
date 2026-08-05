@@ -1,8 +1,9 @@
 @using Kidz2Learn.Services
 @inject LoggerService Logger
-<div> 
-    <p> Lösungsversuche: @Logger.GesamtAnzahl</p>
-    <p> Davon Erfolgreich: @((Logger.Erfolgreich *100).ToString("0.\\%"))</p>
+@inject TaskSessionController Session
+<div>
+    <p> Lösungsversuche: @Session.TotalAttempts</p>
+    <p> Davon Erfolgreich: @((Session.SuccessRatio * 100).ToString("0.\\%"))</p>
 </div>
 <div class="live-logger">
     <h3>Live Logger</h3>

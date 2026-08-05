@@ -245,7 +245,11 @@
 
     .k4l-correct-box:hover ~ .k4l-wrong-reveal-wrap .k4l-wrong-word-box {
         opacity: 0;
-        transition: opacity 0s 3s;
+        /* pointer-events must flip in lockstep with opacity (same 3s delay) - otherwise the
+           (invisible) letters/gaps underneath stay clickable and a child can mark/correct them
+           blind while "spicken" is active. See TECH_DEBT.md #11. */
+        pointer-events: none;
+        transition: opacity 0s 3s, pointer-events 0s 3s;
     }
 
     /* Timer-Kreis fürs Wiederauftauchen - nur sichtbar, nachdem einmal wirklich

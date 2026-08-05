@@ -62,4 +62,54 @@ public class WordDiffTests
         Assert.All(req.RequiredSubstitutions.Keys, i => Assert.InRange(i, 0, wrong.Length - 1));
         Assert.All(req.RequiredGaps.Keys, i => Assert.InRange(i, 0, wrong.Length));
     }
+
+    [Fact]
+    public void Apply_BuildRequirementsSolution_AlwaysReconstructsCorrectWord()
+    {
+        // Sanity check: whatever WordDiff.BuildRequirements itself computes must, by construction,
+        // be a valid solution once fed back through Apply.
+        const string correct = "Hund";
+        const string wrong = "Hand";
+        var req = WordDiff.BuildRequirements(correct, wrong);
+
+        var result = WordDiff.Apply(wrong, req.RequiredMarks, req.RequiredSubstitutions, req.RequiredGaps);
+
+        Assert.Equal(correct, result, ignoreCase: true);
+    }
+
+    [Fact]
+    public void Apply_AnyOfSeveralAmbiguousMarks_ReconstructsCorrectWord()
+    {
+        // TECH_DEBT.md #12 repro: "anfasssen" has three "s" where "anfassen" only needs two -
+        // marking *any one* of them as extra must be accepted, not just whichever one
+        // WordDiff.BuildRequirements happens to pick during backtracking.
+        const string correct = "anfassen";
+        const string wrong = "anfasssen";
+
+        // The three "s" sit at indices 4, 5, 6 in "anfasssen".
+        Assert.Equal('s', wrong[4]);
+        Assert.Equal('s', wrong[5]);
+        Assert.Equal('s', wrong[6]);
+
+        foreach (var sIndex in new[] { 4, 5, 6 })
+        {
+            var result = WordDiff.Apply(wrong, new HashSet<int> { sIndex },
+                new Dictionary<int, char>(), new Dictionary<int, char>());
+
+            Assert.Equal(correct, result, ignoreCase: true);
+        }
+    }
+
+    [Fact]
+    public void Apply_WrongMarkedIndex_DoesNotReconstructCorrectWord()
+    {
+        // Marking a letter that isn't part of the actual mistake must still be rejected.
+        const string correct = "Hund";
+        const string wrong = "Hand";
+
+        var result = WordDiff.Apply(wrong, new HashSet<int> { 0 }, new Dictionary<int, char>(),
+            new Dictionary<int, char>());
+
+        Assert.NotEqual(correct, result, StringComparer.OrdinalIgnoreCase);
+    }
 }

@@ -15,6 +15,7 @@
 
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
     [Inject] private HudStateService Hud { get; set; } = null!;
+    [Inject] private TaskSessionController Session { get; set; } = null!;
 
     private readonly Random _rng = new();
     private IChosenTask? _chosen;
@@ -28,8 +29,10 @@
         // recreates the component whenever _viewType changes (e.g. Bestenmix/Deutsch-Mix switching
         // between "silben-multiple-choice" and "arith-numpad") - so a reset in a view's own
         // OnInitializedAsync would refire on every such switch, wiping the combo mid-session. Found
-        // during manual testing, see TASK_PRESENTATION_REDESIGN.md.
+        // during manual testing, see TASK_PRESENTATION_REDESIGN.md. Same reasoning applies to
+        // Session.ResetStats() (TECH_DEBT.md #9).
         Hud.ResetAll();
+        Session.ResetStats();
         await LoadNext();
     }
 

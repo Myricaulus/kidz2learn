@@ -30,7 +30,7 @@ public sealed class SilbenDebugOverride(string word, string? skillId, IReadOnlyL
 
         var resolvedOptions = options is { Count: > 0 }
             ? options.Append(target).Distinct().ToArray()
-            : ErstleserDistraktorGenerator.Generate(target, 4, Random.Shared).Append(target).ToArray();
+            : RealisticDistractorsFor(baseDef, target);
 
         var forced = new SilbenTaskDefinition
         {
@@ -41,6 +41,30 @@ public sealed class SilbenDebugOverride(string word, string? skillId, IReadOnlyL
         };
 
         return forced as T;
+    }
+
+    /// <summary>
+    ///     Without an explicit <c>options=</c> override, invokes the real generator once to get a
+    ///     genuinely random word's options, then swaps its own target for <paramref name="target" />.
+    ///     Keeps the exact distractor *count* each skill's real generator uses (3 for read_precise/
+    ///     GraphemPhonem, 6 for read_syllables, ...) without hardcoding a number here or duplicating
+    ///     each skill's distractor algorithm - see TECH_DEBT.md #13, where a hardcoded "4" produced 5
+    ///     options for read_precise instead of the real 3.
+    /// </summary>
+    private static string[] RealisticDistractorsFor(SilbenTaskDefinition baseDef, string target)
+    {
+        var (theirTarget, generatedOptions) = baseDef.Generator(Random.Shared);
+        // Options are built against the hyphen-stripped correct answer, same normalization
+        // SilbenMultipleChoiceView.CheckAnswer applies (_correctSyllable.Replace("-", "")) -
+        // "their" own target (whatever value the shape's first tuple element is: a filename with
+        // syllable dashes for read_syllables/read_precise, a plain WordMeta key for GraphemPhonem)
+        // won't string-equal any option otherwise, and nothing gets filtered out.
+        var theirTargetAnswer = theirTarget.Replace("-", "");
+        return generatedOptions
+            .Where(o => !o.Equals(theirTargetAnswer, StringComparison.OrdinalIgnoreCase))
+            .Append(target)
+            .Distinct()
+            .ToArray();
     }
 }
 

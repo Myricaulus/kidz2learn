@@ -164,7 +164,7 @@ Umbaus. Ideensammlung für ein späteres, eigenes Vorhaben:
 
 ---
 
-## [ ] 8. Bug: `WordMeta.Data` enthält "dort"/"Dort" als zwei separate Wörter
+## [x] 8. Bug: `WordMeta.Data` enthält "dort"/"Dort" als zwei separate Wörter
 
 Beim manuellen Testen von Phase 3a gefunden (siehe TASK_PRESENTATION_REDESIGN.md): Bei einer
 `read_syllables`-Aufgabe tauchten "dort" und "Dort" gleichzeitig als zwei unterschiedliche Optionen
@@ -173,14 +173,23 @@ Dictionary-Einträge (Zeilen 89 und 185), beide mit identischem IPA (`dˈɔɾt`)
 reiner Case-Duplikat aus der `WaveSplit/`-Datenpipeline. Betrifft vermutlich weitere Wortpaare, nicht
 nur dieses eine.
 
-**Vermutlicher Fix:** Beim nächsten Lauf von `WaveSplit/DeduplicateNames.py` (oder einer Erweiterung
-davon) case-insensitive statt case-sensitive deduplizieren. Nicht händisch in `WordMeta.g.cs`
-gepatcht, weil das laut CLAUDE.md bei der nächsten Regenerierung ohnehin überschrieben würde (alles
-nach dem `// ###Endmarker for replacement###`-Marker).
+**Erledigt (Interimsfix):** `["Dort"]`-Eintrag (Zeile 89, Tag `adv` trotz Großschreibung wie die
+umliegenden Nomen - selbst ein Indiz für einen Dateneingabefehler) aus `Model/WordMeta.g.cs`
+entfernt, `["dort"]` (korrekt klein geschrieben für ein deutsches Adverb) bleibt. Das ist laut
+CLAUDE.md ausdrücklich sanktioniert ("generated-but-editable"), betrifft aber den Teil *vor* dem
+`// ###Endmarker for replacement###`-Marker - **überlebt einen echten Pipeline-Lauf also nicht**.
+`DeduplicateNames.py` selbst dedupliziert bereits case-insensitive (`name.lower()`/`x.lower()` beim
+Vergleich) - der Duplikat-Fund liegt also vermutlich woanders in der Pipeline (z.B. ob
+`SplitWaveAndCompress.py` die deduplizierte `names_cleaned.txt` beim Generieren überhaupt
+konsultiert). Nicht weiter untersucht - reine Python/Audio-Pipeline-Archäologie ohne Testmöglichkeit
+hier, siehe CLAUDE.md ("offline/authoring only"). Falls die Pipeline nochmal läuft, lohnt sich ein
+Blick, ob das Duplikat wiederkommt.
+`wwwroot/audio/Dort.opus` (falls vorhanden) bewusst nicht gelöscht - harmlose verwaiste Datei, keine
+Laufzeitwirkung. Build + volle Testsuite (64) grün (reine Datenänderung, keine Codepfade betroffen).
 
 ---
 
-## [ ] 9. Bug: `Logger.Erfolgreich`/`GesamtAnzahl` driften seitenübergreifend, HUD zeigt z.B. "800%"
+## [x] 9. Bug: `Logger.Erfolgreich`/`GesamtAnzahl` driften seitenübergreifend, HUD zeigt z.B. "800%"
 
 Ebenfalls beim manuellen Testen von Phase 3a gefunden: Nach Seitenwechsel zeigte die HUD-Anzeige oben
 rechts absurde Werte wie "800% richtig".
@@ -197,12 +206,17 @@ z.B. `8 * 100 = 800%` nach ein paar richtigen Silben-Antworten. Direkte Konseque
 (`TASK_PRESENTATION_REDESIGN.md`) und Punkt 4 dieser Liste beschriebenen Lücke: Silben hat kein
 Äquivalent zu `ArithemticLogStats`, füllt das Feld deshalb komplett anders.
 
-**Vermutlicher Fix:** Gehört eigentlich in dieselbe Baustelle wie die Aggregat-Stats-Lücke (Punkt 4,
-Baustein 6) - `Erfolgreich` bräuchte eine einheitliche Semantik (Verhältnis, nicht gemischt
-Verhältnis/Zähler) plus einen Reset-Mechanismus, der nicht jede Page einzeln nachbauen muss. Kein
-Quick-Fix im Rahmen des aktuellen Umbaus, siehe dort.
-
-Bestätigt keine Regression durch die heutigen Änderungen (Phase 1-3a) - beide Stellen unverändert.
+**Erledigt:** `Logger.Erfolgreich`/`GesamtAnzahl` komplett aus `LoggerService` entfernt (das bleibt
+jetzt reines Event-Log, `OnLogAppended`, wie es als Singleton auch hingehört). Ersetzt durch
+`TaskSessionController.TotalAttempts`/`SuccessfulAttempts`/`SuccessRatio` - inkrementiert direkt in
+`RecordSuccess`/`RecordFailure`, also einheitlich für jede Domain (ein Aufruf = ein Versuch, egal ob
+Mathe oder Deutsch), zurückgesetzt einmal pro Seitenbesuch via `TaskSessionController.ResetStats()`
+in `TaskHost.OnInitializedAsync` - dieselbe Lebenszyklus-Überlegung wie beim Combo-Fix oben
+(Bestenmix/Deutsch-Mix). `ArithNumpadView` und `SilbenMultipleChoiceView` schreiben `Logger.Erfolgreich`/
+`GesamtAnzahl` nicht mehr direkt. `ArithemticLogStats` bleibt unverändert bestehen (eigene,
+langfristig persistierte Arithmetik-Statistik, war nicht die Fehlerquelle - nur das *Füttern* von
+`Logger.Erfolgreich` daraus ist entfallen). `LiveLogger.razor` liest jetzt `TaskSessionController`
+statt `LoggerService` für die Prozentanzeige. Build + volle Testsuite (64) grün.
 
 ---
 
@@ -234,7 +248,7 @@ Build + volle Testsuite (60 Tests) grün.
 
 ---
 
-## [ ] 11. Bug: Markier-Popup lässt sich während des Spicken-Hovers blind bedienen
+## [x] 11. Bug: Markier-Popup lässt sich während des Spicken-Hovers blind bedienen
 
 Beim manuellen Testen von `/` (nach dem TaskHost-Cutover) gefunden, **keine Regression durch den
 Umbau** - Verhalten war schon im alten `SilbenChallenge.razor` identisch (Popup wurde in Phase 4b
@@ -248,13 +262,15 @@ OpenLetterEdit(li)"` bzw. `OpenGap(gi)`, Zeile 79/50/54) bleiben normal klickbar
 Ein Kind kann also während des Spickens weiter (blind) Buchstaben markieren/korrigieren, an
 Positionen, die es sich vom vorherigen sichtbaren Zustand gemerkt hat oder einfach durchprobiert.
 
-**Vermutlicher Fix:** `pointer-events: none` auf `.k4l-wrong-word-box` ergänzen, solange sie über
-den Hover-Trigger ausgeblendet ist (gleiche Selektor-Kombination wie die bestehende
-`opacity: 0`-Regel).
+**Erledigt:** `pointer-events: none` auf denselben Selektor ergänzt wie die bestehende
+`opacity: 0`-Regel (`.k4l-correct-box:hover ~ .k4l-wrong-reveal-wrap .k4l-wrong-word-box`), mit
+demselben `transition: ... pointer-events 0s 3s` - Interaktion und Sichtbarkeit blenden jetzt
+synchron nach den 3 Sekunden Hover um, nicht mehr getrennt. Reine CSS-Änderung, kein
+C#-Codepfad betroffen. Build + volle Testsuite grün.
 
 ---
 
-## [ ] 12. Bug: Markier-Popup akzeptiert nur eine von mehreren gültigen Korrekturen bei mehrdeutigem Alignment
+## [x] 12. Bug: Markier-Popup akzeptiert nur eine von mehreren gültigen Korrekturen bei mehrdeutigem Alignment
 
 Beim manuellen Testen von `/` gefunden, **keine Regression durch den Umbau** - `WordDiff.cs` und die
 `OnWeiterClicked`-Prüflogik sind seit Phase 4b unverändert nach `MarkierPopup.razor.cs` verschoben.
@@ -273,19 +289,25 @@ ob das tatsächliche Ergebnis der Kind-Korrektur (Marks/Substitutionen/Lücken a
 `WrongWord`) zu `CorrectWord` führt. Bei Wörtern mit wiederholten Buchstaben (Doppel-/Dreifach-
 Konsonanten, worauf Deutsch als Sprache besonders anfällig ist) gibt es das oft mehrfach.
 
-**Vermutlicher Fix:** Zwei unabhängige Bausteine, wahrscheinlich beide nötig:
-1. `WordDiff.Align` so erweitern, dass es bei Ties alle gleichwertigen Alignments liefert (oder
-   zumindest eine Kanonisierung, die bei Wiederholungsgruppen konsistent das "sinnvollste" wählt),
-   statt sich nur auf die Backtracking-Reihenfolge zu verlassen.
-2. `OnWeiterClicked`s Prüfung ergebnisorientiert machen: Marks/Substitutionen/Lücken auf `WrongWord`
-   anwenden und das Resultat gegen `CorrectWord` vergleichen, statt Index-für-Index gegen ein
-   einziges vorab berechnetes Alignment zu prüfen - das akzeptiert automatisch jede korrekte
-   Lösung, unabhängig davon, welche der mehreren möglichen Alignments `WordDiff` intern gewählt
-   hat.
+**Erledigt (Baustein 2 der beiden vorgeschlagenen - reicht allein aus):** `OnWeiterClicked`s Prüfung
+ist jetzt ergebnisorientiert statt Index-exakt. Neue `WordDiff.Apply(wrong, marks, substitutions,
+gaps)` (`Model/WordDiff.cs`, pure Funktion, analog zu `Align`/`BuildRequirements`) rekonstruiert das
+Wort, das aus `WrongWord` durch die Kind-Eingaben entsteht, `MarkierPopup.OnWeiterClicked` vergleicht
+das Ergebnis case-insensitive gegen `CorrectWord`. `WordDiff.Align` selbst blieb unverändert (Baustein
+1 aus dem ursprünglichen Vorschlag war nicht nötig) - da die UI ohnehin nur dieselben drei
+Primitiv-Operationen erlaubt wie das Alignment-Modell (löschen/ersetzen/einfügen), reicht die
+Ergebnisprüfung, um jede *tatsächlich* korrekte Lösung zu akzeptieren, unabhängig davon, welche der
+mehreren gleichwertigen Alignments `WordDiff.BuildRequirements` intern für den 💡-Tipp-Mechanismus
+gewählt hat (der bleibt unverändert auf einem einzigen kanonischen Alignment).
+Neue Tests in `WordDiffTests.cs`: `Apply_BuildRequirementsSolution_AlwaysReconstructsCorrectWord`,
+`Apply_AnyOfSeveralAmbiguousMarks_ReconstructsCorrectWord` (reproduziert den "anfasssen"-Fall genau -
+alle drei "s"-Positionen einzeln akzeptiert), `Apply_WrongMarkedIndex_DoesNotReconstructCorrectWord`
+(stellt sicher, dass die Lockerung nicht zu freizügig ist - eine falsche Markierung wird weiterhin
+abgelehnt). Build + volle Testsuite (67 Tests) grün.
 
 ---
 
-## [ ] 13. Bug: Debug-Override zeigt bei `skill=read_precise` 5 statt 3 Optionen
+## [x] 13. Bug: Debug-Override zeigt bei `skill=read_precise` 5 statt 3 Optionen
 
 Beim manuellen Testen von `/debug/SilbenChallenge?task=silben&word=Sonnensystem&skill=read_precise`
 gefunden - **nicht** vom TaskHost-Umbau verursacht, `SilbenDebugOverride.cs` war hiervon inhaltlich
@@ -299,6 +321,16 @@ unterschiedlich viele Optionen: `read_precise` nutzt `ErstleserDistraktorGenerat
 2, r)` → 3 Optionen, `GraphemPhonem` ebenfalls 3, `read_syllables` dagegen 6. Die hartcodierte `4`
 im Debug-Override passt zu keinem der drei.
 
-**Vermutlicher Fix:** Distraktor-Anzahl im Override von der jeweils erzwungenen
-`SilbenTaskDefinition` ableiten statt hartcodiert - am saubersten, indem die Definition selbst (oder
-ihr `Generator`) die erwartete Optionsanzahl exponiert, statt sie im Debug-Code zu erraten.
+**Erledigt:** Statt eine Optionsanzahl zu raten/hartzucodieren, ruft `SilbenDebugOverride` jetzt
+einmal den **echten** `Generator` der erzwungenen `SilbenTaskDefinition` auf (`RealisticDistractorsFor`),
+entfernt aus dessen Ergebnis nur "deren eigenes" Zielwort und hängt stattdessen unser erzwungenes
+`target` an. Liefert automatisch die richtige Anzahl für jeden Skill (3 bei `read_precise`/
+`GraphemPhonem`, 6 bei `read_syllables`, und jeden künftigen Skill ohne Anpassung am Debug-Code),
+ohne dessen Distraktor-Algorithmus zu duplizieren. Dabei eine zweite, verwandte Normalisierungslücke
+gefunden: der `correct`-Rückgabewert der echten Generatoren kann Silben-Bindestriche tragen
+(`read_syllables`/`read_precise`-Dateinamen wie `"Son-nen-sys-tem"`), während die `options`-Einträge
+selbst nie welche haben - `SilbenMultipleChoiceView.CheckAnswer` gleicht das schon immer über
+`.Replace("-", "")` aus, mein erster Filterversuch ohne diese Normalisierung ließ das "eigene"
+Zielwort fälschlich mit durchrutschen (1 Eintrag zu viel). Neue Tests in
+`SilbenDebugOverrideTests.cs`: Optionsanzahl für alle drei Skills gegen die echten Generatoren
+geprüft, plus ein Test für den expliziten `options=`-Pfad. Build + volle Testsuite (71 Tests) grün.

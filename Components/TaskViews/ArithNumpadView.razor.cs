@@ -57,10 +57,6 @@ public partial class ArithNumpadView : ComponentBase, ITaskView
     protected override async Task OnInitializedAsync()
     {
         ArithDb = AufgabenDb["ArithmetikAufgaben"] ?? throw new Exception("IndexedDb not instanced");
-
-        var stats = await ArithDb.GetItemAsync<ArithemticLogStats>("0") ?? new ArithemticLogStats();
-        Logger.Erfolgreich = stats.RichtigProzent();
-        Logger.GesamtAnzahl = stats.Versuche;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -194,8 +190,6 @@ public partial class ArithNumpadView : ComponentBase, ITaskView
         await ArithDb.StoreItemAsync(log);
         Logger.Log(log.ToRenderFragment());
 
-        Logger.Erfolgreich = stats.RichtigProzent();
-        Logger.GesamtAnzahl = stats.Versuche;
         await ArithDb.StoreItemAsync(stats);
 
         if (log.Richtig)
