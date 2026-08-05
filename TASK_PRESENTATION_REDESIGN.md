@@ -272,6 +272,19 @@ Tendenz zu Option A (kein zweiter Mechanismus nötig), aber nicht Teil der jetzi
    `DebugOverride` bewusst noch nicht angebunden (Problem 2, siehe Baustein 4, folgt in Phase 4).
 3. Scoring-/Logging-Glue aus `SilbenChallenge.CheckAnswer` und `ArithmeticChallenge.Evaluate` in
    einen gemeinsamen Baustein ziehen, ohne die Pages umzubauen.
+   - [x] **3a (Bugfix, erledigt):** `Fail()` wird jetzt bei jedem Fehlversuch aufgerufen
+     (`SilbenChallenge`, `GraphemChallenge`), nicht nur `Success()` am Ende einer Runde. Siehe
+     Commit "Fix: call LearningTask.Fail() on wrong Silben/Graphem answers".
+   - [ ] **3b (eigentliche Extraktion, offen):** Der wirklich gemeinsame Kern (`Score.AddPoints`,
+     `Affirmation.Play*`, `IChosenTask.Success/Fail`) in einen kleinen Baustein (z.B.
+     `TaskSessionController`) ziehen. Bewusst noch nicht angefasst: Log-Entity-Laden/Speichern
+     (`SilbenLog` vs. `ArithemticLog`, unterschiedliche Shapes) und `Logger.Erfolgreich`/
+     `GesamtAnzahl`-Bookkeeping (Silben: In-Memory-Zähler, Arithmetik: persistierte
+     `ArithemticLogStats`, siehe TECH_DEBT.md) bleiben bewusst domänenspezifisch, siehe
+     Entscheidungen oben. Zurückgestellt, weil das die beiden komplexesten Live-UI-Dateien im
+     Projekt anfasst (Popup-States, `Task.Delay(...).ContinueWith`, mehrere `StateHasChanged`) und
+     ohne Browser-Verifikation durch dich riskanter ist als der Umfang rechtfertigt - siehe
+     Abnahme-Checkliste oben.
 4. `TaskHost` + `TaskPresentationRegistry` bauen, `SilbenChallenge`-UI in
    `SilbenMultipleChoiceView` extrahieren, `SilbenChallenge`-Page auf `TaskHost` umstellen.
 5. Hauptmenü: Filter-Einträge (Domain/Category via `SkillRegistry.ByDomain`/`ByCategory`) →
