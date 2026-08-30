@@ -1,0 +1,121 @@
+# Silbenhammer Kindgerechtheits-Sperrliste
+#
+# Ein Wort, das hier (Kleinschreibung, eine Zeile pro Wort) steht, wird von
+# GenerateSilbenHammerWords.py aus dem generierten Wörterbuch ausgeschlossen, egal wie hoch
+# seine Häufigkeit im Quellkorpus ist. Der Frequenzwortschatz stammt aus Untertiteldaten und
+# enthält trotz POS-Filter vereinzelt Kraftausdrücke/Slang/anstößige Begriffe - diese Liste ist
+# der Nachbesserungsmechanismus dafür. Kommentarzeilen beginnen mit '#'.
+#
+# WICHTIG: Diese automatisierte Liste ersetzt keine manuelle Stichprobe der generierten
+# Grundschule-Stufe vor dem ersten Ausliefern (siehe Plan-Risiko "Kindgerechtheit").
+
+# Anatomie/vulgäre Ausdrücke
+arsch
+arschloch
+fotze
+möpse
+titten
+schwanz
+muschi
+votze
+
+# Fäkalsprache
+scheiße
+scheisse
+scheiss
+schei
+kacke
+kack
+verkackt
+
+# Kraftausdrücke / Beleidigungen
+fick
+ficken
+fickt
+gefickt
+wichser
+wichsen
+hure
+huren
+schlampe
+schlampen
+bastard
+bitch
+missgeburt
+spast
+spasti
+mongo
+behindert
+idiot
+volltrottel
+arschgeige
+
+# Gewalt / Waffen
+mord
+morden
+mörder
+töten
+gemordet
+erschossen
+erschießen
+vergewaltigt
+vergewaltigen
+selbstmord
+
+# Drogen / Alkohol
+kokain
+heroin
+crack
+scheißdreck
+
+# Rassismus/Diskriminierung (nicht abschließend - Stichprobe bleibt Pflicht)
+neger
+nigger
+nigga
+zigeuner
+kanake
+kanaken
+nazi
+nazis
+hitler
+
+# Weitere im generierten Korpus gefundene Treffer (Flexionsformen, die die Grundformen oben
+# nicht abdecken) - siehe Kommentar oben, diese Liste wird bei Bedarf weiter ergänzt.
+hurensohn
+vergewaltigung
+arschlöcher
+ermorden
+ermordet
+ermordung
+morde
+mordes
+töte
+tötest
+tötet
+tötete
+töteten
+getötet
+scheißegal
+scheißen
+scheißkerl
+verarschen
+verarscht
+killer
+waffe
+waffen
+pistole
+pistolen
+knarre
+knarren
+mistkerl
+drecksau
+missgeburten
+suizid
+pissen
+pornos
+porno
+sex
+sexuell
+sexuelle
+sexy
+scheiß

@@ -12,7 +12,9 @@ public class TaskRegistryTests
     {
         // Also implicitly exercises the TaskRegistry static constructor, which throws if any
         // BaseTaskDefinition subtype in the assembly isn't registered in Tasks.
-        Assert.Equal(TaskRegistry.AllArith.Count + TaskRegistry.AllSilben.Count, TaskRegistry.All.Count);
+        Assert.Equal(
+            TaskRegistry.AllArith.Count + TaskRegistry.AllSilben.Count + TaskRegistry.AllSilbenHammer.Count,
+            TaskRegistry.All.Count);
     }
 
     [Fact]
@@ -20,6 +22,7 @@ public class TaskRegistryTests
     {
         Assert.Equal(TaskRegistry.AllArith, TaskRegistry.GetTasks<ArithTaskDefinition>());
         Assert.Equal(TaskRegistry.AllSilben, TaskRegistry.GetTasks<SilbenTaskDefinition>());
+        Assert.Equal(TaskRegistry.AllSilbenHammer, TaskRegistry.GetTasks<SilbenHammerTaskDefinition>());
     }
 
     [Fact]

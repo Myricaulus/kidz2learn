@@ -95,6 +95,7 @@ else
                 <MudNavLink Href="/graphem" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.SwitchAccessShortcut">W oder F</MudNavLink>
                 <MudNavLink Href="deutsch-mix" Icon="@Icons.Material.Filled.MenuBook">Deutsch-Mix</MudNavLink>
                 <MudNavLink Href="Silbentrainer" Disabled Icon="@Icons.Material.Filled.MicExternalOn">Trainer</MudNavLink>
+                <MudNavLink Href="silben-hammer" Icon="@Icons.Material.Filled.Construction">Silbenhammer</MudNavLink>
                 <MudNavLink Href="bestenmix" Disabled Icon="@Icons.Material.Filled.Shuffle">Bestenmix</MudNavLink>
                 <MudNavLink Href="Profile" Icon="@Icons.Material.Filled.Person">Profil</MudNavLink>
             </MudNavMenu>
@@ -145,6 +146,7 @@ else
         // IndexedDB round trip, which is too far removed from the gesture for some browsers.
         ((IJSInProcessRuntime)Js).InvokeVoid("k4l_primeAudioPlayer", "audioPlayer");
         ((IJSInProcessRuntime)Js).InvokeVoid("k4l_primeAudioPlayer", "affirmationPlayer");
+        ((IJSInProcessRuntime)Js).InvokeVoid("k4l_primeAudioContext");
         _showWelcome = false;
     }
 

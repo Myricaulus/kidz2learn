@@ -16,6 +16,7 @@ public static class TaskPresentationRegistry
     {
         Register("silben-multiple-choice", typeof(SilbenMultipleChoiceView));
         Register("arith-numpad", typeof(ArithNumpadView));
+        Register("silben-hammer", typeof(SilbenHammerView));
     }
 
     public static void Register(string view, Type componentType)

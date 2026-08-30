@@ -1,4 +1,5 @@
 using Kidz2Learn;
+using Kidz2Learn.Model;
 using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -15,13 +16,14 @@ builder.Services.AddSingleton<SidWidgetService>();
 builder.Services.AddSingleton<HudStateService>();
 builder.Services.AddScoped<AffirmationService>();
 builder.Services.AddScoped<TaskSessionController>();
+builder.Services.AddScoped<SilbenHammerWordCatalog>();
 
 builder.Services.AddIndexedDbService();
 // all options
 builder.Services.AddIndexedDb(
     "AufgabenDB", // the database name
-    ["ArithmetikAufgaben", "LeseAufgaben", "SkillMeta", "SkillStates"], // the names of value stores
-    3); // the version number of the current database schema
+    ["ArithmetikAufgaben", "LeseAufgaben", "SkillMeta", "SkillStates", "SilbenHammerRatings"], // the names of value stores
+    4); // the version number of the current database schema
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 

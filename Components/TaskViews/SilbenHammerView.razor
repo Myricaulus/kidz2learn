@@ -1,0 +1,213 @@
+@using Kidz2Learn.Model
+
+<div class="shl-container">
+    @if (_currentWord is null)
+    {
+        <div class="shl-loading">Lade Wort ...</div>
+    }
+    else
+    {
+        <div class="shl-progress">
+            @for (var i = 0; i < _currentWord.Syllables.Length; i++)
+            {
+                var state = i < _syllableIndex ? "done" : i == _syllableIndex ? "active" : "pending";
+                <div class="shl-chip shl-chip-@state">
+                    <span class="shl-dot"></span>
+                    <span class="shl-dot"></span>
+                    <span class="shl-dot"></span>
+                </div>
+            }
+        </div>
+
+        @if (_wordCompletionAnimating)
+        {
+            <div class="shl-word-merge">
+                @for (var i = 0; i < _currentWord.Syllables.Length; i++)
+                {
+                    var hit = i <= _mergeIndex;
+                    <span class="shl-merge-syllable @(hit ? "shl-glow" : "")">@_currentWord.Syllables[i]</span>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="shl-syllable @_animClass" @key="_animKey">
+                @((MarkupString)BuildSyllableHtml(_currentWord.Syllables[_syllableIndex]))
+            </div>
+
+            @if (!_showWordButtons)
+            {
+                <div class="shl-buttons">
+                    <button class="shl-btn shl-btn-struggle" disabled="@_isAnimating" @onclick="OnStruggle">
+                        🔤 Buchstabiert
+                    </button>
+                    <button class="shl-btn shl-btn-correct" disabled="@_isAnimating" @onclick="OnCorrect">
+                        ✅ Richtig
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="shl-buttons">
+                    <button class="shl-btn shl-btn-restart" disabled="@_isAnimating" @onclick="OnRestartWord">
+                        ⟲ Nochmal von vorn
+                    </button>
+                    <button class="shl-btn shl-btn-done" disabled="@_isAnimating" @onclick="OnWordDone">
+                        🏁 Wort geschafft
+                    </button>
+                </div>
+            }
+        }
+    }
+</div>
+
+<style>
+    .shl-container {
+        max-width: 600px;
+        margin: auto;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .shl-loading {
+        font-size: 1.4rem;
+        color: #555;
+        padding: 40px;
+    }
+
+    .shl-progress {
+        display: flex;
+        justify-content: center;
+        gap: 14px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+
+    .shl-chip {
+        display: flex;
+        gap: 4px;
+        padding: 8px 10px;
+        border-radius: 12px;
+        background: #eee;
+        transition: background 0.2s, transform 0.2s;
+    }
+
+    .shl-chip-pending {
+        opacity: 0.4;
+    }
+
+    .shl-chip-active {
+        background: #ffe08a;
+        transform: scale(1.15);
+        box-shadow: 0 0 12px rgba(255, 180, 0, 0.6);
+    }
+
+    .shl-chip-done {
+        background: #cdeccb;
+    }
+
+    .shl-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #888;
+    }
+
+    .shl-chip-done .shl-dot {
+        background: #3aa757;
+    }
+
+    .shl-chip-active .shl-dot {
+        background: #d9861d;
+    }
+
+    .shl-syllable {
+        font-size: clamp(3rem, 12vw, 6rem);
+        font-weight: 900;
+        margin: 30px 0;
+        letter-spacing: 2px;
+    }
+
+    .shl-letter {
+        display: inline-block;
+    }
+
+    .shl-wobble .shl-letter {
+        animation: shl-wobble 550ms ease-in-out;
+        animation-delay: calc(var(--i, 0) * 60ms);
+    }
+
+    @@keyframes shl-wobble {
+        0% { transform: translateY(0) rotate(0); }
+        20% { transform: translateY(-6px) rotate(-8deg); }
+        40% { transform: translateY(4px) rotate(6deg); }
+        60% { transform: translateY(-4px) rotate(-5deg); }
+        80% { transform: translateY(3px) rotate(3deg); }
+        100% { transform: translateY(0) rotate(0); }
+    }
+
+    .shl-glow .shl-letter {
+        /* No animation-delay here (unlike .shl-wobble) - the whole syllable was read as one
+           unit, so it should light up all at once, not letter by letter. */
+        animation: shl-glow 450ms ease-out;
+    }
+
+    @@keyframes shl-glow {
+        0% { text-shadow: none; filter: brightness(1); transform: scale(1); }
+        30% { color: #fff3b0; text-shadow: 0 0 12px #ff8c00, 0 0 28px #ff4500; filter: brightness(2.2); transform: scale(1.15); }
+        100% { text-shadow: none; filter: brightness(1); transform: scale(1); }
+    }
+
+    .shl-buttons {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 30px;
+    }
+
+    .shl-btn {
+        font-size: 1.3rem;
+        padding: 16px 28px;
+        border-radius: 16px;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+        color: #fff;
+    }
+
+    .shl-btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
+
+    .shl-btn-struggle {
+        background: #e0872a;
+    }
+
+    .shl-btn-correct {
+        background: #3aa757;
+    }
+
+    .shl-btn-restart {
+        background: #888;
+    }
+
+    .shl-btn-done {
+        background: #d9861d;
+    }
+
+    .shl-word-merge {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        font-size: clamp(2rem, 8vw, 4rem);
+        font-weight: 900;
+        margin: 40px 0;
+    }
+
+    .shl-merge-syllable.shl-glow {
+        animation: shl-glow 450ms ease-out;
+    }
+</style>

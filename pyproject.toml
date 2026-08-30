@@ -9,6 +9,7 @@ dependencies = [
     "phonemizer>=3.3.0",
     "pip>=25.3",
     "pydub>=0.25.1",
+    "pyphen>=0.18.1",
     "readchar>=4.2.1",
     "simpleaudio>=1.0.4",
     "sounddevice>=0.5.5",

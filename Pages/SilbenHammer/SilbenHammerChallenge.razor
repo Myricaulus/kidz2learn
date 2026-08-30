@@ -1,0 +1,9 @@
+@page "/silben-hammer"
+@using Kidz2Learn.Components
+@using Kidz2Learn.Model
+
+@* Trivial TaskHost cutover, same pattern as /graphem - the real state machine lives in
+   SilbenHammerView (Components/TaskViews/), registered for the "silben-hammer" view key.
+   Restricting Skills here means this route trains Silbenhammer specifically; the same view also
+   turns up in the unfiltered mixer (/deutsch-mix) without any extra wiring. *@
+<TaskHost Skills="@(new[] { Skill.SilbenHammer })" />
