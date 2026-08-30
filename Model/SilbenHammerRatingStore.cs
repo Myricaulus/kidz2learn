@@ -14,8 +14,12 @@ namespace Kidz2Learn.Model;
 public interface ISilbenHammerRatingStore
 {
     Task<IReadOnlyDictionary<string, int>> GetAllCleanStreaksAsync();
-    Task RecordCleanAsync(string normalizedSyllable);
-    Task RecordStruggledAsync(string normalizedSyllable);
+
+    /// <summary>Returns the syllable's resulting <see cref="SilbenHammerSyllableRating.CleanStreak" />.</summary>
+    Task<int> RecordCleanAsync(string normalizedSyllable);
+
+    /// <summary>Returns the syllable's resulting <see cref="SilbenHammerSyllableRating.CleanStreak" />.</summary>
+    Task<int> RecordStruggledAsync(string normalizedSyllable);
 }
 
 public sealed class SilbenHammerRatingStore(IndexedDb aufgabenDb) : ISilbenHammerRatingStore
@@ -31,21 +35,22 @@ public sealed class SilbenHammerRatingStore(IndexedDb aufgabenDb) : ISilbenHamme
         return dict;
     }
 
-    public Task RecordCleanAsync(string normalizedSyllable)
+    public Task<int> RecordCleanAsync(string normalizedSyllable)
     {
         return Adjust(normalizedSyllable, +1);
     }
 
-    public Task RecordStruggledAsync(string normalizedSyllable)
+    public Task<int> RecordStruggledAsync(string normalizedSyllable)
     {
         return Adjust(normalizedSyllable, -1);
     }
 
-    private async Task Adjust(string normalizedSyllable, int delta)
+    private async Task<int> Adjust(string normalizedSyllable, int delta)
     {
         var r = await _store.GetItemAsync<SilbenHammerSyllableRating>(normalizedSyllable)
             ?? new SilbenHammerSyllableRating { Id = normalizedSyllable };
         r.CleanStreak += delta;
         await _store.StoreItemAsync(r);
+        return r.CleanStreak;
     }
 }

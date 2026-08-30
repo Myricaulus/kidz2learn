@@ -19,22 +19,24 @@ public class FakeSilbenHammerRatingStore(IReadOnlyDictionary<string, int>? strea
         return Task.FromResult<IReadOnlyDictionary<string, int>>(new Dictionary<string, int>(_streaks));
     }
 
-    public Task RecordCleanAsync(string normalizedSyllable)
+    public Task<int> RecordCleanAsync(string normalizedSyllable)
     {
-        Adjust(normalizedSyllable, +1);
+        var result = Adjust(normalizedSyllable, +1);
         RecordCalls.Add((normalizedSyllable, true));
-        return Task.CompletedTask;
+        return Task.FromResult(result);
     }
 
-    public Task RecordStruggledAsync(string normalizedSyllable)
+    public Task<int> RecordStruggledAsync(string normalizedSyllable)
     {
-        Adjust(normalizedSyllable, -1);
+        var result = Adjust(normalizedSyllable, -1);
         RecordCalls.Add((normalizedSyllable, false));
-        return Task.CompletedTask;
+        return Task.FromResult(result);
     }
 
-    private void Adjust(string syllable, int delta)
+    private int Adjust(string syllable, int delta)
     {
-        _streaks[syllable] = _streaks.GetValueOrDefault(syllable) + delta;
+        var next = _streaks.GetValueOrDefault(syllable) + delta;
+        _streaks[syllable] = next;
+        return next;
     }
 }

@@ -27,6 +27,7 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
     [Inject] private ScoreService Score { get; set; } = null!;
     [Inject] private HudStateService Hud { get; set; } = null!;
     [Inject] private SilbenHammerWordCatalog Catalog { get; set; } = null!;
+    [Inject] private LoggerService Logger { get; set; } = null!;
 
     private readonly Random _rng = new();
 
@@ -108,10 +109,11 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
 
         var syllable = _currentWord.Syllables[_syllableIndex];
         var normalized = SilbenHammerSyllableKey.Normalize(syllable);
-        if (_struggledThisSyllable)
-            await _ratingStore!.RecordStruggledAsync(normalized);
-        else
-            await _ratingStore!.RecordCleanAsync(normalized);
+        var clean = !_struggledThisSyllable;
+        var streak = clean
+            ? await _ratingStore!.RecordCleanAsync(normalized)
+            : await _ratingStore!.RecordStruggledAsync(normalized);
+        Logger.Log(BuildSyllableLogEntry(_currentWord.Word, syllable, clean, SilbenHammerScoring.ComputeScore(streak)));
 
         _animKey++;
         _animClass = "shl-glow";
@@ -180,6 +182,7 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
 
         Score.AddPoints(5 * _currentWord.Syllables.Length, 8);
         Hud.IncrementCombo();
+        Logger.Log(BuildWordDoneLogEntry(_currentWord.Word, _selector!.TargetSyllable));
 
         _wordCompletionAnimating = false;
         _wordsCompletedThisBurst++;
@@ -212,6 +215,49 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
         }
 
         StateHasChanged();
+    }
+
+    // Per-syllable entry in the LiveLogger (Components/LiveLogger.razor) - one per "richtig"
+    // press, same idea as SilbenLog.ToRenderFragment() for the multiple-choice views, so the
+    // mentor can see which syllable was just judged and how its rating moved.
+    private static RenderFragment BuildSyllableLogEntry(string word, string syllable, bool clean, int newScore)
+    {
+        return builder =>
+        {
+            var i = 0;
+            builder.OpenElement(i++, "div");
+            builder.AddAttribute(i++, "class", "log-entry silben-hammer-log");
+            builder.AddContent(i++, "🔨 ");
+            builder.OpenElement(i++, "b");
+            builder.AddContent(i++, syllable);
+            builder.CloseElement(); // </b>
+            builder.AddContent(i++, $" (aus \"{word}\") ");
+            builder.OpenElement(i++, "span");
+            builder.AddAttribute(i++, "style", $"color: {(clean ? "#3aa757" : "#e0872a")}");
+            builder.AddContent(i++, clean ? "sauber ✓" : "gestolpert");
+            builder.CloseElement(); // </span>
+            builder.AddContent(i, $" → Wertung: {newScore}");
+            builder.CloseElement(); // </div>
+        };
+    }
+
+    // One entry per completed word (Button D / the single-syllable shortcut) - "was man geschafft
+    // hat", separate from the per-syllable entries above so both are visible in the log.
+    private static RenderFragment BuildWordDoneLogEntry(string word, string? targetSyllable)
+    {
+        return builder =>
+        {
+            var i = 0;
+            builder.OpenElement(i++, "div");
+            builder.AddAttribute(i++, "class", "log-entry silben-hammer-log silben-hammer-log-done");
+            builder.AddContent(i++, "🏁 Wort geschafft: ");
+            builder.OpenElement(i++, "b");
+            builder.AddContent(i++, word);
+            builder.CloseElement(); // </b>
+            if (targetSyllable is not null)
+                builder.AddContent(i, $" (Übungs-Silbe: {targetSyllable})");
+            builder.CloseElement(); // </div>
+        };
     }
 
     // --i is only consumed by .shl-wobble's per-letter stagger (see the <style> block) - the
