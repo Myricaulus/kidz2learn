@@ -40,13 +40,9 @@ public sealed class SkillDefinition
 ///     (DeutschMix.razor, MatheMix.razor) derive their <c>TaskHost</c> skill filter from
 ///     <see cref="SkillRegistry.ByDomain" />. A task or event definition's own subject is
 ///     therefore entirely transitive, through whichever skill id(s) it declares in
-///     <see cref="Tasks.BaseTaskDefinition.Skills" /> - there used to also be a
-///     <c>IBaseTaskDefinition.Domain</c> static member on the definition types themselves, but
-///     nothing ever read it (only this one, via <c>SkillDefinition.Domain</c>), so it was removed
-///     rather than left as a second, unused place to (mis)represent the same thing. A task that
-///     trains skills from two different domains (none do today) would, correctly, show up in both
-///     domains' mixer pages under this scheme - a single static per-type Domain could never have
-///     expressed that anyway.
+///     <see cref="Tasks.BaseTaskDefinition.Skills" /> - a definition type itself carries no domain
+///     of its own. A task that trains skills from two different domains would, correctly, show up
+///     in both domains' mixer pages under this scheme.
 /// </summary>
 public static class TaskDomain
 {

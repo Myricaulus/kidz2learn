@@ -6,6 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Kidz4Learn is a German-language Blazor WebAssembly (.NET 8) learning game for kids, combining small math/reading challenges with points, combos, and a Commodore-64-style SID music player. It's a static, fully client-side app (IndexedDB for persistence, no backend), auto-deployed to Netlify. A separate Python toolchain (`WaveSplit/`) is used offline to prepare syllable audio clips and generate `Model/WordMeta.g.cs`; it is not part of the app runtime.
 
+## Comment style
+
+Comments describe the *current* state of the code (or, as a `TODO`, a concrete *better* future
+state) - never the past. Don't narrate what a former version did, why it was wrong, or that
+something "used to be" some other way; git history/blame already covers that, and a comment that
+half-describes a dead design just wastes tokens on every re-read. When refactoring, rewrite
+comments to state the new invariant/rationale directly rather than framing it as a change from the
+old one.
+
 ## Commands
 
 Build, run, and watch (also available as VS Code tasks in `.vscode/tasks.json`):

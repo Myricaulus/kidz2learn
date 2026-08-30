@@ -14,12 +14,9 @@ public sealed class SilbenHammerSyllableIndex
 
     /// <summary>
     ///     Built once (cached by <see cref="SilbenHammerWords.Index" />) from the compile-time word
-    ///     catalog - must stay linear in the number of (word, syllable) pairs. An earlier version
-    ///     deduped each pool entry via <c>List.Contains</c> (O(n) per insertion) and was rebuilt on
-    ///     every Silbenhammer burst instead of once per page visit - together that made a common
-    ///     syllable's pool (hundreds of words) quadratic and turned every few words into a
-    ///     multi-second "Lade Wort" stall. Fixed by (a) O(1) HashSet-based dedup here and (b)
-    ///     caching the result in the catalog instead of rebuilding it per burst.
+    ///     catalog. Must stay linear in the number of (word, syllable) pairs - the per-pool dedupe
+    ///     in <see cref="AddOnce" /> is HashSet-based (O(1)) precisely so this scales to the whole
+    ///     catalog without going quadratic on a common syllable's word count.
     /// </summary>
     public static SilbenHammerSyllableIndex Build(IReadOnlyList<SilbenHammerWordEntry> words)
     {
@@ -27,15 +24,11 @@ public sealed class SilbenHammerSyllableIndex
         var innerOrLast = new Dictionary<string, List<SilbenHammerWordEntry>>();
         var any = new Dictionary<string, List<SilbenHammerWordEntry>>();
 
-        // Separate "seen" trackers per pool - first/innerOrLast are mutually exclusive per
-        // (word, syllable-index), so they can share one, but any must have its own. An earlier
-        // version shared a single tracker across all three: since AddOnce(target, ...) always ran
-        // right before AddOnce(any, ...) for the very same (key, word) pair, the first call marked
-        // it "seen" and the any call then silently skipped adding it - AnyPositionPool ended up
-        // empty for virtually every syllable. PickNextWordAsync's follow-up lookup reads
-        // exclusively from AnyPositionPool, so every "same syllable, next word" follow-up silently
-        // failed and fell through to an unrelated fresh pick - a burst never actually repeated a
-        // syllable across words, no matter how connected the catalog was.
+        // first/innerOrLast are mutually exclusive per (word, syllable-index) and can share one
+        // "seen" tracker; any is populated independently for the very same (key, word) pairs and
+        // needs its own - reusing the positional tracker for it would mark every pair "seen"
+        // before any ever got a chance to record it, leaving AnyPositionPool empty.
+        // SilbenHammerSelector's follow-up lookup reads exclusively from AnyPositionPool.
         var seenPositional = new Dictionary<string, HashSet<string>>();
         var seenAny = new Dictionary<string, HashSet<string>>();
 
@@ -73,8 +66,8 @@ public sealed class SilbenHammerSyllableIndex
         }
 
         // A word can contain the same syllable more than once (e.g. two syllables both
-        // normalizing to "en") - only list it once per pool. Tracked via a separate per-key
-        // HashSet (O(1) lookup) instead of List.Contains (O(n) - see remarks on Build above).
+        // normalizing to "en") - only list it once per pool, via O(1) HashSet lookup (see
+        // remarks on Build).
         if (seen.Add(word.Key))
             list.Add(word);
     }

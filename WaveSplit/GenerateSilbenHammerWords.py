@@ -1,7 +1,7 @@
 """
 Generates Model/SilbenHammerWords.g.cs for the "Silbenhammer" game mode - a large, auto-generated
-German word list with syllable boundaries, replacing a hand-curated list that would never reach
-the vocabulary size a Grundschule kid actually has (~5000+ words).
+German word list with syllable boundaries, sized to match the vocabulary a Grundschule kid
+actually has (~5000+ words), which a hand-curated list could never reach.
 
 Pipeline (see the Silbenhammer plan doc for the full rationale):
   1. Read WaveSplit/data/de_50k.txt - a German word-frequency list (word, count), sourced once
@@ -23,9 +23,7 @@ Pipeline (see the Silbenhammer plan doc for the full rationale):
   7. Write the result as a generated C# source file (Model/SilbenHammerWords.g.cs, same idea as
      Model/WordMeta.g.cs) - a plain static array literal that's part of the compiled assembly, so
      the app has the whole catalog in memory at startup with no HTTP fetch and no JSON parse at
-     runtime. An earlier version shipped this as a runtime-fetched JSON asset instead; moved to
-     compile time once the catalog's size stopped being a "too big for source code" concern and
-     the fetch/parse round trip turned out to be the more expensive path in practice.
+     runtime.
 
 Usage: uv run python WaveSplit/GenerateSilbenHammerWords.py
 """

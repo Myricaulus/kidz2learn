@@ -5,12 +5,10 @@ using Xunit;
 namespace Kidz2Learn.Tests;
 
 /// <summary>
-///     Regression tests for the generated catalog itself (Model/SilbenHammerWords.g.cs, produced
-///     by WaveSplit/GenerateSilbenHammerWords.py) - it's now compile-time data (no more runtime
-///     JSON fetch/parse), so these just sanity-check the compiled array and the once-built index,
-///     instead of exercising a deserialization path.
+///     Sanity checks for the generated catalog (Model/SilbenHammerWords.g.cs, produced by
+///     WaveSplit/GenerateSilbenHammerWords.py) and the syllable index built from it.
 /// </summary>
-public class SilbenHammerWordCatalogJsonTests
+public class SilbenHammerWordsTests
 {
     [Fact]
     public void Data_IsNonEmptyWithEntriesOfBothTiers()
@@ -29,12 +27,9 @@ public class SilbenHammerWordCatalogJsonTests
     [Fact]
     public void SyllableIndex_BuildsFromTheRealCatalogWithinABudget()
     {
-        // Regression guard for the "Lade Wort takes 2-3 seconds" bug: SilbenHammerSyllableIndex
-        // used to dedupe each pool entry via List.Contains (O(n) per insertion) and was rebuilt on
-        // every Silbenhammer burst - quadratic in a common syllable's word count, on ten-thousand-
-        // plus words, several times a minute. 5s is a very generous ceiling (should be well under
-        // 100ms) so this only fails if the O(n^2) shape (or the per-burst rebuild) comes back, not
-        // on a merely slow CI box.
+        // Must stay linear in catalog size (see SilbenHammerSyllableIndex.Build's remarks). 5s is
+        // a very generous ceiling for ten-thousand-plus words (should be well under 100ms) so this
+        // only fails if that stops being true, not on a merely slow CI box.
         var sw = Stopwatch.StartNew();
         var index = SilbenHammerSyllableIndex.Build(SilbenHammerWords.Data);
         sw.Stop();

@@ -53,9 +53,9 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
 
     // Only the very first burst of the whole page visit shows the "Lade Wort" placeholder -
     // every later burst quietly resolves the next word in the background while the just-finished
-    // word stays on screen, then swaps once ready. The catalog/index are compile-time data now
-    // (SilbenHammerWords.g.cs), so this mostly guards against the one remaining bit of real async
-    // work (the IndexedDB rating-store round trip in PickNextWordAsync), not a data fetch.
+    // word stays on screen, then swaps once ready. Guards against the IndexedDB rating-store
+    // round trip in PickNextWordAsync ever flashing that placeholder mid-session (the catalog/
+    // index themselves are compile-time data - see SilbenHammerWords.g.cs - so no fetch to guard).
     private bool _hasLoadedOnce;
 
     protected override async Task OnParametersSetAsync()
@@ -173,8 +173,7 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
             _mergeIndex = i;
             StateHasChanged();
             await Js.InvokeVoidAsync("k4l_playHammerClang");
-            // Pause on each syllable long enough to read it again before the next one hits -
-            // this used to be 160ms, which just blurred the whole word past in one flash.
+            // Pause on each syllable long enough to read it again before the next one hits.
             await Task.Delay(650);
         }
 

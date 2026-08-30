@@ -17,12 +17,10 @@ public sealed record SilbenHammerSelectorOptions
 ///     handful of same-syllable follow-ups). One instance per burst - constructed fresh whenever
 ///     <see cref="Components.TaskViews.SilbenHammerView" /> receives a new <see cref="IChosenTask" />,
 ///     mirroring how <see cref="Tasks.TaskHost" /> rebuilds <see cref="AdaptiveTaskGenerator" /> on
-///     every pick. Cheap to do, unlike constructing the <see cref="SilbenHammerSyllableIndex" /> it
-///     wraps: that's built once via <see cref="SilbenHammerWords.Index" /> and passed in
-///     ready-made, not rebuilt here per burst (see that property's remarks - it used to be, and
-///     that was the actual multi-second "Lade Wort" bug). "No word repeats" is scoped to one
-///     burst, not the whole session - with thousands of catalog words that's more than enough to
-///     avoid noticeable repeats.
+///     every pick. Cheap to do: it wraps a <see cref="SilbenHammerSyllableIndex" /> built once via
+///     <see cref="SilbenHammerWords.Index" /> and passed in ready-made, not rebuilt per burst.
+///     "No word repeats" is scoped to one burst, not the whole session - with thousands of catalog
+///     words that's more than enough to avoid noticeable repeats.
 /// </summary>
 public sealed class SilbenHammerSelector
 {
@@ -72,11 +70,8 @@ public sealed class SilbenHammerSelector
     {
         // Every syllable is a valid fresh-target candidate, including ones unique to a single
         // word - those still need practice like any other, they just can't have a same-syllable
-        // follow-up (PickNextWordAsync's follow-up lookup naturally falls through to a fresh pick
-        // again on the very next call in that case, which is correct, not a bug). What must NOT
-        // happen is a *connected* syllable failing to produce a follow-up - that was a real bug in
-        // SilbenHammerSyllableIndex.Build (a shared dedup tracker left AnyPositionPool empty for
-        // virtually everything), fixed there, not by narrowing the candidate pool here.
+        // follow-up (PickNextWordAsync's follow-up lookup then naturally falls through to a fresh
+        // pick again on the next call, which is correct behavior, not a gap to guard against here).
         if (_index.FirstSyllablePool.Count == 0 && _index.InnerOrLastSyllablePool.Count == 0)
             return null;
 

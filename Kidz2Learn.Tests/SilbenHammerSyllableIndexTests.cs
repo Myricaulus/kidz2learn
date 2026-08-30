@@ -13,10 +13,9 @@ public class SilbenHammerSyllableIndexTests
     [Fact]
     public void Build_AnyPositionPool_ContainsEveryWordAlsoListedInFirstOrInnerPool()
     {
-        // Regression test: AnyPositionPool used to come out empty for virtually every syllable
-        // (a shared dedup-tracking bug - see Build's remarks), which broke the "same syllable"
-        // follow-up rounds entirely since SilbenHammerSelector reads follow-ups exclusively from
-        // AnyPositionPool.
+        // AnyPositionPool must list every word that FirstSyllablePool/InnerOrLastSyllablePool do
+        // for the same syllable - SilbenHammerSelector's follow-up lookup reads exclusively from
+        // AnyPositionPool, so a gap here silently breaks the "same syllable" follow-up rounds.
         var words = new[]
         {
             W("Banane", "Ba", "na", "ne"),
