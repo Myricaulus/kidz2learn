@@ -1,0 +1,26 @@
+# Silbenhammer Silbentrennungs-Korrekturen
+#
+# Hier trägst du Wörter ein, deren automatische Silbentrennung (per pyphen, siehe
+# WaveSplit/GenerateSilbenHammerWords.py) falsch aussieht. Format: eine Zeile pro Wort,
+#
+#   wort=sil-ben-tren-nung
+#
+# Groß-/Kleinschreibung beim "wort" links ist egal (wird beim Nachschlagen ignoriert), die
+# Silben rechts schreibst du klein - die Großschreibung des ersten Buchstabens bei Nomen wird
+# beim Generieren automatisch wieder passend gesetzt. Nach dem Bearbeiten dieser Datei einmal
+#
+#   uv run python WaveSplit/GenerateSilbenHammerWords.py
+#
+# neu laufen lassen, um wwwroot/data/silben-hammer-words.json neu zu erzeugen - diese JSON-Datei
+# selbst NICHT von Hand bearbeiten, sie wird beim nächsten Lauf wieder überschrieben.
+#
+# Ein Teil der schlechten Trennungen (z.B. "glü-ck-lich" statt "glück-lich") wird schon
+# automatisch korrigiert (siehe merge_vowelless_syllables im Skript - eine "Silbe" ganz ohne
+# Vokal wird an die vorherige Silbe angehängt). Hier ist Platz für alles, was diese Heuristik
+# nicht sauber hinbekommt, oder für Wörter, wo du eine andere Trennung als sinnvoller empfindest.
+#
+# Zwei Beispiele, die die automatische Vokal-Heuristik allein nicht sauber hinbekommt (das "un-"
+# Präfix vor einem Konsonantencluster verwirrt sie): "un-g-lü-ck-lich" wird zu "ung-lück-lich"
+# statt "un-glück-lich".
+unglücklich=un-glück-lich
+unglück=un-glück

@@ -26,7 +26,18 @@ public sealed class SilbenHammerSyllableIndex
         var first = new Dictionary<string, List<SilbenHammerWordEntry>>();
         var innerOrLast = new Dictionary<string, List<SilbenHammerWordEntry>>();
         var any = new Dictionary<string, List<SilbenHammerWordEntry>>();
-        var seenKeys = new Dictionary<string, HashSet<string>>();
+
+        // Separate "seen" trackers per pool - first/innerOrLast are mutually exclusive per
+        // (word, syllable-index), so they can share one, but any must have its own. An earlier
+        // version shared a single tracker across all three: since AddOnce(target, ...) always ran
+        // right before AddOnce(any, ...) for the very same (key, word) pair, the first call marked
+        // it "seen" and the any call then silently skipped adding it - AnyPositionPool ended up
+        // empty for virtually every syllable. PickNextWordAsync's follow-up lookup reads
+        // exclusively from AnyPositionPool, so every "same syllable, next word" follow-up silently
+        // failed and fell through to an unrelated fresh pick - a burst never actually repeated a
+        // syllable across words, no matter how connected the catalog was.
+        var seenPositional = new Dictionary<string, HashSet<string>>();
+        var seenAny = new Dictionary<string, HashSet<string>>();
 
         foreach (var word in words)
         for (var i = 0; i < word.Syllables.Length; i++)
@@ -34,8 +45,8 @@ public sealed class SilbenHammerSyllableIndex
             var key = SilbenHammerSyllableKey.Normalize(word.Syllables[i]);
             var target = i == 0 ? first : innerOrLast;
 
-            AddOnce(target, key, word, seenKeys);
-            AddOnce(any, key, word, seenKeys);
+            AddOnce(target, key, word, seenPositional);
+            AddOnce(any, key, word, seenAny);
         }
 
         return new SilbenHammerSyllableIndex

@@ -61,6 +61,7 @@ WaveSplit/*
 !WaveSplit/data/
 !WaveSplit/data/de_50k.txt
 !WaveSplit/data/silben-hammer-blocklist.txt
+!WaveSplit/data/silben-hammer-corrections.txt
 
 # Debug
 /**/Bildschirmfoto_*.png

@@ -70,7 +70,17 @@ public sealed class SilbenHammerSelector
 
     private async Task<SilbenHammerWordEntry?> PickFreshTargetAsync()
     {
-        if (_index.FirstSyllablePool.Count == 0 && _index.InnerOrLastSyllablePool.Count == 0)
+        // Restricted to syllables that appear in more than one word - picking a syllable that's a
+        // dead end (present in exactly one word, common in a large auto-generated catalog: most
+        // syllables in wwwroot/data/silben-hammer-words.json are unique to a single word) meant
+        // the very next PickNextWordAsync call could never find a follow-up and silently jumped to
+        // an unrelated fresh target instead - so a "burst" never actually drilled the same syllable
+        // more than once. Falls back to the unrestricted pool if nothing qualifies (e.g. a tiny
+        // catalog in tests), rather than refusing to pick anything.
+        var firstCandidates = CandidatesWithFollowUpPotential(_index.FirstSyllablePool);
+        var innerCandidates = CandidatesWithFollowUpPotential(_index.InnerOrLastSyllablePool);
+
+        if (firstCandidates.Count == 0 && innerCandidates.Count == 0)
             return null;
 
         var streaks = await _ratingStore.GetAllCleanStreaksAsync();
@@ -83,21 +93,20 @@ public sealed class SilbenHammerSelector
         string chosen;
         IReadOnlyDictionary<string, IReadOnlyList<SilbenHammerWordEntry>> pool;
 
-        if (_index.FirstSyllablePool.Count > 0)
+        if (firstCandidates.Count > 0)
         {
-            chosen = WeightedPick(_index.FirstSyllablePool.Keys, Score);
+            chosen = WeightedPick(firstCandidates, Score);
             pool = _index.FirstSyllablePool;
 
-            if (Score(chosen) < _options.MasteredFirstSyllableThreshold
-                && _index.InnerOrLastSyllablePool.Count > 0)
+            if (Score(chosen) < _options.MasteredFirstSyllableThreshold && innerCandidates.Count > 0)
             {
-                chosen = WeightedPick(_index.InnerOrLastSyllablePool.Keys, Score);
+                chosen = WeightedPick(innerCandidates, Score);
                 pool = _index.InnerOrLastSyllablePool;
             }
         }
         else
         {
-            chosen = WeightedPick(_index.InnerOrLastSyllablePool.Keys, Score);
+            chosen = WeightedPick(innerCandidates, Score);
             pool = _index.InnerOrLastSyllablePool;
         }
 
@@ -119,6 +128,16 @@ public sealed class SilbenHammerSelector
         _followUpBudgetRemaining = _options.FollowUpRounds;
         _usedWordKeys.Add(word.Key);
         return word;
+    }
+
+    private IReadOnlyList<string> CandidatesWithFollowUpPotential(
+        IReadOnlyDictionary<string, IReadOnlyList<SilbenHammerWordEntry>> pool)
+    {
+        var withPotential = pool.Keys
+            .Where(k => _index.AnyPositionPool.TryGetValue(k, out var any) && any.Count > 1)
+            .ToList();
+
+        return withPotential.Count > 0 ? withPotential : [.. pool.Keys];
     }
 
     private SilbenHammerWordEntry? PickUnused(IReadOnlyList<SilbenHammerWordEntry>? candidates)

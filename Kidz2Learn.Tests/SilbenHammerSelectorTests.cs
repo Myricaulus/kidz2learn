@@ -122,6 +122,31 @@ public class SilbenHammerSelectorTests
     }
 
     [Fact]
+    public async Task PickNextWordAsync_FreshPick_NeverChoosesASyllableWithNoPossibleFollowUp()
+    {
+        // "reis" only appears in one word - no follow-up could ever exist for it. "ba" appears in
+        // three. Regression test for the bug where a burst never actually repeated a syllable: a
+        // dead-end syllable at the default score competed equally with a real one, so roughly half
+        // the "fresh" picks were dead on arrival and silently jumped to yet another fresh target on
+        // the very next call.
+        var words = new[]
+        {
+            W("Reis", "Reis"),
+            W("Banane", "Ba", "na", "ne"),
+            W("Baden", "Ba", "den"),
+            W("Ball", "Ba", "ll")
+        };
+        var index = Idx(words);
+
+        for (var seed = 0; seed < 50; seed++)
+        {
+            var selector = new SilbenHammerSelector(index, new FakeSilbenHammerRatingStore(), new Random(seed));
+            await selector.PickNextWordAsync();
+            Assert.NotEqual("reis", selector.TargetSyllable);
+        }
+    }
+
+    [Fact]
     public async Task PickNextWordAsync_UnknownSyllable_StartsAtDefaultScoreFifty()
     {
         Assert.Equal(50, SilbenHammerScoring.ComputeScore(0));

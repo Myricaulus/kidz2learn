@@ -14,7 +14,11 @@ Pipeline (see the Silbenhammer plan doc for the full rationale):
      drop proper nouns/function words/numbers/symbols.
   4. Drop anything in data/silben-hammer-blocklist.txt (kid-safety - see that file's header).
   5. Hyphenate via pyphen's bundled de_DE pattern (typographic, not phonologically perfect, but
-     a good approximation of spoken syllable boundaries for a reading-practice game).
+     a good approximation of spoken syllable boundaries for a reading-practice game). A pyphen
+     chunk with no vowel at all (e.g. "glü-ck-lich") is not a pronounceable syllable, so it's
+     merged into the preceding chunk automatically (see merge_vowelless_syllables) - and anything
+     that still looks wrong can be fixed by hand in data/silben-hammer-corrections.txt, applied
+     last and taking priority over both pyphen and the auto-merge.
   6. Split into Grundschule/Schlaukopf tiers by frequency rank.
   7. Write the result as JSON, consumed at runtime via HttpClient (like wwwroot/sids/sidfiles.json
      and wwwroot/audio/affirmations/affirmations.json) rather than baked into C# source - there
@@ -32,6 +36,7 @@ import spacy
 
 FREQUENCY_LIST = Path("WaveSplit/data/de_50k.txt")
 BLOCKLIST_FILE = Path("WaveSplit/data/silben-hammer-blocklist.txt")
+CORRECTIONS_FILE = Path("WaveSplit/data/silben-hammer-corrections.txt")
 OUTPUT_FILE = Path("wwwroot/data/silben-hammer-words.json")
 
 FREQUENCY_CUTOFF = 8000  # raw tokens considered, before POS/blocklist filtering
@@ -40,6 +45,7 @@ GRUNDSCHULE_RANK_CUTOFF = 3000  # of the *surviving* words, by frequency rank
 ALPHA_ONLY = re.compile(r"^[a-zäöüßA-ZÄÖÜ]+$")
 KEEP_POS = {"NOUN", "VERB", "ADJ", "ADV"}
 MIN_WORD_LENGTH = 2
+VOWELS = set("aeiouäöüyAEIOUÄÖÜY")
 
 
 def load_frequency_words() -> list[str]:
@@ -73,6 +79,59 @@ def capitalized_if_noun(word: str, pos: str) -> str:
     return word
 
 
+def has_vowel(chunk: str) -> bool:
+    return any(c in VOWELS for c in chunk)
+
+
+def merge_vowelless_syllables(syllables: list[str]) -> list[str]:
+    """Pyphen occasionally splits off a bare consonant cluster with no vowel at all as its own
+    "syllable" (e.g. "glücklich" -> glü-ck-lich, the "ck" isn't pronounceable on its own). Such a
+    cluster is almost always a coda that belongs to the *preceding* syllable in German ("glück",
+    not "glü"+"ck") - merge it there, or into the following one if it's the very first chunk.
+    Not a full linguistic fix (a cluster that's actually an onset, e.g. inside "un-glücklich",
+    still ends up glued to the wrong side sometimes) - data/silben-hammer-corrections.txt is the
+    place to hand-fix anything this heuristic still gets wrong."""
+    result = list(syllables)
+    i = 0
+    while i < len(result):
+        if has_vowel(result[i]) or len(result) == 1:
+            i += 1
+            continue
+        if i > 0:
+            result[i - 1] += result[i]
+            del result[i]
+        else:
+            result[i + 1] = result[i] + result[i + 1]
+            del result[i]
+    return result
+
+
+def load_corrections() -> dict[str, list[str]]:
+    corrections: dict[str, list[str]] = {}
+    if not CORRECTIONS_FILE.exists():
+        return corrections
+    with CORRECTIONS_FILE.open(encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            word, _, hyphenated = line.partition("=")
+            word, hyphenated = word.strip(), hyphenated.strip()
+            if word and hyphenated:
+                corrections[word.lower()] = hyphenated.split("-")
+    return corrections
+
+
+def apply_correction(display_word: str, corrections: dict[str, list[str]]) -> list[str] | None:
+    syllables = corrections.get(display_word.lower())
+    if syllables is None:
+        return None
+    syllables = list(syllables)
+    if display_word[:1].isupper() and syllables:
+        syllables[0] = syllables[0][:1].upper() + syllables[0][1:]
+    return syllables
+
+
 def main() -> None:
     print("Lade Frequenzwortliste ...")
     candidates = load_frequency_words()
@@ -80,6 +139,9 @@ def main() -> None:
 
     blocklist = load_blocklist()
     print(f"Sperrliste: {len(blocklist)} Einträge")
+
+    corrections = load_corrections()
+    print(f"Silbentrennungs-Korrekturen: {len(corrections)} Einträge")
 
     print("Lade spaCy-Modell (de_core_news_md) ...")
     nlp = spacy.load("de_core_news_md", disable=["parser", "ner", "lemmatizer"])
@@ -109,8 +171,15 @@ def main() -> None:
             continue
         seen_words.add(display_word)
 
-        hyphenated = dic.inserted(display_word)
-        syllables = hyphenated.split("-")
+        syllables = apply_correction(display_word, corrections)
+        if syllables is None:
+            syllables = merge_vowelless_syllables(dic.inserted(display_word).split("-"))
+
+        # A word with no vowel anywhere (abbreviations like "Lkw"/"Tv" that slipped through the
+        # POS filter) can't be merged into a real syllable and isn't useful for reading practice
+        # regardless of hyphenation quality - drop it instead of shipping an unpronounceable entry.
+        if not any(has_vowel(s) for s in syllables):
+            continue
 
         entries.append({"word": display_word, "syllables": syllables, "rank": len(entries)})
 
