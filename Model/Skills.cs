@@ -34,19 +34,24 @@ public sealed class SkillDefinition
     public required string DisplayName { get; init; } // "Addition bis 5"
 }
 
+/// <summary>
+///     Domain tags, used exclusively via <see cref="SkillDefinition.Domain" /> - every registered
+///     skill (in <see cref="SkillRegistry" />) carries one, and the domain-wide mixer pages
+///     (DeutschMix.razor, MatheMix.razor) derive their <c>TaskHost</c> skill filter from
+///     <see cref="SkillRegistry.ByDomain" />. A task or event definition's own subject is
+///     therefore entirely transitive, through whichever skill id(s) it declares in
+///     <see cref="Tasks.BaseTaskDefinition.Skills" /> - there used to also be a
+///     <c>IBaseTaskDefinition.Domain</c> static member on the definition types themselves, but
+///     nothing ever read it (only this one, via <c>SkillDefinition.Domain</c>), so it was removed
+///     rather than left as a second, unused place to (mis)represent the same thing. A task that
+///     trains skills from two different domains (none do today) would, correctly, show up in both
+///     domains' mixer pages under this scheme - a single static per-type Domain could never have
+///     expressed that anyway.
+/// </summary>
 public static class TaskDomain
 {
     public const string Math = "math";
     public const string Reading = "reading";
-
-    /// <summary>
-    ///     Domain for <see cref="Tasks.TaskDefs.EventTaskDefinition" /> - round-based mini-game
-    ///     events can span any skill domain (Silbenhammer trains Reading, a future Turbo entry
-    ///     would train Math), so they don't belong to one. Purely documentary: nothing in
-    ///     <see cref="AdaptiveTaskGenerator" /> actually filters by <c>BaseTaskDefinition.Domain</c>
-    ///     today (only by <see cref="SkillDefinition.Domain" />, a different, per-skill concept).
-    /// </summary>
-    public const string Event = "event";
 }
 
 public static class SkillRegistry

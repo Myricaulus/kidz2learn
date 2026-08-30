@@ -99,11 +99,10 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
     /// </summary>
     /// <param name="skills">
     ///     Restricts candidates to tasks that train at least one of these skill ids. When
-    ///     <c>null</c>, every registered task for <typeparamref name="T" /> (i.e. the whole
-    ///     <see cref="IBaseTaskDefinition.Domain" />) is eligible.
+    ///     <c>null</c>, every registered task for <typeparamref name="T" /> is eligible.
     /// </param>
     public async Task<LearningTask<T>> ChooseTaskAsync<T>(IReadOnlyCollection<string>? skills = null)
-        where T : BaseTaskDefinition, IBaseTaskDefinition
+        where T : BaseTaskDefinition
     {
         var candidates = TaskRegistry.GetTasks<T>();
         if (skills is not null)

@@ -3,13 +3,7 @@ using Kidz2Learn.Model;
 using MudBlazor;
 
 namespace Kidz2Learn.Model.Tasks;
-public interface IBaseTaskDefinition
-{
-    string[] Skills { get; }
-    int DifficultyLevel { get; }
 
-    static abstract string Domain { get; }
-}
 public abstract class BaseTaskDefinition
 {
     public required string[] Skills { get; init; }

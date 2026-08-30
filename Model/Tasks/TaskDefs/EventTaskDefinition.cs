@@ -12,9 +12,8 @@ namespace Kidz2Learn.Model.Tasks.TaskDefs;
 ///     <see cref="EventLaunchOptions" />, sizing parameters the chooser hands the event when
 ///     launching it.
 /// </summary>
-public sealed class EventTaskDefinition : BaseTaskDefinition, IBaseTaskDefinition
+public sealed class EventTaskDefinition : BaseTaskDefinition
 {
-    public static string Domain => TaskDomain.Event;
     public required Func<Random, EventLaunchOptions> Generator { get; init; }
 
     internal override IChosenTask Choose(Random rng, Difficulty difficulty, ISkillMasteryStore store)
