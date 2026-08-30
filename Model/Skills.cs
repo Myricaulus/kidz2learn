@@ -38,6 +38,15 @@ public static class TaskDomain
 {
     public const string Math = "math";
     public const string Reading = "reading";
+
+    /// <summary>
+    ///     Domain for <see cref="Tasks.TaskDefs.EventTaskDefinition" /> - round-based mini-game
+    ///     events can span any skill domain (Silbenhammer trains Reading, a future Turbo entry
+    ///     would train Math), so they don't belong to one. Purely documentary: nothing in
+    ///     <see cref="AdaptiveTaskGenerator" /> actually filters by <c>BaseTaskDefinition.Domain</c>
+    ///     today (only by <see cref="SkillDefinition.Domain" />, a different, per-skill concept).
+    /// </summary>
+    public const string Event = "event";
 }
 
 public static class SkillRegistry

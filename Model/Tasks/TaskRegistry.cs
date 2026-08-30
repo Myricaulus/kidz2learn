@@ -9,7 +9,7 @@ public static class TaskRegistry
         {
             { typeof(ArithTaskDefinition), AllArith },
             { typeof(SilbenTaskDefinition), AllSilben },
-            { typeof(SilbenHammerTaskDefinition), AllSilbenHammer }
+            { typeof(EventTaskDefinition), AllEvents }
         };
 
 
@@ -46,7 +46,7 @@ public static class TaskRegistry
     public static IReadOnlyList<ArithTaskDefinition> AllArith => ArithTaskRegistry.All;
     public static IReadOnlyList<ArithTaskDefinition> TurboArith => ArithTaskRegistry.Turbo;
     public static IReadOnlyList<SilbenTaskDefinition> AllSilben => SilbenTaskRegistry.All;
-    public static IReadOnlyList<SilbenHammerTaskDefinition> AllSilbenHammer => SilbenHammerTaskRegistry.All;
+    public static IReadOnlyList<EventTaskDefinition> AllEvents => EventTaskRegistry.All;
 
     public static IReadOnlyList<T> GetTasks<T>() where T : BaseTaskDefinition
     {

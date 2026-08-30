@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using Kidz2Learn.Model;
 using Kidz2Learn.Model.Tasks;
+using Kidz2Learn.Model.Tasks.TaskDefs;
 using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -72,10 +73,12 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
         if (!_hasLoadedOnce)
             _currentWord = null;
 
+        var launch = (EventLaunchOptions)ChosenTask.Payload;
+        _burstSize = ResolveRoundBudget(launch, ChosenTask.Difficulty);
+        var options = new SilbenHammerSelectorOptions { FollowUpRounds = _burstSize - 1 };
+
         var ratingStore = new SilbenHammerRatingStore(AufgabenDb);
-        var options = new SilbenHammerSelectorOptions();
         _ratingStore = ratingStore;
-        _burstSize = 1 + options.FollowUpRounds;
         _selector = new SilbenHammerSelector(SilbenHammerWords.Index, ratingStore, _rng, options);
 
         var next = await _selector.PickNextWordAsync();
@@ -213,6 +216,20 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
         }
 
         StateHasChanged();
+    }
+
+    // Difficulty (Normal/Hard/Extreme) is the chooser's own mastery-weighting verdict, separate
+    // from the event's static RoundBudget config (EventTaskRegistry) - a harder pick means the
+    // learner is doing well on Skill.SilbenHammer overall, so drill a bit longer per burst.
+    private static int ResolveRoundBudget(EventLaunchOptions launch, Difficulty difficulty)
+    {
+        var baseBudget = launch.RoundBudget ?? 4;
+        return difficulty switch
+        {
+            Difficulty.Hard => baseBudget + 1,
+            Difficulty.Extreme => baseBudget + 2,
+            _ => baseBudget
+        };
     }
 
     // Per-syllable entry in the LiveLogger (Components/LiveLogger.razor) - one per "richtig"
