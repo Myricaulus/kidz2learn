@@ -26,7 +26,6 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
     [Inject] private TaskSessionController Session { get; set; } = null!;
     [Inject] private ScoreService Score { get; set; } = null!;
     [Inject] private HudStateService Hud { get; set; } = null!;
-    [Inject] private SilbenHammerWordCatalog Catalog { get; set; } = null!;
     [Inject] private LoggerService Logger { get; set; } = null!;
 
     private readonly Random _rng = new();
@@ -53,9 +52,9 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
 
     // Only the very first burst of the whole page visit shows the "Lade Wort" placeholder -
     // every later burst quietly resolves the next word in the background while the just-finished
-    // word stays on screen, then swaps once ready. Matters a lot in practice: fetching the
-    // syllable index is now cached (see SilbenHammerWordCatalog), so this is no longer masking a
-    // multi-second stall, but even a fast fetch would otherwise flash the placeholder every burst.
+    // word stays on screen, then swaps once ready. The catalog/index are compile-time data now
+    // (SilbenHammerWords.g.cs), so this mostly guards against the one remaining bit of real async
+    // work (the IndexedDB rating-store round trip in PickNextWordAsync), not a data fetch.
     private bool _hasLoadedOnce;
 
     protected override async Task OnParametersSetAsync()
@@ -73,12 +72,11 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
         if (!_hasLoadedOnce)
             _currentWord = null;
 
-        var index = await Catalog.GetSyllableIndexAsync();
         var ratingStore = new SilbenHammerRatingStore(AufgabenDb);
         var options = new SilbenHammerSelectorOptions();
         _ratingStore = ratingStore;
         _burstSize = 1 + options.FollowUpRounds;
-        _selector = new SilbenHammerSelector(index, ratingStore, _rng, options);
+        _selector = new SilbenHammerSelector(SilbenHammerWords.Index, ratingStore, _rng, options);
 
         var next = await _selector.PickNextWordAsync();
         if (next is null)

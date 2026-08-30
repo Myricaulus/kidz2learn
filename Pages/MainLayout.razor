@@ -159,6 +159,12 @@ else
     {
         Score.OnScoreChanged += HandleScoreChanged;
 
+        // Silbenhammer's word catalog is compile-time data (SilbenHammerWords.g.cs) - touching
+        // .Index here builds its syllable lookup once, alongside the splash screen/IndexedDB
+        // migration below, so it's already warm by the time "Starte App" is clicked instead of on
+        // first navigation to the mode.
+        _ = SilbenHammerWords.Index;
+
         // Splashscreen Query prüfen
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
         var query = QueryHelpers.ParseQuery(uri.Query);

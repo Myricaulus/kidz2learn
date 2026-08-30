@@ -18,11 +18,11 @@ public sealed record SilbenHammerSelectorOptions
 ///     <see cref="Components.TaskViews.SilbenHammerView" /> receives a new <see cref="IChosenTask" />,
 ///     mirroring how <see cref="Tasks.TaskHost" /> rebuilds <see cref="AdaptiveTaskGenerator" /> on
 ///     every pick. Cheap to do, unlike constructing the <see cref="SilbenHammerSyllableIndex" /> it
-///     wraps: that's built once by <see cref="SilbenHammerWordCatalog" /> and passed in ready-made,
-///     not rebuilt here per burst (see that class's remarks - it used to be, and that was the
-///     actual multi-second "Lade Wort" bug). "No word repeats" is scoped to one burst, not the
-///     whole session - with thousands of catalog words that's more than enough to avoid noticeable
-///     repeats.
+///     wraps: that's built once via <see cref="SilbenHammerWords.Index" /> and passed in
+///     ready-made, not rebuilt here per burst (see that property's remarks - it used to be, and
+///     that was the actual multi-second "Lade Wort" bug). "No word repeats" is scoped to one
+///     burst, not the whole session - with thousands of catalog words that's more than enough to
+///     avoid noticeable repeats.
 /// </summary>
 public sealed class SilbenHammerSelector
 {
@@ -70,17 +70,14 @@ public sealed class SilbenHammerSelector
 
     private async Task<SilbenHammerWordEntry?> PickFreshTargetAsync()
     {
-        // Restricted to syllables that appear in more than one word - picking a syllable that's a
-        // dead end (present in exactly one word, common in a large auto-generated catalog: most
-        // syllables in wwwroot/data/silben-hammer-words.json are unique to a single word) meant
-        // the very next PickNextWordAsync call could never find a follow-up and silently jumped to
-        // an unrelated fresh target instead - so a "burst" never actually drilled the same syllable
-        // more than once. Falls back to the unrestricted pool if nothing qualifies (e.g. a tiny
-        // catalog in tests), rather than refusing to pick anything.
-        var firstCandidates = CandidatesWithFollowUpPotential(_index.FirstSyllablePool);
-        var innerCandidates = CandidatesWithFollowUpPotential(_index.InnerOrLastSyllablePool);
-
-        if (firstCandidates.Count == 0 && innerCandidates.Count == 0)
+        // Every syllable is a valid fresh-target candidate, including ones unique to a single
+        // word - those still need practice like any other, they just can't have a same-syllable
+        // follow-up (PickNextWordAsync's follow-up lookup naturally falls through to a fresh pick
+        // again on the very next call in that case, which is correct, not a bug). What must NOT
+        // happen is a *connected* syllable failing to produce a follow-up - that was a real bug in
+        // SilbenHammerSyllableIndex.Build (a shared dedup tracker left AnyPositionPool empty for
+        // virtually everything), fixed there, not by narrowing the candidate pool here.
+        if (_index.FirstSyllablePool.Count == 0 && _index.InnerOrLastSyllablePool.Count == 0)
             return null;
 
         var streaks = await _ratingStore.GetAllCleanStreaksAsync();
@@ -93,20 +90,21 @@ public sealed class SilbenHammerSelector
         string chosen;
         IReadOnlyDictionary<string, IReadOnlyList<SilbenHammerWordEntry>> pool;
 
-        if (firstCandidates.Count > 0)
+        if (_index.FirstSyllablePool.Count > 0)
         {
-            chosen = WeightedPick(firstCandidates, Score);
+            chosen = WeightedPick(_index.FirstSyllablePool.Keys, Score);
             pool = _index.FirstSyllablePool;
 
-            if (Score(chosen) < _options.MasteredFirstSyllableThreshold && innerCandidates.Count > 0)
+            if (Score(chosen) < _options.MasteredFirstSyllableThreshold
+                && _index.InnerOrLastSyllablePool.Count > 0)
             {
-                chosen = WeightedPick(innerCandidates, Score);
+                chosen = WeightedPick(_index.InnerOrLastSyllablePool.Keys, Score);
                 pool = _index.InnerOrLastSyllablePool;
             }
         }
         else
         {
-            chosen = WeightedPick(innerCandidates, Score);
+            chosen = WeightedPick(_index.InnerOrLastSyllablePool.Keys, Score);
             pool = _index.InnerOrLastSyllablePool;
         }
 
@@ -128,16 +126,6 @@ public sealed class SilbenHammerSelector
         _followUpBudgetRemaining = _options.FollowUpRounds;
         _usedWordKeys.Add(word.Key);
         return word;
-    }
-
-    private IReadOnlyList<string> CandidatesWithFollowUpPotential(
-        IReadOnlyDictionary<string, IReadOnlyList<SilbenHammerWordEntry>> pool)
-    {
-        var withPotential = pool.Keys
-            .Where(k => _index.AnyPositionPool.TryGetValue(k, out var any) && any.Count > 1)
-            .ToList();
-
-        return withPotential.Count > 0 ? withPotential : [.. pool.Keys];
     }
 
     private SilbenHammerWordEntry? PickUnused(IReadOnlyList<SilbenHammerWordEntry>? candidates)

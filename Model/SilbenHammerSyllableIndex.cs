@@ -13,7 +13,7 @@ public sealed class SilbenHammerSyllableIndex
     public required IReadOnlyDictionary<string, IReadOnlyList<SilbenHammerWordEntry>> AnyPositionPool { get; init; }
 
     /// <summary>
-    ///     Built once (cached by <see cref="SilbenHammerWordCatalog" />) from the ~6000-entry word
+    ///     Built once (cached by <see cref="SilbenHammerWords.Index" />) from the compile-time word
     ///     catalog - must stay linear in the number of (word, syllable) pairs. An earlier version
     ///     deduped each pool entry via <c>List.Contains</c> (O(n) per insertion) and was rebuilt on
     ///     every Silbenhammer burst instead of once per page visit - together that made a common

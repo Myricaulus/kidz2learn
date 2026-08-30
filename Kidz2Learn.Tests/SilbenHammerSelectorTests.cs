@@ -122,28 +122,19 @@ public class SilbenHammerSelectorTests
     }
 
     [Fact]
-    public async Task PickNextWordAsync_FreshPick_NeverChoosesASyllableWithNoPossibleFollowUp()
+    public async Task PickNextWordAsync_FreshPick_CanChooseASyllableWithNoPossibleFollowUp()
     {
-        // "reis" only appears in one word - no follow-up could ever exist for it. "ba" appears in
-        // three. Regression test for the bug where a burst never actually repeated a syllable: a
-        // dead-end syllable at the default score competed equally with a real one, so roughly half
-        // the "fresh" picks were dead on arrival and silently jumped to yet another fresh target on
-        // the very next call.
-        var words = new[]
-        {
-            W("Reis", "Reis"),
-            W("Banane", "Ba", "na", "ne"),
-            W("Baden", "Ba", "den"),
-            W("Ball", "Ba", "ll")
-        };
-        var index = Idx(words);
+        // Unique-to-one-word syllables must stay selectable - they still need practice, they just
+        // can't have a same-syllable follow-up. Only a *connected* syllable failing to produce a
+        // follow-up would be a bug (covered by SilbenHammerSyllableIndexTests and the "all contain
+        // the same target syllable" test above).
+        var words = new[] { W("Reis", "Reis") };
+        var selector = new SilbenHammerSelector(Idx(words), new FakeSilbenHammerRatingStore(), new Random(1));
 
-        for (var seed = 0; seed < 50; seed++)
-        {
-            var selector = new SilbenHammerSelector(index, new FakeSilbenHammerRatingStore(), new Random(seed));
-            await selector.PickNextWordAsync();
-            Assert.NotEqual("reis", selector.TargetSyllable);
-        }
+        var picked = await selector.PickNextWordAsync();
+
+        Assert.Equal("reis", selector.TargetSyllable);
+        Assert.Equal("Reis", picked!.Word);
     }
 
     [Fact]

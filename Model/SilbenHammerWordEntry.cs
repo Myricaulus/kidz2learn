@@ -10,11 +10,11 @@ public enum WordTier
 }
 
 /// <summary>
-///     One entry of the Silbenhammer word catalog (wwwroot/data/silben-hammer-words.json),
-///     generated offline by WaveSplit/GenerateSilbenHammerWords.py from an open German
-///     word-frequency list, hyphenated via pyphen. Deliberately not audio-backed (unlike
-///     <see cref="WordInfo" />/WordMeta.g.cs) - Silbenhammer is read aloud by the child, not
-///     played back.
+///     One entry of the Silbenhammer word catalog (<see cref="SilbenHammerWords" />, generated
+///     into Model/SilbenHammerWords.g.cs), produced offline by
+///     WaveSplit/GenerateSilbenHammerWords.py from an open German word-frequency list, hyphenated
+///     via pyphen. Deliberately not audio-backed (unlike <see cref="WordInfo" />/WordMeta.g.cs) -
+///     Silbenhammer is read aloud by the child, not played back.
 /// </summary>
 public sealed record SilbenHammerWordEntry(string Word, string[] Syllables, WordTier Tier)
 {
