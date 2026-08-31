@@ -100,6 +100,38 @@ public class SilbenHammerSelectorTests
     }
 
     [Fact]
+    public async Task PickNextWordAsync_SwitchesTargetSyllableWhenPoolRunsDryBeforeFollowUpBudgetIsSpent()
+    {
+        // "ba"'s own word pool (Banane, Basar) is only 2 words deep, but the follow-up budget below
+        // asks for 5 - once both are used, PickFreshTargetAsync must move on to a different
+        // syllable rather than returning null or silently re-picking an already-used "ba" word.
+        // "ba" is the only FirstSyllablePool key here, so the only way a fresh pick can land
+        // anywhere else is via the MasteredFirstSyllableThreshold redirect to the inner pool - the
+        // four RecordCleanAsync calls push its streak/score just below that threshold (12 < 15)
+        // between the two "ba" picks and the exhaustion, mimicking syllables answered cleanly
+        // in between, same as SilbenHammerView.OnCorrect does against the real store. This is the
+        // TargetSyllable change SilbenHammerView.LoadNextWordInBurstAsync relies on to detect
+        // "burst restarted early" and reset its own word counter to match.
+        var words = new[] { W("Banane", "Ba", "na", "ne"), W("Basar", "Ba", "sar") };
+        var options = new SilbenHammerSelectorOptions { FollowUpRounds = 5 };
+        var store = new FakeSilbenHammerRatingStore();
+        var selector = new SilbenHammerSelector(Idx(words), store, new Random(1), options);
+
+        await selector.PickNextWordAsync(); // fresh pick: "ba", consumes one of the two "ba" words
+        Assert.Equal("ba", selector.TargetSyllable);
+        await selector.PickNextWordAsync(); // follow-up: consumes the other "ba" word
+        Assert.Equal("ba", selector.TargetSyllable);
+
+        for (var i = 0; i < 4; i++)
+            await store.RecordCleanAsync("ba");
+
+        var third = await selector.PickNextWordAsync();
+
+        Assert.NotNull(third);
+        Assert.NotEqual("ba", selector.TargetSyllable);
+    }
+
+    [Fact]
     public async Task PickNextWordAsync_NeverRepeatsAWordWithinABurst()
     {
         var words = new[]

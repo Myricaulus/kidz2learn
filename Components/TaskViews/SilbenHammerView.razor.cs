@@ -52,13 +52,6 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
     private int _animKey;
     private string _animClass = "";
 
-    // Whether the whole word (not just the current syllable) is visible for context, per
-    // ChosenTask.Difficulty: Normal shows it for the whole word, Hard for a brief peek, Extreme
-    // never. _wordGeneration guards the Hard case's delayed hide against a fast child already
-    // being on a *different* word by the time the 3s peek would end.
-    private bool _showWordContext;
-    private int _wordGeneration;
-
     private bool _showHelp;
 
     // Only the very first burst of the whole page visit shows the "Lade Wort" placeholder -
@@ -101,7 +94,6 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
 
         _currentWord = next;
         _hasLoadedOnce = true;
-        _ = UpdateWordContextVisibilityAsync();
     }
 
     private void OnStruggle()
@@ -143,7 +135,12 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
                 // double duty as both "syllable correct" and "word complete".
                 await CompleteWordAsync();
             else
+            {
+                // Reset so the shl-word-merge markup (reused below for the pre-confirm read-it
+                // pause) doesn't carry a stale glow from the previous word's completion animation.
+                _mergeIndex = -1;
                 _showWordButtons = true;
+            }
         }
         else
         {
@@ -220,7 +217,17 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
 
     private async Task LoadNextWordInBurstAsync()
     {
-        _currentWord = await _selector!.PickNextWordAsync();
+        var targetBeforePick = _selector!.TargetSyllable;
+        _currentWord = await _selector.PickNextWordAsync();
+
+        // The old target ran out of unused words before its follow-up budget was spent (see
+        // SilbenHammerSelector.PickNextWordAsync's fallback-to-fresh-target branch), which already
+        // gives the new target a full internal follow-up budget - match that here so it also gets
+        // the full _burstSize instead of finishing out the old (now irrelevant) target's remaining
+        // count after just one or two words.
+        if (_selector.TargetSyllable != targetBeforePick)
+            _wordsCompletedThisBurst = 0;
+
         _syllableIndex = 0;
         _struggledThisSyllable = false;
         _wordHadAnyStruggle = false;
@@ -233,7 +240,6 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
             return;
         }
 
-        _ = UpdateWordContextVisibilityAsync();
         StateHasChanged();
     }
 
@@ -242,29 +248,31 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
         _showHelp = !_showHelp;
     }
 
-    private async Task UpdateWordContextVisibilityAsync()
+    // Interim, Silbenhammer-only stand-in for a HUD-wide difficulty indicator - kid-friendly
+    // wording/icon instead of the raw enum name. See GitHub issue #3 for the generic version.
+    private static string DifficultyIcon(Difficulty difficulty) => difficulty switch
     {
-        _wordGeneration++;
-        var myGeneration = _wordGeneration;
+        Difficulty.Normal => "🎈",
+        Difficulty.Hard => "💪",
+        Difficulty.Extreme => "🔥",
+        _ => throw new ArgumentOutOfRangeException(nameof(difficulty))
+    };
 
-        switch (ChosenTask.Difficulty)
-        {
-            case Difficulty.Normal:
-                _showWordContext = true;
-                break;
-            case Difficulty.Hard:
-                _showWordContext = true;
-                StateHasChanged();
-                await Task.Delay(3000);
-                if (myGeneration == _wordGeneration)
-                    _showWordContext = false;
-                break;
-            default:
-                _showWordContext = false;
-                break;
-        }
+    private static string DifficultyLabel(Difficulty difficulty) => difficulty switch
+    {
+        Difficulty.Normal => "Spielen",
+        Difficulty.Hard => "Arbeiten",
+        Difficulty.Extreme => "Anstrengend",
+        _ => throw new ArgumentOutOfRangeException(nameof(difficulty))
+    };
 
-        StateHasChanged();
+    // Feeds --shl-merge-chars (see .shl-word-merge's font-size clamp) - one extra "character" per
+    // gap between syllables so the estimate accounts for their width too, not just the letters.
+    private int MergeCharCount()
+    {
+        if (_currentWord is null)
+            return 8;
+        return _currentWord.Word.Length + _currentWord.Syllables.Length - 1;
     }
 
     // Difficulty (Normal/Hard/Extreme) is the chooser's own mastery-weighting verdict, separate
@@ -373,22 +381,6 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
 
             builder.CloseElement(); // </div>
         };
-    }
-
-    // Whole-word context line (shown per ChosenTask.Difficulty, see UpdateWordContextVisibilityAsync)
-    // - the syllable currently being read stands out, the rest of the word is muted so it reads
-    // as background context, not competing with the big current-syllable display below it.
-    private static string BuildWordContextHtml(SilbenHammerWordEntry word, int currentIndex)
-    {
-        var sb = new StringBuilder();
-        for (var i = 0; i < word.Syllables.Length; i++)
-        {
-            var cls = i == currentIndex ? "shl-context-current" : "shl-context-other";
-            var encoded = WebUtility.HtmlEncode(word.Syllables[i]);
-            sb.Append($"<span class=\"{cls}\">{encoded}</span>");
-        }
-
-        return sb.ToString();
     }
 
     // --i is only consumed by .shl-wobble's per-letter stagger (see the <style> block) - the

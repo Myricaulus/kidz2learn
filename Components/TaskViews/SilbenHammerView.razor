@@ -2,6 +2,9 @@
 
 <div class="shl-container">
     <div class="shl-topbar">
+        <span class="shl-difficulty-badge" title="@DifficultyLabel(ChosenTask.Difficulty)">
+            @DifficultyIcon(ChosenTask.Difficulty) @DifficultyLabel(ChosenTask.Difficulty)
+        </span>
         @if (_selector?.TargetSyllable is { } targetSyllable)
         {
             <span class="shl-target-badge">Übungssilbe: @targetSyllable</span>
@@ -37,39 +40,20 @@
             }
         </div>
 
-        @if (_wordCompletionAnimating)
+        @if (_wordCompletionAnimating || _showWordButtons)
         {
-            <div class="shl-word-merge">
+            <div class="shl-word-merge" style="--shl-merge-chars: @MergeCharCount()">
                 @for (var i = 0; i < _currentWord.Syllables.Length; i++)
                 {
                     var hit = i <= _mergeIndex;
-                    <span class="shl-merge-syllable @(hit ? "shl-glow" : "")">@_currentWord.Syllables[i]</span>
+                    var colorClass = ChosenTask.Difficulty == Difficulty.Normal
+                        ? i % 2 == 0 ? "shl-merge-color-a" : "shl-merge-color-b"
+                        : "";
+                    <span class="shl-merge-syllable @(hit ? "shl-glow" : "") @colorClass">@_currentWord.Syllables[i]</span>
                 }
             </div>
-        }
-        else
-        {
-            @if (_showWordContext)
-            {
-                <div class="shl-word-context">@((MarkupString)BuildWordContextHtml(_currentWord, _syllableIndex))</div>
-            }
 
-            <div class="shl-syllable @_animClass" @key="_animKey">
-                @((MarkupString)BuildSyllableHtml(_currentWord.Syllables[_syllableIndex]))
-            </div>
-
-            @if (!_showWordButtons)
-            {
-                <div class="shl-buttons">
-                    <button class="shl-btn shl-btn-struggle" disabled="@_isAnimating" @onclick="OnStruggle">
-                        🔤 Buchstabiert
-                    </button>
-                    <button class="shl-btn shl-btn-correct" disabled="@_isAnimating" @onclick="OnCorrect">
-                        ✅ Richtig
-                    </button>
-                </div>
-            }
-            else
+            @if (_showWordButtons && !_wordCompletionAnimating)
             {
                 <div class="shl-buttons">
                     <button class="shl-btn shl-btn-restart" disabled="@_isAnimating" @onclick="OnRestartWord">
@@ -80,6 +64,21 @@
                     </button>
                 </div>
             }
+        }
+        else
+        {
+            <div class="shl-syllable @_animClass" @key="_animKey">
+                @((MarkupString)BuildSyllableHtml(_currentWord.Syllables[_syllableIndex]))
+            </div>
+
+            <div class="shl-buttons">
+                <button class="shl-btn shl-btn-struggle" disabled="@_isAnimating" @onclick="OnStruggle">
+                    🔤 Buchstabiert
+                </button>
+                <button class="shl-btn shl-btn-correct" disabled="@_isAnimating" @onclick="OnCorrect">
+                    ✅ Richtig
+                </button>
+            </div>
         }
     }
 </div>
@@ -114,6 +113,18 @@
         border-radius: 10px;
     }
 
+    /* Interim, Silbenhammer-only stand-in for a HUD-wide difficulty indicator -
+       see GitHub issue #3 for making this generic across every task type. */
+    .shl-difficulty-badge {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #6b5518;
+        background: #fff3cd;
+        padding: 3px 10px;
+        border-radius: 10px;
+        white-space: nowrap;
+    }
+
     .shl-help-toggle {
         width: 22px;
         height: 22px;
@@ -140,24 +151,6 @@
 
     .shl-help-panel p {
         margin: 4px 0;
-    }
-
-    .shl-word-context {
-        font-size: 1.1rem;
-        letter-spacing: 1px;
-    }
-
-    .shl-word-context span {
-        margin: 0 3px;
-    }
-
-    .shl-context-current {
-        font-weight: 700;
-        color: #333;
-    }
-
-    .shl-context-other {
-        opacity: 0.4;
     }
 
     .shl-progress {
@@ -285,14 +278,32 @@
     .shl-word-merge {
         display: flex;
         justify-content: center;
-        gap: 6px;
-        flex-wrap: wrap;
-        font-size: clamp(2rem, 8vw, 4rem);
+        gap: 20px;
+        flex-wrap: nowrap;
+        /* Never wrap the word onto a second line - shrink to fit instead. --shl-merge-chars
+           (set inline per word, see MergeCharCount()) approximates the rendered width per
+           character so longer words (e.g. "eu-ro-pä-i-schen") get a smaller font instead of
+           breaking. min(560px, 90vw) mirrors .shl-container's ~600px max-width minus padding, so
+           the estimate holds on both wide and narrow screens. overflow-x is a safety net only -
+           the formula is tuned to make it a no-op in practice. */
+        font-size: clamp(1.6rem, calc(min(560px, 90vw) / (var(--shl-merge-chars, 8) * 0.62)), 6rem);
         font-weight: 900;
         margin: 40px 0;
+        max-width: 100%;
+        overflow-x: auto;
     }
 
     .shl-merge-syllable.shl-glow {
         animation: shl-glow 450ms ease-out;
+    }
+
+    /* Okabe-Ito blue/vermillion pair - distinguishable from each other under the common forms of
+       color blindness, and both dark enough for solid contrast against the white background. */
+    .shl-merge-color-a {
+        color: #0072b2;
+    }
+
+    .shl-merge-color-b {
+        color: #d55e00;
     }
 </style>
