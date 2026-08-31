@@ -43,6 +43,7 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
     private SilbenHammerWordEntry? _currentWord;
     private int _syllableIndex;
     private bool _struggledThisSyllable;
+    private bool _wordHadAnyStruggle;
     private bool _showWordButtons;
     private bool _isAnimating;
     private bool _wordCompletionAnimating;
@@ -67,6 +68,7 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
         _wordsCompletedThisBurst = 0;
         _syllableIndex = 0;
         _struggledThisSyllable = false;
+        _wordHadAnyStruggle = false;
         _showWordButtons = false;
         _wordCompletionAnimating = false;
         _animClass = "";
@@ -98,6 +100,7 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
             return;
 
         _struggledThisSyllable = true;
+        _wordHadAnyStruggle = true;
         _animKey++;
         _animClass = "shl-wobble";
     }
@@ -180,7 +183,8 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
         // Hold the finished word on screen for a couple of seconds before moving on.
         await Task.Delay(2000);
 
-        Score.AddPoints(5 * _currentWord.Syllables.Length, 8);
+        var (basePoints, bonusPoints) = ResolveWordPoints(clean: !_wordHadAnyStruggle, ChosenTask.Difficulty);
+        Score.AddPoints(basePoints, bonusPoints);
         Hud.IncrementCombo();
 
         // Computed before the increment below, so it reads as "how many more after this one".
@@ -209,6 +213,7 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
         _currentWord = await _selector!.PickNextWordAsync();
         _syllableIndex = 0;
         _struggledThisSyllable = false;
+        _wordHadAnyStruggle = false;
         _showWordButtons = false;
         _animClass = "";
 
@@ -233,6 +238,29 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
             Difficulty.Extreme => baseBudget + 2,
             _ => baseBudget
         };
+    }
+
+    // Points per completed word - deliberately small and struggle-sensitive, not scaled by
+    // syllable count, so a handful of long words in one burst can't dominate the 0-100 session
+    // score bar (MainLayout's Biber-Fortschritt/YouTube-reward threshold) on their own. A clean
+    // word pays roughly what one correct multiple-choice answer does elsewhere in the app; one
+    // with any struggled syllable pays less. Difficulty is the mixer's own mastery-weighting
+    // verdict (see ResolveRoundBudget) - a harder pick is worth a bit more.
+    //
+    // TODO: let the mastery/difficulty system determine points directly instead of these fixed
+    // constants, since it already knows the task's effective difficulty relative to the player -
+    // needs a broader change to how LearningTask/TaskSessionController award points across every
+    // task type, not just this one, so left as fixed numbers for now.
+    private static (int Base, int Bonus) ResolveWordPoints(bool clean, Difficulty difficulty)
+    {
+        var (basePoints, bonusPoints) = clean ? (5, 6) : (2, 2);
+        var multiplier = difficulty switch
+        {
+            Difficulty.Hard => 1.25,
+            Difficulty.Extreme => 1.5,
+            _ => 1.0
+        };
+        return ((int)Math.Round(basePoints * multiplier), (int)Math.Round(bonusPoints * multiplier));
     }
 
     // Per-syllable entry in the LiveLogger (Components/LiveLogger.razor) - one per "richtig"
