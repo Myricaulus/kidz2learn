@@ -35,6 +35,24 @@ public sealed class SilbenHammerSelector
     public string? TargetSyllable { get; private set; }
     public IReadOnlyCollection<string> UsedWordKeys => _usedWordKeys;
 
+    /// <summary>
+    ///     Words (other than ones already used this burst) that still contain
+    ///     <see cref="TargetSyllable" /> - i.e. what a follow-up pick would draw from right now.
+    ///     For diagnostics/logging (see <c>SilbenHammerView.BuildWordDoneLogEntry</c>), not
+    ///     consumed by <see cref="PickNextWordAsync" /> itself.
+    /// </summary>
+    public IReadOnlyList<string> RemainingWordsForTargetSyllable()
+    {
+        if (TargetSyllable is null)
+            return [];
+
+        var pool = _index.AnyPositionPool.GetValueOrDefault(TargetSyllable);
+        if (pool is null)
+            return [];
+
+        return pool.Where(w => !_usedWordKeys.Contains(w.Key)).Select(w => w.Word).ToList();
+    }
+
     public SilbenHammerSelector(
         SilbenHammerSyllableIndex index,
         ISilbenHammerRatingStore ratingStore,

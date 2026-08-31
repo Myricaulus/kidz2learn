@@ -182,7 +182,11 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
 
         Score.AddPoints(5 * _currentWord.Syllables.Length, 8);
         Hud.IncrementCombo();
-        Logger.Log(BuildWordDoneLogEntry(_currentWord.Word, _selector!.TargetSyllable));
+
+        // Computed before the increment below, so it reads as "how many more after this one".
+        var burstRemaining = _burstSize - _wordsCompletedThisBurst - 1;
+        Logger.Log(BuildWordDoneLogEntry(_currentWord.Word, _selector!.TargetSyllable,
+            _selector.RemainingWordsForTargetSyllable(), burstRemaining));
 
         _wordCompletionAnimating = false;
         _wordsCompletedThisBurst++;
@@ -256,9 +260,15 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
     }
 
     // One entry per completed word (Button D / the single-syllable shortcut) - "was man geschafft
-    // hat", separate from the per-syllable entries above so both are visible in the log.
-    private static RenderFragment BuildWordDoneLogEntry(string word, string? targetSyllable)
+    // hat", separate from the per-syllable entries above so both are visible in the log. Also
+    // surfaces the burst/selector internals (remaining budget, other unused words that still
+    // share the target syllable) for debugging the "does the burst actually stay on one syllable"
+    // behavior, not just the player-facing outcome.
+    private static RenderFragment BuildWordDoneLogEntry(
+        string word, string? targetSyllable, IReadOnlyList<string> remainingCandidates, int burstRemaining)
     {
+        const int maxCandidatesShown = 8;
+
         return builder =>
         {
             var i = 0;
@@ -268,8 +278,30 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
             builder.OpenElement(i++, "b");
             builder.AddContent(i++, word);
             builder.CloseElement(); // </b>
-            if (targetSyllable is not null)
-                builder.AddContent(i, $" (Übungs-Silbe: {targetSyllable})");
+
+            if (targetSyllable is null)
+            {
+                builder.CloseElement(); // </div>
+                return;
+            }
+
+            builder.AddContent(i++, $" (Übungs-Silbe: {targetSyllable}, noch {burstRemaining} im Burst)");
+
+            builder.OpenElement(i++, "div");
+            builder.AddAttribute(i++, "style", "font-size:0.85em; color:#777;");
+            if (remainingCandidates.Count == 0)
+            {
+                builder.AddContent(i, $"Keine weiteren Wörter mit \"{targetSyllable}\" übrig.");
+            }
+            else
+            {
+                var shown = string.Join(", ", remainingCandidates.Take(maxCandidatesShown));
+                var extra = remainingCandidates.Count - maxCandidatesShown;
+                var suffix = extra > 0 ? $" (+{extra} weitere)" : "";
+                builder.AddContent(i, $"Übrige Wörter mit \"{targetSyllable}\": {shown}{suffix}");
+            }
+            builder.CloseElement(); // </div>
+
             builder.CloseElement(); // </div>
         };
     }

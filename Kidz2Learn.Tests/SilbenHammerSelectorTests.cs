@@ -138,6 +138,33 @@ public class SilbenHammerSelectorTests
     }
 
     [Fact]
+    public async Task RemainingWordsForTargetSyllable_ExcludesAlreadyUsedWords()
+    {
+        var words = new[]
+        {
+            W("Banane", "Ba", "na", "ne"),
+            W("Baden", "Ba", "den"),
+            W("Ball", "Ba", "ll")
+        };
+        var selector = new SilbenHammerSelector(Idx(words), new FakeSilbenHammerRatingStore(), new Random(1));
+
+        var first = await selector.PickNextWordAsync();
+        var remaining = selector.RemainingWordsForTargetSyllable();
+
+        Assert.DoesNotContain(first!.Word, remaining);
+        Assert.Equal(2, remaining.Count);
+    }
+
+    [Fact]
+    public void RemainingWordsForTargetSyllable_BeforeAnyPick_IsEmpty()
+    {
+        var words = new[] { W("Banane", "Ba", "na", "ne") };
+        var selector = new SilbenHammerSelector(Idx(words), new FakeSilbenHammerRatingStore(), new Random(1));
+
+        Assert.Empty(selector.RemainingWordsForTargetSyllable());
+    }
+
+    [Fact]
     public async Task PickNextWordAsync_UnknownSyllable_StartsAtDefaultScoreFifty()
     {
         Assert.Equal(50, SilbenHammerScoring.ComputeScore(0));
