@@ -52,6 +52,15 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
     private int _animKey;
     private string _animClass = "";
 
+    // Whether the whole word (not just the current syllable) is visible for context, per
+    // ChosenTask.Difficulty: Normal shows it for the whole word, Hard for a brief peek, Extreme
+    // never. _wordGeneration guards the Hard case's delayed hide against a fast child already
+    // being on a *different* word by the time the 3s peek would end.
+    private bool _showWordContext;
+    private int _wordGeneration;
+
+    private bool _showHelp;
+
     // Only the very first burst of the whole page visit shows the "Lade Wort" placeholder -
     // every later burst quietly resolves the next word in the background while the just-finished
     // word stays on screen, then swaps once ready. Guards against the IndexedDB rating-store
@@ -92,6 +101,7 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
 
         _currentWord = next;
         _hasLoadedOnce = true;
+        _ = UpdateWordContextVisibilityAsync();
     }
 
     private void OnStruggle()
@@ -223,6 +233,37 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
             return;
         }
 
+        _ = UpdateWordContextVisibilityAsync();
+        StateHasChanged();
+    }
+
+    private void OnToggleHelp()
+    {
+        _showHelp = !_showHelp;
+    }
+
+    private async Task UpdateWordContextVisibilityAsync()
+    {
+        _wordGeneration++;
+        var myGeneration = _wordGeneration;
+
+        switch (ChosenTask.Difficulty)
+        {
+            case Difficulty.Normal:
+                _showWordContext = true;
+                break;
+            case Difficulty.Hard:
+                _showWordContext = true;
+                StateHasChanged();
+                await Task.Delay(3000);
+                if (myGeneration == _wordGeneration)
+                    _showWordContext = false;
+                break;
+            default:
+                _showWordContext = false;
+                break;
+        }
+
         StateHasChanged();
     }
 
@@ -332,6 +373,22 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
 
             builder.CloseElement(); // </div>
         };
+    }
+
+    // Whole-word context line (shown per ChosenTask.Difficulty, see UpdateWordContextVisibilityAsync)
+    // - the syllable currently being read stands out, the rest of the word is muted so it reads
+    // as background context, not competing with the big current-syllable display below it.
+    private static string BuildWordContextHtml(SilbenHammerWordEntry word, int currentIndex)
+    {
+        var sb = new StringBuilder();
+        for (var i = 0; i < word.Syllables.Length; i++)
+        {
+            var cls = i == currentIndex ? "shl-context-current" : "shl-context-other";
+            var encoded = WebUtility.HtmlEncode(word.Syllables[i]);
+            sb.Append($"<span class=\"{cls}\">{encoded}</span>");
+        }
+
+        return sb.ToString();
     }
 
     // --i is only consumed by .shl-wobble's per-letter stagger (see the <style> block) - the

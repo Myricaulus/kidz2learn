@@ -1,6 +1,24 @@
 @using Kidz2Learn.Model
 
 <div class="shl-container">
+    <div class="shl-topbar">
+        @if (_selector?.TargetSyllable is { } targetSyllable)
+        {
+            <span class="shl-target-badge">Übungssilbe: @targetSyllable</span>
+        }
+        <button class="shl-help-toggle" @onclick="OnToggleHelp" aria-label="Hilfe">?</button>
+    </div>
+
+    @if (_showHelp)
+    {
+        <div class="shl-help-panel">
+            <p>Das Kind liest die groß angezeigte Silbe laut vor.</p>
+            <p>🔤 <b>Buchstabiert</b>: die Silbe wurde einzeln buchstabiert statt am Stück gelesen - sie kommt später wieder häufiger dran.</p>
+            <p>✅ <b>Richtig</b>: die Silbe wurde sauber am Stück gelesen - weiter zur nächsten Silbe.</p>
+            <p>Bei der letzten Silbe: ⟲ <b>Nochmal von vorn</b> springt zurück zum Wortanfang, 🏁 <b>Wort geschafft</b> beendet das Wort.</p>
+        </div>
+    }
+
     @if (_currentWord is null)
     {
         <div class="shl-loading">Lade Wort ...</div>
@@ -31,6 +49,11 @@
         }
         else
         {
+            @if (_showWordContext)
+            {
+                <div class="shl-word-context">@((MarkupString)BuildWordContextHtml(_currentWord, _syllableIndex))</div>
+            }
+
             <div class="shl-syllable @_animClass" @key="_animKey">
                 @((MarkupString)BuildSyllableHtml(_currentWord.Syllables[_syllableIndex]))
             </div>
@@ -73,6 +96,68 @@
         font-size: 1.4rem;
         color: #555;
         padding: 40px;
+    }
+
+    .shl-topbar {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+
+    .shl-target-badge {
+        font-size: 0.8rem;
+        color: #888;
+        background: #f2f2f2;
+        padding: 3px 10px;
+        border-radius: 10px;
+    }
+
+    .shl-help-toggle {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 1px solid #bbb;
+        background: #fff;
+        color: #888;
+        font-size: 0.8rem;
+        font-weight: bold;
+        line-height: 1;
+        padding: 0;
+        cursor: pointer;
+    }
+
+    .shl-help-panel {
+        font-size: 0.85rem;
+        color: #555;
+        background: #f8f8f8;
+        border-radius: 10px;
+        padding: 10px 14px;
+        margin-bottom: 16px;
+        text-align: left;
+    }
+
+    .shl-help-panel p {
+        margin: 4px 0;
+    }
+
+    .shl-word-context {
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+    }
+
+    .shl-word-context span {
+        margin: 0 3px;
+    }
+
+    .shl-context-current {
+        font-weight: 700;
+        color: #333;
+    }
+
+    .shl-context-other {
+        opacity: 0.4;
     }
 
     .shl-progress {
