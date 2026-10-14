@@ -139,7 +139,65 @@ main {
 
 @keyframes chew-angry {
     from { background-position-x: 0; }
-    to   { background-position-x: -170px; } 
+    to   { background-position-x: -170px; }
+}
+
+/* Youtube-Belohnung */
+
+.youtube-wrap {
+    position: relative;
+    display: inline-block;
+    line-height: 0; /* kein Extra-Abstand unter dem Bild */
+    cursor: default;
+}
+
+.youtube-wrap.unlocked {
+    cursor: pointer;
+}
+
+.youtube-wrap .youtube-img {
+    filter: grayscale(1);
+    transition: filter 6s ease;
+}
+
+.youtube-wrap.unlocked .youtube-img {
+    filter: grayscale(0);
+}
+
+.youtube-lock {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 40%;
+    height: 40%;
+    opacity: 0.5;
+    pointer-events: none;
+    transition: opacity 6s ease;
+}
+
+.youtube-wrap.unlocked .youtube-lock {
+    opacity: 0;
+}
+
+/* Gelegentlicher, unauffälliger Hinweis-Puls: grauer Glow solange gesperrt, farbiger Puls danach */
+.youtube-wrap:not(.unlocked).attention-pulse .youtube-img {
+    animation: youtube-pulse-locked 1.6s ease-in-out;
+}
+
+.youtube-wrap.unlocked.attention-pulse .youtube-img {
+    animation: youtube-pulse-unlocked 1.6s ease-in-out;
+}
+
+@keyframes youtube-pulse-locked {
+    0%   { filter: grayscale(1) brightness(1); }
+    45%  { filter: grayscale(1) brightness(1.5) drop-shadow(0 0 10px rgba(255,255,255,0.8)); }
+    100% { filter: grayscale(1) brightness(1); }
+}
+
+@keyframes youtube-pulse-unlocked {
+    0%   { filter: grayscale(0) saturate(1) brightness(1); }
+    45%  { filter: grayscale(0) saturate(2.6) brightness(1.3) drop-shadow(0 0 10px rgba(255,0,0,0.5)); }
+    100% { filter: grayscale(0) saturate(1) brightness(1); }
 }
 
 

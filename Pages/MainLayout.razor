@@ -7,6 +7,7 @@
 @using MudBlazor
 @using Tavenem.Blazor.IndexedDB
 @inherits LayoutComponentBase
+@implements IDisposable
 @* Required *@
 <MudThemeProvider/>
 <MudPopoverProvider/>
@@ -82,7 +83,13 @@ else
                 <div class="beaver @_biberState @(_useTransition ? "smooth-decay" : "")"
                      style="left:@_points.ToString("F1", CultureInfo.InvariantCulture)%;"></div>
             </div>
-            <MudImage Src="youtube.png" Alt="Youtube"></MudImage>
+            <div class="youtube-wrap @(_youtubeUnlocked ? "unlocked" : "") @(_youtubePulseActive ? "attention-pulse" : "")"
+                 @onclick="OnYoutubeClick">
+                <MudImage Src="youtube.png" Alt="Youtube" Class="youtube-img"/>
+                <svg class="youtube-lock" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M6 10V8a6 6 0 1 1 12 0v2h.5A1.5 1.5 0 0 1 20 11.5v8A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5v-8A1.5 1.5 0 0 1 5.5 10H6zm2 0h8V8a4 4 0 1 0-8 0v2z" fill="#888"/>
+                </svg>
+            </div>
         </MudAppBar>
 
         <MudDrawer @bind-Open="@_toggleMenuDrawer" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Mini">
@@ -155,9 +162,21 @@ else
     private bool _skipSplash;
     private bool _migrationRunning;
 
+    // Once true, stays true for the rest of the session - the YouTube reward doesn't
+    // re-lock if the bonus decays back down after being earned.
+    private bool _youtubeUnlocked;
+    private bool _youtubePulseActive;
+    private DateTime _sessionStart;
+    private Timer? _attentionCheckTimer;
+    private Timer? _pulseTimer;
+    private readonly Random _pulseRng = new();
+
     protected override async Task OnInitializedAsync()
     {
         Score.OnScoreChanged += HandleScoreChanged;
+
+        _sessionStart = DateTime.UtcNow;
+        _attentionCheckTimer = new Timer(_ => CheckAttentionEligibility(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
 
         // Silbenhammer's word catalog is compile-time data (SilbenHammerWords.g.cs) - touching
         // .Index here builds its syllable lookup once, alongside the splash screen/IndexedDB
@@ -187,35 +206,67 @@ else
         _toggleMenuDrawer = !_toggleMenuDrawer;
     }
 
-    private bool _hasNavigated;
-
     private void HandleScoreChanged(float score, float bonus)
     {
-        if (_hasNavigated)
-            return;
-        if (_points >= 100)
-        {
-            Console.WriteLine("Navigating to Youtube");
-            Navigation.NavigateTo("https://youtube.com", true);
-            _hasNavigated = true;
-        }
+        if (bonus < 2)
+            _biberState = "angry";
+        else if (bonus > 50)
+            _biberState = "normal"; // chainsaw
         else
-        {
-            if (bonus < 2)
-                _biberState = "angry";
-            else if (bonus > 50)
-                _biberState = "normal"; // chainsaw
-            else
-                _biberState = "normal";
-            _useTransition = Score.TotalScore < _points;
-            _points = Score.TotalScore;
-            StateHasChanged();
-        }
+            _biberState = "normal";
+        _useTransition = Score.TotalScore < _points;
+        _points = Score.TotalScore;
+
+        if (_points >= 100)
+            _youtubeUnlocked = true;
+
+        StateHasChanged();
+    }
+
+    private void OnYoutubeClick()
+    {
+        if (_youtubeUnlocked)
+            Navigation.NavigateTo("https://youtube.com", true);
+    }
+
+    private void CheckAttentionEligibility()
+    {
+        if (DateTime.UtcNow - _sessionStart < TimeSpan.FromMinutes(5))
+            return;
+
+        _attentionCheckTimer?.Dispose();
+        _attentionCheckTimer = null;
+        ScheduleNextPulse();
+    }
+
+    // Occasional, non-distracting glow to draw attention to the YouTube reward once it's
+    // been available a while - grey/brightness flash while still locked, a brief color
+    // overshoot once unlocked. Keeps running after unlock too, as a nudge to actually click it.
+    private void ScheduleNextPulse()
+    {
+        var delay = TimeSpan.FromSeconds(_pulseRng.Next(20, 45));
+        _pulseTimer = new Timer(_ => StartPulse(), null, delay, Timeout.InfiniteTimeSpan);
+    }
+
+    private void StartPulse()
+    {
+        _youtubePulseActive = true;
+        InvokeAsync(StateHasChanged);
+        _pulseTimer = new Timer(_ => EndPulse(), null, TimeSpan.FromMilliseconds(1600), Timeout.InfiniteTimeSpan);
+    }
+
+    private void EndPulse()
+    {
+        _youtubePulseActive = false;
+        InvokeAsync(StateHasChanged);
+        ScheduleNextPulse();
     }
 
     public void Dispose()
     {
         Score.OnScoreChanged -= HandleScoreChanged;
+        _attentionCheckTimer?.Dispose();
+        _pulseTimer?.Dispose();
     }
 
 }
