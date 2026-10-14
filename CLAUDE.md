@@ -113,7 +113,7 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   and *all of that sentence's own parts* as options, so keyword-matching never suffices).
   Both render sentences via `LeseSatz`, where words in `WordMeta` can be tapped to hear them
   (`WordAudio.PathFor`).
-  Points scale with word count (`LesePunkte`), and wrong answers cost nothing. The old Silben
+  Points scale with word count (`LesePunkte`, calibrated to a 5-10 min session to the reward), and wrong answers cost nothing. The old Silben
   tasks are mixed in via `TaskHost`'s `FillerSkills`/`FillerChance` (fixed ~1-in-8 rate, independent of
   mastery).
 - `TurboArithChallenge` is deliberately **not** on `TaskHost` - it's a fixed 3-minute timed round on
