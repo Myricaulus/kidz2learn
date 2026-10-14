@@ -65,3 +65,6 @@ WaveSplit/*
 
 # Debug
 /**/Bildschirmfoto_*.png
+
+# Local inputs for Claude (test photos, console exports, session logs) - never commit
+/inbox/
