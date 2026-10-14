@@ -166,14 +166,14 @@ public partial class ArithNumpadView : ComponentBase, ITaskView
         if (userValue == _expectedResult)
         {
             log.Kompetenz.AddRichtig();
-            await Session.RecordSuccess(ChosenTask, log.Kompetenz, 2, 8);
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, 2, 8, $"{id} → {userValue}");
             stats.Erfolgreich++;
             stats.Versuche++;
         }
         else
         {
             log.Kompetenz.AddFalsch();
-            await Session.RecordFailure(ChosenTask, log.Kompetenz, -5, 0);
+            await Session.RecordFailure(ChosenTask, log.Kompetenz, -5, 0, $"{id} → {userValue}");
             stats.Versuche++;
             _feedback =
                 $"Falsch! Richtige Lösung: {_expectedResult}.<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";

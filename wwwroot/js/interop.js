@@ -96,3 +96,95 @@ window.k4l_playHammerClang = function () {
     noise.connect(lowpass).connect(noiseGain).connect(master);
     noise.start(now);
 };
+// Opt-in session telemetry (see Services/TelemetryService.cs). Only devices that opened the app
+// once with ?telemetrie=<url> have an endpoint in localStorage; everywhere else these functions
+// do nothing and send nothing. The receiving side is tools/telemetry_receiver.py.
+var K4L_TELEMETRY_KEY = "k4l_telemetry_endpoint";
+var K4L_TELEMETRY_PENDING_KEY = "k4l_telemetry_pending";
+var K4L_TELEMETRY_MAX_PENDING = 30;
+
+function k4l_telemetryEndpoint() {
+    try { return localStorage.getItem(K4L_TELEMETRY_KEY); } catch (e) { return null; }
+}
+
+function k4l_telemetryPending() {
+    try { return JSON.parse(localStorage.getItem(K4L_TELEMETRY_PENDING_KEY) || "{}"); } catch (e) { return {}; }
+}
+
+function k4l_telemetrySavePending(pending) {
+    var ids = Object.keys(pending).sort();
+    while (ids.length > K4L_TELEMETRY_MAX_PENDING) delete pending[ids.shift()];
+    try { localStorage.setItem(K4L_TELEMETRY_PENDING_KEY, JSON.stringify(pending)); } catch (e) { }
+}
+
+window.k4l_telemetryConfigure = function (value) {
+    try {
+        if (value === "off") {
+            localStorage.removeItem(K4L_TELEMETRY_KEY);
+            localStorage.removeItem(K4L_TELEMETRY_PENDING_KEY);
+            console.info("[telemetry] disabled on this device");
+        } else if (/^https?:\/\//.test(value)) {
+            localStorage.setItem(K4L_TELEMETRY_KEY, value);
+            console.info("[telemetry] enabled on this device, endpoint " + value);
+        } else {
+            console.warn("[telemetry] ignoring ?telemetrie=" + value + " (expected a URL or 'off')");
+        }
+    } catch (e) {
+        console.warn("[telemetry] could not store setting", e);
+    }
+};
+
+window.k4l_telemetryEnabled = function () {
+    return !!k4l_telemetryEndpoint();
+};
+
+async function k4l_telemetryPost(endpoint, body, timeoutMs) {
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, timeoutMs);
+    try {
+        // text/plain keeps this a CORS "simple request" (no preflight).
+        var response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },
+            body: body,
+            signal: controller.signal
+        });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return true;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+// Sends every pending session (oldest first); returns true only if all of them arrived. Overlapping
+// calls are fine: a session is only dropped from the pending list if its stored body is still the
+// one that was just delivered.
+window.k4l_telemetrySendPending = async function (timeoutMs) {
+    var endpoint = k4l_telemetryEndpoint();
+    if (!endpoint) return true;
+    var pending = k4l_telemetryPending();
+    var ids = Object.keys(pending).sort();
+    for (var i = 0; i < ids.length; i++) {
+        var body = pending[ids[i]];
+        try {
+            await k4l_telemetryPost(endpoint, body, timeoutMs);
+        } catch (e) {
+            console.warn("[telemetry] upload to " + endpoint + " failed: " + (e && e.name === "AbortError" ? "timeout after " + timeoutMs + " ms" : e));
+            return false;
+        }
+        var fresh = k4l_telemetryPending();
+        if (fresh[ids[i]] === body) {
+            delete fresh[ids[i]];
+            k4l_telemetrySavePending(fresh);
+        }
+    }
+    return true;
+};
+
+window.k4l_telemetrySend = async function (sessionId, body, timeoutMs) {
+    if (!k4l_telemetryEndpoint()) return true;
+    var pending = k4l_telemetryPending();
+    pending[sessionId] = body;
+    k4l_telemetrySavePending(pending);
+    return await window.k4l_telemetrySendPending(timeoutMs);
+};

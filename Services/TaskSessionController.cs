@@ -28,8 +28,14 @@ namespace Kidz2Learn.Services;
 ///     <c>ArithemticLogStats</c> itself keeps being persisted separately in `ArithNumpadView` - that's
 ///     a different, longer-lived stat, not the source of this bug.
 /// </remarks>
-public sealed class TaskSessionController(ScoreService score, AffirmationService affirmation, HudStateService hud)
+public sealed class TaskSessionController(
+    ScoreService score,
+    AffirmationService affirmation,
+    HudStateService hud,
+    TelemetryService telemetry)
 {
+    private DateTime _taskStarted = DateTime.Now;
+
     public int TotalAttempts { get; private set; }
     public int SuccessfulAttempts { get; private set; }
     public float SuccessRatio => TotalAttempts == 0 ? 0f : (float)SuccessfulAttempts / TotalAttempts;
@@ -48,8 +54,17 @@ public sealed class TaskSessionController(ScoreService score, AffirmationService
         _skillAttempts.Clear();
     }
 
-    public async Task RecordSuccess(IChosenTask task, Kompetenzniveau kompetenz, int basePoints, int bonusPoints)
+    /// <summary>Marks the moment the current task is shown; attempt durations are measured from here.</summary>
+    public void BeginTask()
     {
+        _taskStarted = DateTime.Now;
+    }
+
+    /// <param name="detail">Human-readable task and answer for the telemetry log ("Hund → Hand").</param>
+    public async Task RecordSuccess(IChosenTask task, Kompetenzniveau kompetenz, int basePoints, int bonusPoints,
+        string? detail = null)
+    {
+        RecordTelemetry(task, detail, correct: true, basePoints + bonusPoints);
         score.AddPoints(basePoints, bonusPoints);
         hud.IncrementCombo();
         TotalAttempts++;
@@ -59,14 +74,24 @@ public sealed class TaskSessionController(ScoreService score, AffirmationService
         await task.Success(kompetenz);
     }
 
-    public async Task RecordFailure(IChosenTask task, Kompetenzniveau kompetenz, int basePoints, int bonusPoints)
+    /// <param name="detail">Human-readable task and answer for the telemetry log ("Hund → Hand").</param>
+    public async Task RecordFailure(IChosenTask task, Kompetenzniveau kompetenz, int basePoints, int bonusPoints,
+        string? detail = null)
     {
+        RecordTelemetry(task, detail, correct: false, basePoints + bonusPoints);
         score.AddPoints(basePoints, bonusPoints);
         hud.SetCombo(0);
         TotalAttempts++;
         RecordPerSkill(task, success: false);
         await affirmation.PlayMisserfolgAsync();
         await task.Fail(kompetenz);
+    }
+
+    private void RecordTelemetry(IChosenTask task, string? detail, bool correct, int points)
+    {
+        var now = DateTime.Now;
+        telemetry.Record(new TelemetryEntry(now, task.View, task.Skills, detail, correct, points,
+            (long)(now - _taskStarted).TotalMilliseconds));
     }
 
     private void RecordPerSkill(IChosenTask task, bool success)

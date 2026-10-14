@@ -92,6 +92,7 @@ public partial class WFrageView : ComponentBase, ITaskView, IAsyncDisposable
         var id = SilbenLog.GenId($"{_aufgabe.Text}|{_aufgabe.Rolle}", Skill.ReadWhQuestion);
         var log = await db.GetItemAsync<SilbenLog>(id) ?? new SilbenLog { Id = id };
         log.Wort = $"{_aufgabe.Fragewort}: {_aufgabe.Richtig}";
+        var detail = $"{_aufgabe.Text} | {_aufgabe.Frage} → {option.Label}";
 
         if (option.Label == _aufgabe.Richtig)
         {
@@ -102,7 +103,7 @@ public partial class WFrageView : ComponentBase, ITaskView, IAsyncDisposable
             log.Kompetenz.AddRichtig();
             // Half points once the answer has been highlighted in the sentence after a wrong pick.
             var points = LesePunkte.ForText(_aufgabe.Text, _aufgabe.Frage) / (_wrongPicks.Count > 0 ? 2 : 1);
-            await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points);
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points, detail);
             StateHasChanged();
 
             _ = Task.Delay(CorrectDelayMs)
@@ -116,7 +117,7 @@ public partial class WFrageView : ComponentBase, ITaskView, IAsyncDisposable
             _feedbackText = "Nochmal! Die Antwort ist jetzt im Satz markiert.";
             log.Falsch = _wrongPicks.Count;
             log.Kompetenz.AddFalsch();
-            await Session.RecordFailure(ChosenTask, log.Kompetenz, 0, 0);
+            await Session.RecordFailure(ChosenTask, log.Kompetenz, 0, 0, detail);
             _isProcessing = false;
         }
 

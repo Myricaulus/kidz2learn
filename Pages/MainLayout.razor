@@ -137,6 +137,7 @@ else
     [Inject] public ScoreService Score { get; set; } = null!;
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
     [Inject] private IJSRuntime Js { get; set; } = null!;
+    [Inject] private TelemetryService Telemetry { get; set; } = null!;
 
     public delegate void UpdatePointsHook(int delta);
 
@@ -193,6 +194,9 @@ else
             _skipSplash = value.ToString().ToLower() == "true";
         }
 
+        query.TryGetValue("telemetrie", out var telemetrie);
+        await Telemetry.InitAsync(telemetrie.ToString());
+
         // IndexedDB Migration
         var migrationHelper = new SkillMigrationHelper(AufgabenDb);
         await migrationHelper.EnsureSchemaAsync();
@@ -224,10 +228,17 @@ else
         StateHasChanged();
     }
 
-    private void OnYoutubeClick()
+    private async Task OnYoutubeClick()
     {
-        if (_youtubeUnlocked)
-            Navigation.NavigateTo("https://youtube.com", true);
+        if (!_youtubeUnlocked)
+            return;
+
+        // On opted-in devices a failed upload stops here, so the console (which says why) can
+        // still be inspected before the page is gone. Other devices never get the dialog.
+        if (!await Telemetry.FlushAsync() && !await Js.InvokeAsync<bool>("confirm", "Wirklich zu YouTube wechseln?"))
+            return;
+
+        Navigation.NavigateTo("https://youtube.com", true);
     }
 
     private void CheckAttentionEligibility()

@@ -139,7 +139,7 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
             // im else-Zweig unten je einen eigenen AddFalsch()/RecordFailure()-Eintrag bekommen.
             log.Kompetenz.AddRichtig();
 
-            await Session.RecordSuccess(ChosenTask, log.Kompetenz, 5, 5);
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, 5, 5, $"{correctAnswer} → {answer}");
             _showFeedback = true;
             StateHasChanged();
             // Feedback bleibt sichtbar, bis TaskHost die nächste Aufgabe geliefert hat -
@@ -166,7 +166,8 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
             log.Wort = correctAnswer;
             log.Falsch = _wrongCount;
             log.Kompetenz.AddFalsch();
-            await Session.RecordFailure(ChosenTask, log.Kompetenz, -10 * _wrongCount, -10 * _wrongCount);
+            await Session.RecordFailure(ChosenTask, log.Kompetenz, -10 * _wrongCount, -10 * _wrongCount,
+                $"{correctAnswer} → {answer}");
             await ReadingDb.StoreItemAsync(log);
 
             if (ChosenTask.Skills.Contains(Skill.ReadPrecise))

@@ -48,6 +48,7 @@
         var pool = FillerSkills is not null && _rng.NextDouble() < FillerChance ? FillerSkills : Skills;
         _chosen = await generator.ChooseAnyAsync(pool);
         _viewType = TaskPresentationRegistry.Resolve(_chosen.View);
+        Session.BeginTask();
         _parameters = new Dictionary<string, object>
         {
             [nameof(ITaskView.ChosenTask)] = _chosen,

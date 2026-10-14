@@ -66,6 +66,8 @@ public partial class QuatschDetektorView : ComponentBase, ITaskView, IAsyncDispo
         return answer == _picked ? "lese-antwort-falsch" : "lese-antwort-blass";
     }
 
+    private string Detail(bool stimmt) => $"{_satz.Text} → {(stimmt ? "Stimmt" : "Quatsch")}";
+
     private async Task Answer(bool stimmt)
     {
         if (_isProcessing)
@@ -86,7 +88,7 @@ public partial class QuatschDetektorView : ComponentBase, ITaskView, IAsyncDispo
             _feedbackText = _satz.Stimmt ? "Richtig, das stimmt!" : "Richtig, das ist Quatsch!";
             log.Kompetenz.AddRichtig();
             var points = LesePunkte.ForText(_satz.Text);
-            await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points);
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points, Detail(stimmt));
         }
         else
         {
@@ -95,7 +97,7 @@ public partial class QuatschDetektorView : ComponentBase, ITaskView, IAsyncDispo
             log.Kompetenz.AddFalsch();
             // No deduction: a wrong judgement on a sentence he struggled through shouldn't cost
             // what he already earned.
-            await Session.RecordFailure(ChosenTask, log.Kompetenz, 0, 0);
+            await Session.RecordFailure(ChosenTask, log.Kompetenz, 0, 0, Detail(stimmt));
         }
 
         StateHasChanged();
