@@ -181,3 +181,26 @@ public class LeseVerstehenRegistryTests
         Assert.Equal(abbreviations.Count, abbreviations.Distinct().Count());
     }
 }
+
+public class LesePunkteTests
+{
+    [Fact]
+    public void LongerSentences_EarnMorePoints_WithinBounds()
+    {
+        var kurz = LesePunkte.ForText("Der Hund bellt.");
+        var lang = LesePunkte.ForText("Weil der Hamster müde ist, schläft er ein.");
+
+        Assert.Equal(LesePunkte.Min, kurz);
+        Assert.Equal(12, lang);
+        Assert.True(lang > kurz);
+        Assert.Equal(LesePunkte.Max, LesePunkte.ForText(string.Join(' ', Enumerable.Repeat("Wort", 30))));
+    }
+
+    [Fact]
+    public void MultipleTexts_AreCountedTogether()
+    {
+        Assert.Equal(
+            LesePunkte.ForText("Die Tante hört im Auto Radio. Wo hört die Tante Radio?"),
+            LesePunkte.ForText("Die Tante hört im Auto Radio.", "Wo hört die Tante Radio?"));
+    }
+}

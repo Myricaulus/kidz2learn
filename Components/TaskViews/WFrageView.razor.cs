@@ -100,7 +100,9 @@ public partial class WFrageView : ComponentBase, ITaskView, IAsyncDisposable
             _feedbackText = "Richtig!";
             log.Falsch = _wrongPicks.Count;
             log.Kompetenz.AddRichtig();
-            await Session.RecordSuccess(ChosenTask, log.Kompetenz, 8, 8);
+            // Half points once the answer has been highlighted in the sentence after a wrong pick.
+            var points = LesePunkte.ForText(_aufgabe.Text, _aufgabe.Frage) / (_wrongPicks.Count > 0 ? 2 : 1);
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points);
             StateHasChanged();
 
             _ = Task.Delay(CorrectDelayMs)
@@ -114,7 +116,7 @@ public partial class WFrageView : ComponentBase, ITaskView, IAsyncDisposable
             _feedbackText = "Nochmal! Die Antwort ist jetzt im Satz markiert.";
             log.Falsch = _wrongPicks.Count;
             log.Kompetenz.AddFalsch();
-            await Session.RecordFailure(ChosenTask, log.Kompetenz, -5 * _wrongPicks.Count, -5 * _wrongPicks.Count);
+            await Session.RecordFailure(ChosenTask, log.Kompetenz, 0, 0);
             _isProcessing = false;
         }
 

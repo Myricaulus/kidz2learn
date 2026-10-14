@@ -13,6 +13,11 @@
     // "everything, across every domain" - see TASK_PRESENTATION_REDESIGN.md, Baustein 4/5.
     [Parameter] public IReadOnlyCollection<string>? Skills { get; set; }
 
+    // Optional "breather" pool mixed in at a fixed rate (FillerChance, 0..1), independent of
+    // mastery - e.g. already-mastered tasks sprinkled into a page focused on something new.
+    [Parameter] public IReadOnlyCollection<string>? FillerSkills { get; set; }
+    [Parameter] public double FillerChance { get; set; }
+
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
     [Inject] private HudStateService Hud { get; set; } = null!;
     [Inject] private TaskSessionController Session { get; set; } = null!;
@@ -40,7 +45,8 @@
     {
         var store = new SkillMasteryStore(AufgabenDb);
         var generator = new AdaptiveTaskGenerator(store, _rng);
-        _chosen = await generator.ChooseAnyAsync(Skills);
+        var pool = FillerSkills is not null && _rng.NextDouble() < FillerChance ? FillerSkills : Skills;
+        _chosen = await generator.ChooseAnyAsync(pool);
         _viewType = TaskPresentationRegistry.Resolve(_chosen.View);
         _parameters = new Dictionary<string, object>
         {

@@ -85,14 +85,17 @@ public partial class QuatschDetektorView : ComponentBase, ITaskView, IAsyncDispo
             _correctCount++;
             _feedbackText = _satz.Stimmt ? "Richtig, das stimmt!" : "Richtig, das ist Quatsch!";
             log.Kompetenz.AddRichtig();
-            await Session.RecordSuccess(ChosenTask, log.Kompetenz, 5, 5);
+            var points = LesePunkte.ForText(_satz.Text);
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points);
         }
         else
         {
             _wrongCount++;
             _feedbackText = _satz.Stimmt ? "Hmm, das stimmt wirklich." : "Hmm, das ist Quatsch.";
             log.Kompetenz.AddFalsch();
-            await Session.RecordFailure(ChosenTask, log.Kompetenz, -5, -5);
+            // No deduction: a wrong judgement on a sentence he struggled through shouldn't cost
+            // what he already earned.
+            await Session.RecordFailure(ChosenTask, log.Kompetenz, 0, 0);
         }
 
         StateHasChanged();

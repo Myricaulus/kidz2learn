@@ -2,7 +2,8 @@
 @using Kidz2Learn.Components
 @using Kidz2Learn.Model
 
-@* Start page: sentence-level comprehension (Quatsch-Detektor, W-Fragen) with the word-level
-   Silben tasks mixed in. The adaptive picker favors weak skills, so the well-mastered Silben
-   tasks only come up occasionally as a breather. *@
-<TaskHost Skills="@(new[] { Skill.ReadSentenceTruth, Skill.ReadWhQuestion, Skill.ReadSyllables, Skill.ReadPrecise })" />
+@* Start page: sentence-level comprehension (Quatsch-Detektor, W-Fragen), with the already-mastered
+   word-level Silben tasks sprinkled in at a fixed ~1-in-8 rate as a breather. *@
+<TaskHost Skills="@(new[] { Skill.ReadSentenceTruth, Skill.ReadWhQuestion })"
+          FillerSkills="@(new[] { Skill.ReadSyllables, Skill.ReadPrecise })"
+          FillerChance="0.125" />
