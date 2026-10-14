@@ -9,7 +9,9 @@ public static class TaskRegistry
         {
             { typeof(ArithTaskDefinition), AllArith },
             { typeof(SilbenTaskDefinition), AllSilben },
-            { typeof(EventTaskDefinition), AllEvents }
+            { typeof(EventTaskDefinition), AllEvents },
+            { typeof(QuatschTaskDefinition), AllQuatsch },
+            { typeof(WFrageTaskDefinition), AllWFrage }
         };
 
 
@@ -47,6 +49,8 @@ public static class TaskRegistry
     public static IReadOnlyList<ArithTaskDefinition> TurboArith => ArithTaskRegistry.Turbo;
     public static IReadOnlyList<SilbenTaskDefinition> AllSilben => SilbenTaskRegistry.All;
     public static IReadOnlyList<EventTaskDefinition> AllEvents => EventTaskRegistry.All;
+    public static IReadOnlyList<QuatschTaskDefinition> AllQuatsch => LeseVerstehenTaskRegistry.Quatsch;
+    public static IReadOnlyList<WFrageTaskDefinition> AllWFrage => LeseVerstehenTaskRegistry.WFrage;
 
     public static IReadOnlyList<T> GetTasks<T>() where T : BaseTaskDefinition
     {

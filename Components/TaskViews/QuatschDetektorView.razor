@@ -1,0 +1,22 @@
+<div class="lese-container">
+    <h2 class="lese-titel">Stimmt das, oder ist das Quatsch?</h2>
+
+    <LeseSatz Text="@_satz.Text" />
+
+    <div class="lese-antworten">
+        <button class="lese-antwort lese-stimmt @AnswerClass(true)" disabled="@_isProcessing"
+                @onclick="() => Answer(true)">👍 Stimmt</button>
+        <button class="lese-antwort lese-quatsch @AnswerClass(false)" disabled="@_isProcessing"
+                @onclick="() => Answer(false)">🤪 Quatsch</button>
+    </div>
+
+    @if (_feedbackText is not null)
+    {
+        <div class="lese-feedback @(_lastCorrect ? "lese-feedback-richtig" : "lese-feedback-falsch")">@_feedbackText</div>
+    }
+
+    <div class="lese-fortschritt">
+        <span>Richtig: @_correctCount</span>
+        <span>Fehler: @_wrongCount</span>
+    </div>
+</div>

@@ -1,0 +1,48 @@
+@using Kidz2Learn.Model.Lesen
+@using Microsoft.JSInterop
+
+@* A sentence in large reading type. Words from the known word list (WordMeta) can be tapped to
+   hear them - a single-word lifeline, not a read-aloud of the whole sentence. Highlight marks a
+   phrase (e.g. the answer after a wrong W-question pick) in HighlightColor. *@
+<p class="lese-satz">
+    @foreach (var token in _tokens)
+    {
+        var audio = token.Audio;
+        <span class="lese-wort @(audio is not null ? "lese-wort-hoerbar" : "") @(token.Highlighted ? "lese-highlight" : "")"
+              style="@(token.Highlighted ? $"--lese-hl:{HighlightColor}" : null)"
+              @onclick="() => Play(audio)">@token.Text</span>
+    }
+</p>
+
+@code {
+    [Parameter, EditorRequired] public string Text { get; set; } = string.Empty;
+    [Parameter] public string? Highlight { get; set; }
+    [Parameter] public string HighlightColor { get; set; } = "#1565c0";
+
+    [Inject] private IJSRuntime Js { get; set; } = null!;
+
+    private sealed record Token(string Text, string? Audio, bool Highlighted);
+
+    private List<Token> _tokens = [];
+
+    protected override void OnParametersSet()
+    {
+        var hlStart = Highlight is null ? -1 : Text.IndexOf(Highlight, StringComparison.OrdinalIgnoreCase);
+        var hlEnd = hlStart < 0 ? -1 : hlStart + Highlight!.Length;
+
+        _tokens = [];
+        var pos = 0;
+        foreach (var word in Text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var start = Text.IndexOf(word, pos, StringComparison.Ordinal);
+            pos = start + word.Length;
+            _tokens.Add(new Token(word, WordAudio.PathFor(word), start >= hlStart && start < hlEnd));
+        }
+    }
+
+    private async Task Play(string? audio)
+    {
+        if (audio is not null)
+            await Js.InvokeVoidAsync("k4l_playAudioFile", "audioPlayer", audio);
+    }
+}

@@ -17,6 +17,8 @@ public static class TaskPresentationRegistry
         Register("silben-multiple-choice", typeof(SilbenMultipleChoiceView));
         Register("arith-numpad", typeof(ArithNumpadView));
         Register("silben-hammer", typeof(SilbenHammerView));
+        Register("quatsch-detektor", typeof(QuatschDetektorView));
+        Register("w-frage", typeof(WFrageView));
     }
 
     public static void Register(string view, Type componentType)

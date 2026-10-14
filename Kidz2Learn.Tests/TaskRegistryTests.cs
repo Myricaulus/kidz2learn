@@ -13,7 +13,8 @@ public class TaskRegistryTests
         // Also implicitly exercises the TaskRegistry static constructor, which throws if any
         // BaseTaskDefinition subtype in the assembly isn't registered in Tasks.
         Assert.Equal(
-            TaskRegistry.AllArith.Count + TaskRegistry.AllSilben.Count + TaskRegistry.AllEvents.Count,
+            TaskRegistry.AllArith.Count + TaskRegistry.AllSilben.Count + TaskRegistry.AllEvents.Count +
+            TaskRegistry.AllQuatsch.Count + TaskRegistry.AllWFrage.Count,
             TaskRegistry.All.Count);
     }
 
@@ -23,6 +24,8 @@ public class TaskRegistryTests
         Assert.Equal(TaskRegistry.AllArith, TaskRegistry.GetTasks<ArithTaskDefinition>());
         Assert.Equal(TaskRegistry.AllSilben, TaskRegistry.GetTasks<SilbenTaskDefinition>());
         Assert.Equal(TaskRegistry.AllEvents, TaskRegistry.GetTasks<EventTaskDefinition>());
+        Assert.Equal(TaskRegistry.AllQuatsch, TaskRegistry.GetTasks<QuatschTaskDefinition>());
+        Assert.Equal(TaskRegistry.AllWFrage, TaskRegistry.GetTasks<WFrageTaskDefinition>());
     }
 
     [Fact]

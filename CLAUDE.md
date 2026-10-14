@@ -79,8 +79,8 @@ Uses `Tavenem.Blazor.IndexedDB`. The database (`AufgabenDB`, versioned in `Progr
 
 ### Task presentation: TaskHost + ITaskView (Components/TaskHost.razor, Components/TaskViews/)
 
-Most challenge routes (`/` = `SilbenChallenge`, `/graphem` = `GraphemChallenge`, `/ArithmeticChallenge`)
-are now a one-line page - `<TaskHost Skills="[...]" />` - instead of bespoke per-page logic; see
+Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/graphem` = `GraphemChallenge`,
+`/ArithmeticChallenge`) are a one-line page - `<TaskHost Skills="[...]" />` - instead of bespoke per-page logic; see
 `TASK_PRESENTATION_REDESIGN.md` for the full design rationale and phase history.
 
 - `BaseTaskDefinition` subtypes declare a `View` string key (e.g. `"silben-multiple-choice"`,
@@ -105,6 +105,14 @@ are now a one-line page - `<TaskHost Skills="[...]" />` - instead of bespoke per
   exercise, never had a listen button).
 - `ArithNumpadView` (`"arith-numpad"`) drives the written-addition/subtraction digit grid + virtual
   numpad shared by all non-Turbo arithmetic skills (`ArithTaskRegistry.SimpleSkills`).
+- `QuatschDetektorView` (`"quatsch-detektor"`, skill `read_sentence_truth`) and `WFrageView`
+  (`"w-frage"`, skill `read_wh_question`) are the sentence-comprehension tasks on the `/`
+  start page ("Lesedetektiv"), built for slow/imprecise readers: no pictures, no writing, short
+  sentences from the known word list. Content is hand-written/templated in `Model/Lesen/`
+  (`QuatschSaetze`: true-vs-nonsense sentences; `WFragen`: one sentence, a color-coded W-question,
+  and *all of that sentence's own parts* as options, so keyword-matching never suffices).
+  Both render sentences via `LeseSatz`, where words in `WordMeta` can be tapped to hear them
+  (`WordAudio.PathFor`).
 - `TurboArithChallenge` is deliberately **not** on `TaskHost` - it's a fixed 3-minute timed round on
   one hardcoded skill (`Turbo10`) with its own start/running/summary state and end-of-round scoring,
   not a "one task, one presentation" case. See `TASK_PRESENTATION_REDESIGN.md`, "Offener Punkt:

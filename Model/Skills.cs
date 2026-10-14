@@ -11,6 +11,8 @@ public static class Skill
     public const string TurboRead = "read_turbo";
     public const string GraphemPhonem = "GraphemPhonem";
     public const string SilbenHammer = "silben_hammer";
+    public const string ReadSentenceTruth = "read_sentence_truth";
+    public const string ReadWhQuestion = "read_wh_question";
 
     public static class Math
     {
@@ -140,6 +142,22 @@ public static class SkillRegistry
             {
                 Id = Skill.SilbenHammer, Domain = TaskDomain.Reading, Category = "phonetics", Difficulty = 2,
                 DisplayName = "Silbenhammer"
+            }
+        },
+        {
+            Skill.ReadSentenceTruth,
+            new SkillDefinition
+            {
+                Id = Skill.ReadSentenceTruth, Domain = TaskDomain.Reading, Category = "comprehension", Difficulty = 2,
+                DisplayName = "Quatsch-Detektor"
+            }
+        },
+        {
+            Skill.ReadWhQuestion,
+            new SkillDefinition
+            {
+                Id = Skill.ReadWhQuestion, Domain = TaskDomain.Reading, Category = "comprehension", Difficulty = 3,
+                DisplayName = "W-Fragen"
             }
         }
     };

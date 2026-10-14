@@ -1,0 +1,79 @@
+.lese-container {
+    max-width: 760px;
+    margin: auto;
+    text-align: center;
+    padding: 20px;
+}
+
+.lese-titel {
+    font-size: 1.6rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.lese-antworten {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.lese-antwort {
+    min-width: 200px;
+    min-height: 100px;
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    font-weight: bold;
+    border-radius: 20px;
+    border: 4px solid #444;
+    background: #fff;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.lese-antwort:hover:not(:disabled) {
+    transform: scale(1.04);
+}
+
+.lese-stimmt {
+    border-color: #3aa757;
+}
+
+.lese-quatsch {
+    border-color: #ef6c00;
+}
+
+.lese-antwort-richtig {
+    background: #ddffdd;
+    border-color: #3aa757;
+}
+
+.lese-antwort-falsch {
+    background: #ffdddd;
+    border-color: #e53935;
+}
+
+.lese-antwort-blass {
+    opacity: 0.4;
+}
+
+.lese-feedback {
+    margin-top: 25px;
+    font-size: 1.6rem;
+    font-weight: bold;
+}
+
+.lese-feedback-richtig {
+    color: #3aa757;
+}
+
+.lese-feedback-falsch {
+    color: #e53935;
+}
+
+.lese-fortschritt {
+    margin-top: 20px;
+    font-size: 1.2rem;
+    color: #555;
+    display: flex;
+    justify-content: space-around;
+}

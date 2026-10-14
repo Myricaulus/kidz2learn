@@ -1,0 +1,28 @@
+<div class="lese-container">
+    <LeseSatz Text="@_aufgabe.Text" Highlight="@(_showHint ? _aufgabe.Highlight : null)" HighlightColor="@Farbe" />
+
+    <h2 class="lese-frage">
+        <span class="lese-fragewort" style="color:@Farbe">@_aufgabe.Fragewort.ToUpperInvariant()</span>@_aufgabe.Frage[_aufgabe.Fragewort.Length..]
+    </h2>
+
+    <div class="lese-optionen">
+        @foreach (var option in _aufgabe.Optionen)
+        {
+            <button class="lese-option @OptionClass(option)"
+                    disabled="@(_isProcessing || _wrongPicks.Contains(option.Label))"
+                    @onclick="() => Pick(option)">
+                @option.Label
+            </button>
+        }
+    </div>
+
+    @if (_feedbackText is not null)
+    {
+        <div class="lese-feedback @(_solved ? "lese-feedback-richtig" : "lese-feedback-falsch")">@_feedbackText</div>
+    }
+
+    <div class="lese-fortschritt">
+        <span>Richtig: @_correctCount</span>
+        <span>Fehler: @_wrongCount</span>
+    </div>
+</div>

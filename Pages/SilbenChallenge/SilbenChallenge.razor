@@ -1,9 +1,8 @@
-@page "/"
+@page "/silben"
 @using Kidz2Learn.Components
 @using Kidz2Learn.Model
 
-@* Cutover of Phase 4c (TASK_PRESENTATION_REDESIGN.md): "/" now runs through TaskHost +
-   SilbenMultipleChoiceView + MarkierPopup instead of the old monolithic SilbenChallenge.razor(.cs).
-   Same skill pool as before. Class name stays "SilbenChallenge" so /debug/SilbenChallenge keeps
-   resolving via DebugPageWrapper's by-name reflection lookup. *@
+@* Runs through TaskHost + SilbenMultipleChoiceView + MarkierPopup (TASK_PRESENTATION_REDESIGN.md).
+   Class name stays "SilbenChallenge" so /debug/SilbenChallenge keeps resolving via
+   DebugPageWrapper's by-name reflection lookup. *@
 <TaskHost Skills="@(new[] { Skill.ReadSyllables, Skill.ReadPrecise })" />
