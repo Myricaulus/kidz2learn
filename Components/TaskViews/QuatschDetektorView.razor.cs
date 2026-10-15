@@ -13,7 +13,7 @@ namespace Kidz2Learn.Components.TaskViews;
 ///     with two buttons a second try would always be right. Per-sentence history is kept as a
 ///     <see cref="SilbenLog" /> in "LeseAufgaben", keyed by the sentence text.
 /// </summary>
-public partial class QuatschDetektorView : ComponentBase, ITaskView, IAsyncDisposable
+public partial class QuatschDetektorView : ComponentBase, ITaskView
 {
     private const int CorrectDelayMs = 1000;
 
@@ -25,7 +25,6 @@ public partial class QuatschDetektorView : ComponentBase, ITaskView, IAsyncDispo
 
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
     [Inject] private LoggerService Logger { get; set; } = null!;
-    [Inject] private SidWidgetService Player { get; set; } = null!;
     [Inject] private TaskSessionController Session { get; set; } = null!;
 
     private IChosenTask? _loadedForTask;
@@ -37,19 +36,11 @@ public partial class QuatschDetektorView : ComponentBase, ITaskView, IAsyncDispo
     private int _correctCount;
     private int _wrongCount;
 
-    public async ValueTask DisposeAsync()
-    {
-        await Player.Restore();
-    }
-
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         if (ReferenceEquals(ChosenTask, _loadedForTask))
             return;
         _loadedForTask = ChosenTask;
-
-        // Words in the sentence can be tapped to hear them - keep the music out of the way.
-        await Player.Duck(0.1);
 
         _satz = (QuatschSatz)ChosenTask.Payload;
         _picked = null;

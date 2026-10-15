@@ -15,7 +15,7 @@ namespace Kidz2Learn.Components.TaskViews;
 ///     question word's color) and the child picks again. Picking an option plays its word when
 ///     it's in the known word list.
 /// </summary>
-public partial class WFrageView : ComponentBase, ITaskView, IAsyncDisposable
+public partial class WFrageView : ComponentBase, ITaskView
 {
     private const int CorrectDelayMs = 1400;
 
@@ -36,7 +36,6 @@ public partial class WFrageView : ComponentBase, ITaskView, IAsyncDisposable
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
     [Inject] private IJSRuntime Js { get; set; } = null!;
     [Inject] private LoggerService Logger { get; set; } = null!;
-    [Inject] private SidWidgetService Player { get; set; } = null!;
     [Inject] private TaskSessionController Session { get; set; } = null!;
 
     private IChosenTask? _loadedForTask;
@@ -51,18 +50,11 @@ public partial class WFrageView : ComponentBase, ITaskView, IAsyncDisposable
 
     private string Farbe => Farben[_aufgabe.Rolle];
 
-    public async ValueTask DisposeAsync()
-    {
-        await Player.Restore();
-    }
-
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         if (ReferenceEquals(ChosenTask, _loadedForTask))
             return;
         _loadedForTask = ChosenTask;
-
-        await Player.Duck(0.1);
 
         _aufgabe = (WFrageAufgabe)ChosenTask.Payload;
         _wrongPicks.Clear();
