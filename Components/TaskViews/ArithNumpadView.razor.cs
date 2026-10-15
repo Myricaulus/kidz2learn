@@ -54,7 +54,7 @@ public partial class ArithNumpadView : ComponentBase, ITaskView
     private int CurrentIndex { get; set; }
     private IndexedDbStore ArithDb { get; set; } = null!;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         ArithDb = AufgabenDb["ArithmetikAufgaben"] ?? throw new Exception("IndexedDb not instanced");
     }

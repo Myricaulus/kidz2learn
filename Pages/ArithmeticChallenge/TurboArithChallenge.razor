@@ -193,7 +193,7 @@
 
     #endregion
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         ArithDb = AufgabenDb["ArithmetikAufgaben"]
                   ?? throw new Exception("IndexedDb not instanced");

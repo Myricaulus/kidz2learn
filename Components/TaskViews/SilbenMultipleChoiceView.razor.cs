@@ -61,7 +61,7 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
 
     private IndexedDbStore ReadingDb { get; set; } = null!;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         ReadingDb = AufgabenDb["LeseAufgaben"] ?? throw new Exception("IndexedDb not instanced");
     }
