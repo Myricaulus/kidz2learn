@@ -2,9 +2,6 @@
 
 <div class="shl-container">
     <div class="shl-topbar">
-        <span class="shl-difficulty-badge" title="@DifficultyLabel(ChosenTask.Difficulty)">
-            @DifficultyIcon(ChosenTask.Difficulty) @DifficultyLabel(ChosenTask.Difficulty)
-        </span>
         @if (_selector?.TargetSyllable is { } targetSyllable)
         {
             <span class="shl-target-badge">Übungssilbe: @targetSyllable</span>
@@ -115,15 +112,6 @@
 
     /* Interim, Silbenhammer-only stand-in for a HUD-wide difficulty indicator -
        see GitHub issue #3 for making this generic across every task type. */
-    .shl-difficulty-badge {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #6b5518;
-        background: #fff3cd;
-        padding: 3px 10px;
-        border-radius: 10px;
-        white-space: nowrap;
-    }
 
     .shl-help-toggle {
         width: 22px;

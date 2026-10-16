@@ -1,0 +1,20 @@
+@using Kidz2Learn.Model
+
+@* HUD badge for the current task's difficulty, with the point factor it earns. Hidden while no
+   TaskHost task is on screen (Level null). *@
+@if (Level is { } level)
+{
+    <div @key="level" class="difficulty-indicator difficulty-@level.ToString().ToLowerInvariant()"
+         title="Schwierigkeit: @DifficultyInfo.Label(level)">
+        <span class="difficulty-icon">@DifficultyInfo.Icon(level)</span>
+        <span class="difficulty-label">@DifficultyInfo.Label(level)</span>
+        @if (level != Difficulty.Normal)
+        {
+            <span class="difficulty-factor">×@DifficultyInfo.PointFactor(level).ToString("0.#", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) Punkte</span>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Difficulty? Level { get; set; }
+}

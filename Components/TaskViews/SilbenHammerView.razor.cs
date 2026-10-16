@@ -248,24 +248,6 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
         _showHelp = !_showHelp;
     }
 
-    // Interim, Silbenhammer-only stand-in for a HUD-wide difficulty indicator - kid-friendly
-    // wording/icon instead of the raw enum name. See GitHub issue #3 for the generic version.
-    private static string DifficultyIcon(Difficulty difficulty) => difficulty switch
-    {
-        Difficulty.Normal => "🎈",
-        Difficulty.Hard => "💪",
-        Difficulty.Extreme => "🔥",
-        _ => throw new ArgumentOutOfRangeException(nameof(difficulty))
-    };
-
-    private static string DifficultyLabel(Difficulty difficulty) => difficulty switch
-    {
-        Difficulty.Normal => "Spielen",
-        Difficulty.Hard => "Arbeiten",
-        Difficulty.Extreme => "Anstrengend",
-        _ => throw new ArgumentOutOfRangeException(nameof(difficulty))
-    };
-
     // Feeds --shl-merge-chars (see .shl-word-merge's font-size clamp) - one extra "character" per
     // gap between syllables so the estimate accounts for their width too, not just the letters.
     private int MergeCharCount()
@@ -293,23 +275,12 @@ public partial class SilbenHammerView : ComponentBase, ITaskView
     // syllable count, so a handful of long words in one burst can't dominate the 0-100 session
     // score bar (MainLayout's Biber-Fortschritt/YouTube-reward threshold) on their own. A clean
     // word pays roughly what one correct multiple-choice answer does elsewhere in the app; one
-    // with any struggled syllable pays less. Difficulty is the mixer's own mastery-weighting
-    // verdict (see ResolveRoundBudget) - a harder pick is worth a bit more.
-    //
-    // TODO: let the mastery/difficulty system determine points directly instead of these fixed
-    // constants, since it already knows the task's effective difficulty relative to the player -
-    // needs a broader change to how LearningTask/TaskSessionController award points across every
-    // task type, not just this one, so left as fixed numbers for now.
+    // with any struggled syllable pays less. These go to ScoreService directly rather than through
+    // TaskSessionController.RecordSuccess, so they take the shared difficulty factor here.
     private static (int Base, int Bonus) ResolveWordPoints(bool clean, Difficulty difficulty)
     {
         var (basePoints, bonusPoints) = clean ? (5, 6) : (2, 2);
-        var multiplier = difficulty switch
-        {
-            Difficulty.Hard => 1.25,
-            Difficulty.Extreme => 1.5,
-            _ => 1.0
-        };
-        return ((int)Math.Round(basePoints * multiplier), (int)Math.Round(bonusPoints * multiplier));
+        return (DifficultyInfo.Scale(basePoints, difficulty), DifficultyInfo.Scale(bonusPoints, difficulty));
     }
 
     // Per-syllable entry in the LiveLogger (Components/LiveLogger.razor) - one per "richtig"

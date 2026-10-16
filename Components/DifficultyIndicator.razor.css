@@ -1,0 +1,43 @@
+.difficulty-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 6px;
+    border-radius: 16px;
+    border: 3px solid #e0d7b8;
+    background: #fffdf3;
+    text-align: center;
+    animation: difficulty-pop 0.35s ease-out;
+}
+
+.difficulty-icon {
+    font-size: 2.6rem;
+    line-height: 1.1;
+}
+
+.difficulty-label {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #444;
+}
+
+.difficulty-factor {
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #b26a00;
+}
+
+.difficulty-hard {
+    border-color: #ef9a3c;
+    background: #fff5e6;
+}
+
+.difficulty-extreme {
+    border-color: #e53935;
+    background: #ffeceb;
+}
+
+@keyframes difficulty-pop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}

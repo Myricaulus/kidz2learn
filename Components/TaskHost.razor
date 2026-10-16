@@ -2,6 +2,7 @@
 @using Kidz2Learn.Model.Tasks
 @using Kidz2Learn.Services
 @using Tavenem.Blazor.IndexedDB
+@implements IDisposable
 
 @if (_chosen is not null && _viewType is not null)
 {
@@ -48,11 +49,19 @@
         var pool = FillerSkills is not null && _rng.NextDouble() < FillerChance ? FillerSkills : Skills;
         _chosen = await generator.ChooseAnyAsync(pool);
         _viewType = TaskPresentationRegistry.Resolve(_chosen.View);
+        Hud.SetDifficulty(_chosen.Difficulty);
         Session.BeginTask();
         _parameters = new Dictionary<string, object>
         {
             [nameof(ITaskView.ChosenTask)] = _chosen,
             [nameof(ITaskView.OnNext)] = EventCallback.Factory.Create(this, LoadNext)
         };
+    }
+
+    // The HUD outlives the page: without this, the last task's difficulty would stay on screen on
+    // pages without tasks (Profil).
+    public void Dispose()
+    {
+        Hud.SetDifficulty(null);
     }
 }

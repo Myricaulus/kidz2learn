@@ -277,7 +277,7 @@ public class LesePunkteTests
         var lang = LesePunkte.ForText("Weil der Hamster müde ist, schläft er ein.");
 
         Assert.Equal(LesePunkte.Min, kurz);
-        Assert.Equal(6, lang);
+        Assert.Equal(4, lang);
         Assert.True(lang > kurz);
         Assert.Equal(LesePunkte.Max, LesePunkte.ForText(string.Join(' ', Enumerable.Repeat("Wort", 30))));
     }

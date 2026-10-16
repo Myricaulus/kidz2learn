@@ -60,10 +60,13 @@ public sealed class TaskSessionController(
         _taskStarted = DateTime.Now;
     }
 
+    /// <param name="basePoints">Points at <see cref="Difficulty.Normal" />; scaled here by <see cref="DifficultyInfo.PointFactor" />.</param>
     /// <param name="detail">Human-readable task and answer for the telemetry log ("Hund → Hand").</param>
     public async Task RecordSuccess(IChosenTask task, Kompetenzniveau kompetenz, int basePoints, int bonusPoints,
         string? detail = null)
     {
+        basePoints = DifficultyInfo.Scale(basePoints, task.Difficulty);
+        bonusPoints = DifficultyInfo.Scale(bonusPoints, task.Difficulty);
         RecordTelemetry(task, detail, correct: true, basePoints + bonusPoints);
         score.AddPoints(basePoints, bonusPoints);
         hud.IncrementCombo();

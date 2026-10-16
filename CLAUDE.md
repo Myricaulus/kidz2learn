@@ -164,7 +164,8 @@ to serve it.
 ### Cross-cutting services (Services/, singleton unless noted)
 
 - `ScoreService` — base + decaying bonus score (bonus decays on a `System.Threading.Timer`); also self-adjusts a difficulty/pacing target from elapsed time between answers.
-- `HudStateService` — combo count / timer visibility / difficulty, exposed via `OnChange` for HUD components to subscribe to.
+- `HudStateService` — combo count / timer visibility / current task difficulty, exposed via `OnChange` for HUD components to subscribe to. `TaskHost` sets the difficulty for every task it loads (and clears it on dispose); `DifficultyIndicator` in the HUD sidebar shows it under the combo.
+- Difficulty rewards: `Model/DifficultyInfo.cs` holds the kid-facing icon/label (🎈 Spielen, 💪 Arbeiten, 🔥 Anstrengend) and the point factor (×1 / ×1.5 / ×2) per `Difficulty`. `TaskSessionController.RecordSuccess` scales every success's points by it, so views pass Normal-level points; only points awarded outside of it (Silbenhammer's per-word `Score.AddPoints`) call `DifficultyInfo.Scale` themselves. `Difficulty` is relative to the candidate pool (easiest `DifficultyLevel` = Normal), not to the learner's mastery - see GitHub issue #1.
 - `LoggerService` — broadcasts `RenderFragment` log entries (`OnLogAppended`) for an in-page live log.
 - `SidWidgetService` — current player volume, exposed via `OnVolumeChanged` so pages/views can duck/restore music (e.g. `SilbenMultipleChoiceView` lowers volume while an exercise is active).
 - `SidPlayerService` (scoped) — thin JS-interop wrapper around `wwwroot/js/jsSID.js`'s `window.sidPlayer` (a C64 SID chiptune player) for the `SidPlayerWidget` component; SID files live in `wwwroot/sids`, cataloged in `sidfiles.json`.
