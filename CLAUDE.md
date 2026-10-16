@@ -54,6 +54,8 @@ uv run python WaveSplit/SplitWaveAndCompress.py   # interactive: splits WaveSpli
 uv run python WaveSplit/DeduplicateNames.py
 ```
 
+The full recording workflow is under "Data generation pipeline" below.
+
 `tools/generate_manifests.py` regenerates `wwwroot/sids/sidfiles.json` (every `.sid` in `wwwroot/sids`) and
 `wwwroot/audio/affirmations/affirmations.json`. It runs automatically before every build (target
 `RegenerateAudioManifests` in `Kidz2Learn.csproj`, needs `python3`; a failure fails the build), so a new
@@ -176,4 +178,27 @@ to serve it.
 
 ### Data generation pipeline (WaveSplit/, offline/authoring only)
 
-`SplitWaveAndCompress.py` splits a raw recording (`input.opus`) into per-word `.opus` clips under `wwwroot/audio/` using silence detection, with an interactive review/trim step, then runs each word through spaCy (POS tags) + espeak/phonemizer (IPA + stress/vowel-length tags) + custom grapheme-cluster tagging to (re)generate `Model/WordMeta.g.cs`. That file is checked in as generated-but-editable: regeneration replaces everything after the `// ###Endmarker for replacement###` marker in place, so keep that marker intact if hand-editing entries. `WordMeta.Data` (and its `Tags`, e.g. `"g2p-v-f|..."` grapheme/phoneme tags) is what `SilbenTaskRegistry`'s task generators query to pick words and build distractor options.
+Recording workflow for new word clips (run from the repo root, the scripts use repo-relative paths):
+
+1. **Queue words** in `WaveSplit/names.txt`, one per line in syllable spelling (`Gar-ten`,
+   `Zi-tro-ne`); the hyphens become `WordInfo.filename` and the syllable count. Everything under
+   `WaveSplit/` except the scripts and `data/` is gitignored, so this list lives only on the
+   parent's machine. Whenever a task needs a word that has no recording yet, add it here.
+2. **Deduplicate:** `uv run python WaveSplit/DeduplicateNames.py` writes `names_cleaned.txt`,
+   dropping lines repeated within the list and words that already have a clip in `wwwroot/audio/`.
+3. **Record** all words of `names_cleaned.txt` in order, with a short pause between them, as
+   `WaveSplit/input.opus`.
+4. **Split:** `uv run python WaveSplit/SplitWaveAndCompress.py` cuts `input.opus` into one clip per
+   word via silence detection (it aborts if the segment count doesn't match the list), lets you
+   review/trim each clip interactively, exports `wwwroot/audio/<Syl-la-bles>.opus`, then runs each
+   word through spaCy (POS tags) + espeak/phonemizer (IPA + stress/vowel-length tags) + custom
+   grapheme-cluster tagging and inserts the new entries into `Model/WordMeta.g.cs` at the
+   `// ###Endmarker for replacement###` marker - keep that marker intact when hand-editing entries.
+
+Step 4 only inserts and never replaces: a word that is already in `WordMeta.Data` without audio
+(the `,false` entries, e.g. `Vater`, `Vogel`, `Vulkan`) would end up as a duplicate dictionary key,
+which crashes `WordMeta`'s static initializer. Delete such an entry by hand before re-recording
+the word.
+
+`WordMeta.Data` (and its `Tags`, e.g. `"g2p-v-f|..."` grapheme/phoneme tags) is what
+`SilbenTaskRegistry`'s task generators query to pick words and build distractor options.
