@@ -170,7 +170,7 @@ to serve it.
 - `SidPlayerService` (scoped) — thin JS-interop wrapper around `wwwroot/js/jsSID.js`'s `window.sidPlayer` (a C64 SID chiptune player) for the `SidPlayerWidget` component; SID files live in `wwwroot/sids`, cataloged in `sidfiles.json`.
 - `AffirmationService` (scoped — depends on the scoped `HttpClient`) — plays a random success/failure sound after a task is answered, called from `TaskSessionController` (covering every `TaskHost`-based view) and directly from `TurboArithChallenge`, which isn't on `TaskHost`. Files live in `wwwroot/audio/affirmations/{erfolg,misserfolg}/`, cataloged in `affirmations.json` (regenerated before every build by `tools/generate_manifests.py`, see Commands). Both folders are currently empty, so playback silently no-ops until sound files are actually recorded and dropped in.
 
-- `TelemetryService` (scoped) — opt-in per-device session log (every `RecordSuccess`/`RecordFailure` via `TaskSessionController`, with a human-readable `detail` and the time since `TaskHost` showed the task). Only devices opened once with `?telemetrie=<url>` (`=off` undoes it) send anything; everywhere else it is inert, and the endpoint lives only in that device's localStorage, never in the repo. On opted-in devices, a failed upload makes the YouTube button ask "Wirklich zu YouTube wechseln?" so the console can be inspected first. The receiving side is `tools/telemetry_receiver.py` (stdlib Python, HTTPS, one JSON file per session), run as a systemd service on the parent's home server. Sessions are fetched without SSH by `tools/telemetry_fetch.py` (token-authenticated `GET`/`DELETE /sessions` on the same receiver; the server holds only the token's SHA-256, the token and URL live in `~/.config/kidz2learn/telemetrie-abruf.json`) into `inbox/telemetrie/`, deleting each session on the server once it's stored locally and untouched for an hour.
+- `TelemetryService` (scoped) — opt-in per-device session log (every `RecordSuccess`/`RecordFailure` via `TaskSessionController`, with a human-readable `detail` and the time since `TaskHost` showed the task). Only devices opened once with `?telemetrie=<url>` (`=off` undoes it) send anything; everywhere else it is inert, and the endpoint lives only in that device's localStorage, never in the repo. Local dev runs (`dotnet run`/Rider, environment `Development`) always send: `MainLayout` falls back to the `Telemetrie` key of `wwwroot/appsettings.Development.json`, which is gitignored and exists only on the parent's PC. Every session carries `App` (the app's base URL), so `localhost` test sessions stand apart from the kids' ones. On opted-in devices, a failed upload makes the YouTube button ask "Wirklich zu YouTube wechseln?" so the console can be inspected first. The receiving side is `tools/telemetry_receiver.py` (stdlib Python, HTTPS, one JSON file per session), run as a systemd service on the parent's home server. Sessions are fetched without SSH by `tools/telemetry_fetch.py` (token-authenticated `GET`/`DELETE /sessions` on the same receiver; the server holds only the token's SHA-256, the token and URL live in `~/.config/kidz2learn/telemetrie-abruf.json`) into `inbox/telemetrie/`, deleting each session on the server once it's stored locally and untouched for an hour.
 
 ### Shared audio elements (MainLayout.razor)
 
@@ -194,11 +194,9 @@ Recording workflow for new word clips (run from the repo root, the scripts use r
    word through spaCy (POS tags) + espeak/phonemizer (IPA + stress/vowel-length tags) + custom
    grapheme-cluster tagging and inserts the new entries into `Model/WordMeta.g.cs` at the
    `// ###Endmarker for replacement###` marker - keep that marker intact when hand-editing entries.
-
-Step 4 only inserts and never replaces: a word that is already in `WordMeta.Data` without audio
-(the `,false` entries, e.g. `Vater`, `Vogel`, `Vulkan`) would end up as a duplicate dictionary key,
-which crashes `WordMeta`'s static initializer. Delete such an entry by hand before re-recording
-the word.
+   An existing entry with the same key (case-insensitive) is replaced, so recording a word that is
+   listed without audio (the `,false` entries) just upgrades it - a duplicate key would crash
+   `WordMeta`'s static initializer.
 
 `WordMeta.Data` (and its `Tags`, e.g. `"g2p-v-f|..."` grapheme/phoneme tags) is what
 `SilbenTaskRegistry`'s task generators query to pick words and build distractor options.

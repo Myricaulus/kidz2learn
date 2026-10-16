@@ -109,7 +109,7 @@ else
                 <MudNavLink Href="/graphem" Match="NavLinkMatch.All" Disabled Icon="@Icons.Material.Filled.SwitchAccessShortcut">W oder F</MudNavLink>
                 <MudNavLink Href="deutsch-mix" Disabled Icon="@Icons.Material.Filled.MenuBook">Deutsch-Mix</MudNavLink>
                 <MudNavLink Href="Silbentrainer" Disabled Icon="@Icons.Material.Filled.MicExternalOn">Trainer</MudNavLink>
-                <MudNavLink Href="silben-hammer" Disabled Icon="@Icons.Material.Filled.Construction">Silbenhammer</MudNavLink>
+                <MudNavLink Href="silben-hammer" Icon="@Icons.Material.Filled.Construction">Silbenhammer</MudNavLink>
                 <MudNavLink Href="bestenmix" Disabled Icon="@Icons.Material.Filled.Shuffle">Bestenmix</MudNavLink>
                 <MudNavLink Href="Profile" Icon="@Icons.Material.Filled.Person">Profil</MudNavLink>
             </MudNavMenu>
@@ -138,6 +138,7 @@ else
 }
 
 @inject NavigationManager Navigation
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 @code {
     [Inject] public ScoreService Score { get; set; } = null!;
@@ -200,8 +201,13 @@ else
             _skipSplash = value.ToString().ToLower() == "true";
         }
 
+        // Local dev runs (dotnet run/Rider, environment "Development") take their endpoint from the
+        // gitignored wwwroot/appsettings.Development.json, so they always log without ?telemetrie=.
         query.TryGetValue("telemetrie", out var telemetrie);
-        await Telemetry.InitAsync(telemetrie.ToString());
+        var telemetrieValue = telemetrie.ToString();
+        if (string.IsNullOrWhiteSpace(telemetrieValue))
+            telemetrieValue = Configuration["Telemetrie"];
+        await Telemetry.InitAsync(telemetrieValue);
 
         // IndexedDB Migration
         var migrationHelper = new SkillMigrationHelper(AufgabenDb);

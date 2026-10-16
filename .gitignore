@@ -68,3 +68,6 @@ WaveSplit/*
 
 # Local inputs for Claude (test photos, console exports, session logs) - never commit
 /inbox/
+
+# Local dev-only settings (telemetry endpoint for dotnet run/Rider) - never in the public repo
+wwwroot/appsettings.Development.json

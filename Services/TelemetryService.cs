@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Kidz2Learn.Services;
@@ -17,14 +18,17 @@ public sealed record TelemetryEntry(
 ///     Opt-in per-device session log for the parent's own machines. A device is opted in only by
 ///     opening the app once with <c>?telemetrie=&lt;url&gt;</c>, which <c>k4l_telemetry*</c> in
 ///     <c>interop.js</c> keeps in localStorage; <c>?telemetrie=off</c> opts out again. On every
-///     other device this service never sends anything and never changes app behavior.
+///     other device this service never sends anything and never changes app behavior. Local dev runs
+///     opt in via the <c>Telemetrie</c> key of the gitignored <c>wwwroot/appsettings.Development.json</c>
+///     instead (see <c>MainLayout.razor</c>); <c>App</c> in each session tells them apart from the
+///     kids' sessions.
 /// </summary>
 /// <remarks>
 ///     Each send carries the whole session so far under one session id, so the receiver just
 ///     overwrites one file per session and a lost send is healed by the next one. Unsent sessions
 ///     stay pending in localStorage and are retried on the next send (also from later app starts).
 /// </remarks>
-public sealed class TelemetryService(IJSRuntime js, ScoreService score)
+public sealed class TelemetryService(IJSRuntime js, ScoreService score, NavigationManager navigation)
 {
     private const int TaskSendTimeoutMs = 3000;
     private const int FinalSendTimeoutMs = 4000;
@@ -77,6 +81,7 @@ public sealed class TelemetryService(IJSRuntime js, ScoreService score)
         var payload = new
         {
             SessionId = _sessionId,
+            App = navigation.BaseUri,
             Started = _started,
             Sent = DateTime.Now,
             TotalScore = score.TotalScore,
