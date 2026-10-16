@@ -433,8 +433,7 @@ def generate_csharp(entries):
     lines.append("    {")
     
     for e in entries:
-        taglist = ", ".join(f"\"{t}\"" for t in e["tags"])
-        lines.append(f"        [\"{e['word'].replace('-','')}\"] = new WordInfo(\"{e['word']}\", \"{e['ipa']}\", {e['syllables']} , new[] {{ {taglist} }}),")
+        lines.append(entry_line(e))
 
     lines.append("// ###Endmarker for replacement###")
     lines.append("    };")
@@ -442,17 +441,24 @@ def generate_csharp(entries):
     lines.append("")
     return "\n".join(lines)
 
-def update_charp(entries):
-    lines = []
+def entry_line(e):
+    taglist = ", ".join(f"\"{t}\"" for t in e["tags"])
+    return f"        [\"{e['word'].replace('-','')}\"] = new WordInfo(\"{e['word']}\", \"{e['ipa']}\", {e['syllables']} , new[] {{ {taglist} }}),"
+
+def update_charp(filedata, entries):
+    """Inserts the entries at the end marker, replacing any existing entry with the same key
+    (compared case-insensitively, e.g. a word listed without audio, or "Voll" vs. "voll") -
+    a duplicate key would crash WordMeta's static initializer."""
     for e in entries:
-        taglist = ", ".join(f"\"{t}\"" for t in e["tags"])
-        lines.append(f"        [\"{e['word'].replace('-','')}\"] = new WordInfo(\"{e['word']}\", \"{e['ipa']}\", {e['syllables']} , new[] {{ {taglist} }}),")
+        key = re.escape(e["word"].replace("-", ""))
+        filedata, removed = re.subn(rf'^\s*\["{key}"\] = new WordInfo\(.*\n', "", filedata,
+                                    flags=re.MULTILINE | re.IGNORECASE)
+        if removed:
+            print(f"  ↻ {e['word']}: vorhandenen Eintrag ersetzt")
 
+    lines = [entry_line(e) for e in entries]
     lines.append("// ###Endmarker for replacement###")
-    lines.append("    };")
-    lines.append("}")
-    lines.append("")
-    return "\n".join(lines)
+    return filedata.replace("// ###Endmarker for replacement###", "\n".join(lines), 1)
 
 def main():
     entries = [process_word(w) for w in sorted(names)]
@@ -461,15 +467,11 @@ def main():
         Path(OUTPUT).write_text(cs, encoding="utf8")
         print(f"Generated {OUTPUT} with {len(entries)} entries")
     else :
-        cs = update_charp(entries)
-        # Read in the file
         with open(OUTPUT, 'r',encoding="utf8") as file:
            filedata = file.read()
 
-        # Replace the target string
-        filedata = filedata.replace('// ###Endmarker for replacement###\n', cs)
+        filedata = update_charp(filedata, entries)
 
-        # Write the file out again
         with open(OUTPUT, 'w',encoding="utf8") as file:
             file.write(filedata)
         print(f"Updated {OUTPUT} with {len(entries)} entries")
