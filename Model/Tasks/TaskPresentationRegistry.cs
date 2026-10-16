@@ -19,6 +19,7 @@ public static class TaskPresentationRegistry
         Register("silben-hammer", typeof(SilbenHammerView));
         Register("quatsch-detektor", typeof(QuatschDetektorView));
         Register("w-frage", typeof(WFrageView));
+        Register("raetsel", typeof(RaetselView));
     }
 
     public static void Register(string view, Type componentType)

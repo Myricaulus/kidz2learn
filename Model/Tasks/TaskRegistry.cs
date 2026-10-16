@@ -11,7 +11,8 @@ public static class TaskRegistry
             { typeof(SilbenTaskDefinition), AllSilben },
             { typeof(EventTaskDefinition), AllEvents },
             { typeof(QuatschTaskDefinition), AllQuatsch },
-            { typeof(WFrageTaskDefinition), AllWFrage }
+            { typeof(WFrageTaskDefinition), AllWFrage },
+            { typeof(RaetselTaskDefinition), AllRaetsel }
         };
 
 
@@ -51,6 +52,7 @@ public static class TaskRegistry
     public static IReadOnlyList<EventTaskDefinition> AllEvents => EventTaskRegistry.All;
     public static IReadOnlyList<QuatschTaskDefinition> AllQuatsch => LeseVerstehenTaskRegistry.Quatsch;
     public static IReadOnlyList<WFrageTaskDefinition> AllWFrage => LeseVerstehenTaskRegistry.WFrage;
+    public static IReadOnlyList<RaetselTaskDefinition> AllRaetsel => LeseVerstehenTaskRegistry.Raetsel;
 
     public static IReadOnlyList<T> GetTasks<T>() where T : BaseTaskDefinition
     {

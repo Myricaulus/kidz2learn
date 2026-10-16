@@ -1,0 +1,78 @@
+.lese-container {
+    max-width: 760px;
+    margin: auto;
+    text-align: center;
+    padding: 20px;
+}
+
+.lese-titel {
+    font-size: 1.6rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+/* One clue per line, tighter than a standalone LeseSatz so all three fit on screen. */
+.raetsel-hinweise ::deep .lese-satz {
+    margin: 8px auto;
+    padding: 8px 18px;
+    text-align: left;
+}
+
+.raetsel-hinweise {
+    margin-bottom: 25px;
+}
+
+.lese-optionen {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.lese-option {
+    min-width: 140px;
+    min-height: 90px;
+    padding: 10px 22px;
+    font-size: clamp(1.3rem, 4vw, 1.9rem);
+    border-radius: 20px;
+    border: 3px solid #444;
+    background: #fff;
+    cursor: pointer;
+}
+
+.lese-option:hover:not(:disabled) {
+    background: #f0f0f0;
+}
+
+.lese-option-falsch {
+    background: #ffdddd;
+    border-color: #e53935;
+    opacity: 0.6;
+}
+
+.lese-option-richtig {
+    background: #ddffdd;
+    border-color: #3aa757;
+}
+
+.lese-feedback {
+    margin-top: 25px;
+    font-size: 1.6rem;
+    font-weight: bold;
+}
+
+.lese-feedback-richtig {
+    color: #3aa757;
+}
+
+.lese-feedback-falsch {
+    color: #e53935;
+}
+
+.lese-fortschritt {
+    margin-top: 20px;
+    font-size: 1.2rem;
+    color: #555;
+    display: flex;
+    justify-content: space-around;
+}

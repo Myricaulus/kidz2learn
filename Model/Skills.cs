@@ -13,6 +13,7 @@ public static class Skill
     public const string SilbenHammer = "silben_hammer";
     public const string ReadSentenceTruth = "read_sentence_truth";
     public const string ReadWhQuestion = "read_wh_question";
+    public const string ReadRiddle = "read_riddle";
 
     public static class Math
     {
@@ -158,6 +159,14 @@ public static class SkillRegistry
             {
                 Id = Skill.ReadWhQuestion, Domain = TaskDomain.Reading, Category = "comprehension", Difficulty = 3,
                 DisplayName = "W-Fragen"
+            }
+        },
+        {
+            Skill.ReadRiddle,
+            new SkillDefinition
+            {
+                Id = Skill.ReadRiddle, Domain = TaskDomain.Reading, Category = "comprehension", Difficulty = 2,
+                DisplayName = "Wer bin ich?"
             }
         }
     };

@@ -147,6 +147,91 @@ public class WFragenTests
     }
 }
 
+public class RaetselTests
+{
+    private static readonly Random Rng = new(1312);
+
+    [Fact]
+    public void EveryRaetsel_HasThreeClues_AndTwoDistinctSimilarThings()
+    {
+        foreach (var raetsel in RaetselSammlung.Alle)
+        {
+            Assert.Equal(3, raetsel.Hinweise.Length);
+            foreach (var hinweis in raetsel.Hinweise)
+                Assert.True(hinweis.EndsWith('.') || hinweis.EndsWith('!'), hinweis);
+            Assert.Equal(2, raetsel.Aehnliche.Distinct().Count());
+            Assert.DoesNotContain(raetsel.Loesung, raetsel.Aehnliche);
+        }
+    }
+
+    [Fact]
+    public void Solutions_AreUnique()
+    {
+        var loesungen = RaetselSammlung.Alle.Select(r => r.Loesung).ToList();
+        Assert.Equal(loesungen.Count, loesungen.Distinct().Count());
+    }
+
+    [Fact]
+    public void UnpassendPairs_NameExistingSolutionsOfDifferentKinds()
+    {
+        var byLoesung = RaetselSammlung.Alle.ToDictionary(r => r.Loesung);
+        foreach (var (a, b) in RaetselSammlung.Unpassend)
+        {
+            Assert.True(byLoesung.ContainsKey(a), a);
+            Assert.True(byLoesung.ContainsKey(b), b);
+            // Same-kind pairs never meet at level 1 anyway, so listing one would be dead weight.
+            Assert.NotEqual(byLoesung[a].Bereich, byLoesung[b].Bereich);
+        }
+    }
+
+    [Fact]
+    public void Generators_OfferThreeDistinctOptions_IncludingTheSolution()
+    {
+        foreach (var generate in new Func<Random, RaetselAufgabe>[] { RaetselSammlung.GenerateLeicht, RaetselSammlung.GenerateSchwer })
+        for (var i = 0; i < 300; i++)
+        {
+            var aufgabe = generate(Rng);
+            Assert.Equal(3, aufgabe.Optionen.Distinct().Count());
+            Assert.Single(aufgabe.Optionen, o => o == aufgabe.Richtig);
+        }
+    }
+
+    [Fact]
+    public void Leicht_DrawsWrongOptionsFromTwoOtherKinds_NeverFromUnpassendPairs()
+    {
+        var byLoesung = RaetselSammlung.Alle.ToDictionary(r => r.Loesung);
+        for (var i = 0; i < 500; i++)
+        {
+            var aufgabe = RaetselSammlung.GenerateLeicht(Rng);
+            var loesung = byLoesung[aufgabe.Richtig];
+            var ablenker = aufgabe.Optionen.Where(o => o != aufgabe.Richtig).Select(o => byLoesung[o]).ToList();
+
+            Assert.All(ablenker, a => Assert.NotEqual(loesung.Bereich, a.Bereich));
+            Assert.NotEqual(ablenker[0].Bereich, ablenker[1].Bereich);
+            Assert.All(ablenker, a => Assert.DoesNotContain(RaetselSammlung.Unpassend, p =>
+                (p.A == loesung.Loesung && p.B == a.Loesung) || (p.B == loesung.Loesung && p.A == a.Loesung)));
+        }
+    }
+
+    [Fact]
+    public void Schwer_OffersTheHandPickedSimilarThings()
+    {
+        for (var i = 0; i < 200; i++)
+        {
+            var aufgabe = RaetselSammlung.GenerateSchwer(Rng);
+            var raetsel = RaetselSammlung.Alle.Single(r => r.Loesung == aufgabe.Richtig);
+            Assert.Equal(raetsel.Aehnliche.Append(raetsel.Loesung).Order(), aufgabe.Optionen.Order());
+        }
+    }
+
+    [Fact]
+    public void DecidingClue_IsTheLastOne()
+    {
+        var aufgabe = RaetselSammlung.Build(RaetselSammlung.Alle[0], RaetselSammlung.Alle[0].Aehnliche, Rng);
+        Assert.Equal(RaetselSammlung.Alle[0].Hinweise[^1], aufgabe.Entscheidend);
+    }
+}
+
 public class WordAudioTests
 {
     [Theory]
@@ -170,7 +255,8 @@ public class LeseVerstehenRegistryTests
     [Fact]
     public void EveryLeseVerstehenView_IsRegistered()
     {
-        foreach (var def in TaskRegistry.AllQuatsch.Cast<BaseTaskDefinition>().Concat(TaskRegistry.AllWFrage))
+        foreach (var def in TaskRegistry.AllQuatsch.Cast<BaseTaskDefinition>().Concat(TaskRegistry.AllWFrage)
+                     .Concat(TaskRegistry.AllRaetsel))
             Assert.True(TaskPresentationRegistry.IsRegistered(def.View), def.View);
     }
 

@@ -114,8 +114,14 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   sentences from the known word list. Content is hand-written/templated in `Model/Lesen/`
   (`QuatschSaetze`: true-vs-nonsense sentences; `WFragen`: one sentence, a color-coded W-question,
   and *all of that sentence's own parts* as options, so keyword-matching never suffices).
-  Both render sentences via `LeseSatz`, where words in `WordMeta` can be tapped to hear them
-  (`WordAudio.PathFor`).
+  `RaetselView` (`"raetsel"`, skill `read_riddle`, "Wer bin ich?") joins them there: three clues
+  from general to specific (`Model/Lesen/Raetsel.cs`, hand-written). Level 1 takes its wrong options
+  from other `RaetselBereich`s, so the first clue already decides (`Unpassend` lists cross-kind
+  pairs a clue would still fit). Level 2 uses each riddle's hand-picked `Aehnliche`, which the first
+  clue fits too, so only the last clue decides; that last clue is what a wrong pick highlights.
+  All three render sentences via `LeseSatz`, where words in `WordMeta` can be tapped to hear them
+  (`WordAudio.PathFor`). Answer words without a recording yet are queued for the next recording
+  session in the local, gitignored `WaveSplit/names.txt`.
   Points scale with word count (`LesePunkte`, calibrated to a 5-10 min session to the reward), and wrong answers cost nothing. The old Silben
   tasks are mixed in via `TaskHost`'s `FillerSkills`/`FillerChance` (fixed ~1-in-8 rate, independent of
   mastery).
