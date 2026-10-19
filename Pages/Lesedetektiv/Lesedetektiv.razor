@@ -2,8 +2,10 @@
 @using Kidz2Learn.Components
 @using Kidz2Learn.Model
 
-@* Start page: sentence-level comprehension (Quatsch-Detektor, W-Fragen, Wer bin ich?), with the already-mastered
-   word-level Silben tasks sprinkled in at a fixed ~1-in-8 rate as a breather. *@
-<TaskHost Skills="@(new[] { Skill.ReadSentenceTruth, Skill.ReadWhQuestion, Skill.ReadRiddle })"
+@* Start page: sentence-level comprehension (Quatsch-Detektor, W-Fragen, Wer bin ich?) and the
+   search grids (Nomen finden, Spiegelbuchstaben), with the already-mastered word-level Silben
+   tasks sprinkled in at a fixed ~1-in-8 rate as a breather. *@
+<TaskHost Skills="@(new[] { Skill.ReadSentenceTruth, Skill.ReadWhQuestion, Skill.ReadRiddle, Skill.ReadNouns,
+                             Skill.ReadMirrorLetters })"
           FillerSkills="@(new[] { Skill.ReadSyllables, Skill.ReadPrecise })"
           FillerChance="0.125" />

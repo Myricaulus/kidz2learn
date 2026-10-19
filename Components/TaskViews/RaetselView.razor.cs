@@ -11,13 +11,13 @@ namespace Kidz2Learn.Components.TaskViews;
 
 /// <summary>
 ///     "raetsel" view ("Wer bin ich?"): three clues, one per line, and three things to pick from. A
-///     wrong pick highlights the deciding (last) clue and the child picks again. Picking an option
+///     wrong pick only greys that option out and the child picks again - no clue gets marked, so
+///     the deciding one still has to be found by reading. Picking an option
 ///     plays its word when it's in the known word list.
 /// </summary>
 public partial class RaetselView : ComponentBase, ITaskView
 {
     private const int CorrectDelayMs = 1400;
-    private const string HintColor = "#ef6c00";
 
     [Parameter] public IChosenTask ChosenTask { get; set; } = null!;
     [Parameter] public EventCallback OnNext { get; set; }
@@ -31,7 +31,6 @@ public partial class RaetselView : ComponentBase, ITaskView
     private RaetselAufgabe _aufgabe = new([string.Empty], [], string.Empty);
     private readonly HashSet<string> _wrongPicks = [];
     private bool _isProcessing;
-    private bool _showHint;
     private bool _solved;
     private string? _feedbackText;
     private int _correctCount;
@@ -45,7 +44,6 @@ public partial class RaetselView : ComponentBase, ITaskView
 
         _aufgabe = (RaetselAufgabe)ChosenTask.Payload;
         _wrongPicks.Clear();
-        _showHint = false;
         _solved = false;
         _feedbackText = null;
         _isProcessing = false;
@@ -80,7 +78,7 @@ public partial class RaetselView : ComponentBase, ITaskView
             _feedbackText = "Richtig!";
             log.Falsch = _wrongPicks.Count;
             log.Kompetenz.AddRichtig();
-            // Half points once the deciding clue has been highlighted after a wrong pick.
+            // Half points after a wrong pick.
             var points = LesePunkte.ForText([.. _aufgabe.Hinweise]) / (_wrongPicks.Count > 0 ? 2 : 1);
             await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points, detail);
             StateHasChanged();
@@ -92,8 +90,7 @@ public partial class RaetselView : ComponentBase, ITaskView
         {
             _wrongPicks.Add(option);
             _wrongCount++;
-            _showHint = true;
-            _feedbackText = "Nochmal! Lies den markierten Satz.";
+            _feedbackText = "Nochmal! Lies die Sätze noch einmal.";
             log.Falsch = _wrongPicks.Count;
             log.Kompetenz.AddFalsch();
             await Session.RecordFailure(ChosenTask, log.Kompetenz, 0, 0, detail);

@@ -26,11 +26,7 @@ public enum RaetselBereich
 public sealed record Raetsel(string Loesung, RaetselBereich Bereich, string[] Hinweise, string[] Aehnliche);
 
 /// <summary>Payload of a "Wer bin ich?" task.</summary>
-public sealed record RaetselAufgabe(IReadOnlyList<string> Hinweise, IReadOnlyList<string> Optionen, string Richtig)
-{
-    /// <summary>The clue highlighted after a wrong pick - the most specific one, which always decides.</summary>
-    public string Entscheidend => Hinweise[^1];
-}
+public sealed record RaetselAufgabe(IReadOnlyList<string> Hinweise, IReadOnlyList<string> Optionen, string Richtig);
 
 public static class RaetselSammlung
 {

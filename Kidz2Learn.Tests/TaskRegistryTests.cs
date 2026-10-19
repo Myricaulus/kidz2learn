@@ -14,7 +14,8 @@ public class TaskRegistryTests
         // BaseTaskDefinition subtype in the assembly isn't registered in Tasks.
         Assert.Equal(
             TaskRegistry.AllArith.Count + TaskRegistry.AllSilben.Count + TaskRegistry.AllEvents.Count +
-            TaskRegistry.AllQuatsch.Count + TaskRegistry.AllWFrage.Count + TaskRegistry.AllRaetsel.Count,
+            TaskRegistry.AllQuatsch.Count + TaskRegistry.AllWFrage.Count + TaskRegistry.AllRaetsel.Count +
+            TaskRegistry.AllSuchRaster.Count,
             TaskRegistry.All.Count);
     }
 
@@ -27,6 +28,7 @@ public class TaskRegistryTests
         Assert.Equal(TaskRegistry.AllQuatsch, TaskRegistry.GetTasks<QuatschTaskDefinition>());
         Assert.Equal(TaskRegistry.AllWFrage, TaskRegistry.GetTasks<WFrageTaskDefinition>());
         Assert.Equal(TaskRegistry.AllRaetsel, TaskRegistry.GetTasks<RaetselTaskDefinition>());
+        Assert.Equal(TaskRegistry.AllSuchRaster, TaskRegistry.GetTasks<SuchRasterTaskDefinition>());
     }
 
     [Fact]

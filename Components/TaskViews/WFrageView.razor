@@ -1,5 +1,5 @@
 <div class="lese-container">
-    <LeseSatz Text="@_aufgabe.Text" Highlight="@(_showHint ? _aufgabe.Highlight : null)" HighlightColor="@Farbe" />
+    <LeseSatz Text="@_aufgabe.Text" />
 
     <h2 class="lese-frage">
         <span class="lese-fragewort" style="color:@Farbe">@_aufgabe.Fragewort.ToUpperInvariant()</span>@_aufgabe.Frage[_aufgabe.Fragewort.Length..]

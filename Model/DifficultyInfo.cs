@@ -16,7 +16,7 @@ public static class DifficultyInfo
     {
         Difficulty.Normal => "🎈",
         Difficulty.Hard => "💪",
-        Difficulty.Extreme => "🔥",
+        Difficulty.Extreme => "💣",
         _ => throw new ArgumentOutOfRangeException(nameof(difficulty))
     };
 
@@ -24,7 +24,7 @@ public static class DifficultyInfo
     {
         Difficulty.Normal => "Spielen",
         Difficulty.Hard => "Arbeiten",
-        Difficulty.Extreme => "Anstrengend",
+        Difficulty.Extreme => "Bombe",
         _ => throw new ArgumentOutOfRangeException(nameof(difficulty))
     };
 

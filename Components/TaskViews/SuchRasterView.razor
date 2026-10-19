@@ -1,0 +1,34 @@
+<div class="lese-container">
+    <h2 class="lese-titel">Tippe alle <span class="raster-ziel">@_raster.Ziel</span> an!</h2>
+
+    <div class="raster @(_raster.Ziel.Length == 1 ? "raster-buchstaben" : "")"
+         style="grid-template-columns: repeat(@_raster.Spalten, minmax(0, 1fr))">
+        @foreach (var (feld, index) in _raster.Felder.Select((f, i) => (f, i)))
+        {
+            <button class="raster-feld @FeldClass(feld, index)"
+                    disabled="@(_phase == Phase.Geloest)"
+                    @onclick="() => Toggle(index)">
+                @feld.Text
+            </button>
+        }
+    </div>
+
+    @if (_feedbackText is not null)
+    {
+        <div class="lese-feedback @(_phase == Phase.Geloest ? "lese-feedback-richtig" : "lese-feedback-falsch")">@_feedbackText</div>
+    }
+
+    @if (_phase == Phase.Suchen)
+    {
+        <button class="raster-knopf" @onclick="Abgeben">Fertig!</button>
+    }
+    else if (!_ohneFehler)
+    {
+        <button class="raster-knopf" disabled="@(!KnopfFrei)" @onclick="Weiter">Weiter</button>
+    }
+
+    <div class="lese-fortschritt">
+        <span>Richtig: @_correctCount</span>
+        <span>Fehler: @_wrongCount</span>
+    </div>
+</div>

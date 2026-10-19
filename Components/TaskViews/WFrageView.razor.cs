@@ -11,8 +11,8 @@ namespace Kidz2Learn.Components.TaskViews;
 
 /// <summary>
 ///     "w-frage" view: a sentence, a question with a color-coded question word, and the sentence's
-///     own parts as options. A wrong pick highlights the right part in the sentence (in the
-///     question word's color) and the child picks again. Picking an option plays its word when
+///     own parts as options. A wrong pick only greys that option out and the child
+///     picks again - the sentence stays unmarked, so the answer still has to be read. Picking an option plays its word when
 ///     it's in the known word list.
 /// </summary>
 public partial class WFrageView : ComponentBase, ITaskView
@@ -39,10 +39,9 @@ public partial class WFrageView : ComponentBase, ITaskView
     [Inject] private TaskSessionController Session { get; set; } = null!;
 
     private IChosenTask? _loadedForTask;
-    private WFrageAufgabe _aufgabe = new(string.Empty, FrageRolle.Wer, "Wer?", string.Empty, [], string.Empty);
+    private WFrageAufgabe _aufgabe = new(string.Empty, FrageRolle.Wer, "Wer?", [], string.Empty);
     private readonly HashSet<string> _wrongPicks = [];
     private bool _isProcessing;
-    private bool _showHint;
     private bool _solved;
     private string? _feedbackText;
     private int _correctCount;
@@ -58,7 +57,6 @@ public partial class WFrageView : ComponentBase, ITaskView
 
         _aufgabe = (WFrageAufgabe)ChosenTask.Payload;
         _wrongPicks.Clear();
-        _showHint = false;
         _solved = false;
         _feedbackText = null;
         _isProcessing = false;
@@ -93,7 +91,7 @@ public partial class WFrageView : ComponentBase, ITaskView
             _feedbackText = "Richtig!";
             log.Falsch = _wrongPicks.Count;
             log.Kompetenz.AddRichtig();
-            // Half points once the answer has been highlighted in the sentence after a wrong pick.
+            // Half points after a wrong pick.
             var points = LesePunkte.ForText(_aufgabe.Text, _aufgabe.Frage) / (_wrongPicks.Count > 0 ? 2 : 1);
             await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points, detail);
             StateHasChanged();
@@ -105,8 +103,7 @@ public partial class WFrageView : ComponentBase, ITaskView
         {
             _wrongPicks.Add(option.Label);
             _wrongCount++;
-            _showHint = true;
-            _feedbackText = "Nochmal! Die Antwort ist jetzt im Satz markiert.";
+            _feedbackText = "Nochmal! Lies den Satz noch einmal.";
             log.Falsch = _wrongPicks.Count;
             log.Kompetenz.AddFalsch();
             await Session.RecordFailure(ChosenTask, log.Kompetenz, 0, 0, detail);

@@ -26,12 +26,3 @@
 .lese-wort-hoerbar:hover {
     background: #f1ead0;
 }
-
-.lese-highlight {
-    color: var(--lese-hl);
-    font-weight: bold;
-    text-decoration: underline;
-    text-decoration-color: var(--lese-hl);
-    text-decoration-thickness: 3px;
-    text-underline-offset: 6px;
-}

@@ -120,11 +120,26 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   from general to specific (`Model/Lesen/Raetsel.cs`, hand-written). Level 1 takes its wrong options
   from other `RaetselBereich`s, so the first clue already decides (`Unpassend` lists cross-kind
   pairs a clue would still fit). Level 2 uses each riddle's hand-picked `Aehnliche`, which the first
-  clue fits too, so only the last clue decides; that last clue is what a wrong pick highlights.
+  clue fits too, so only the last clue decides. A wrong pick in W-Frage or Rätsel only greys that
+  option out - nothing in the text gets marked, so the answer still has to be read.
   All three render sentences via `LeseSatz`, where words in `WordMeta` can be tapped to hear them
   (`WordAudio.PathFor`). Answer words without a recording yet are queued for the next recording
   session in the local, gitignored `WaveSplit/names.txt`.
-  Points scale with word count (`LesePunkte`, calibrated to a 5-10 min session to the reward), and wrong answers cost nothing. The old Silben
+  `SuchRasterView` (`"such-raster"`) is the search grid there: tap every matching tile, hand in
+  with "Fertig!". Two kinds share it via the `SuchRaster` payload (`Model/Lesen/SuchRaster.cs`):
+  "Nomen finden" (skill `read_nouns`, `NomenSammlung`) - 16 words, 6-8 of them nouns, all in
+  lower case; word lists are hand-picked to be unambiguous that way (no
+  "Decke"/"decke", "Essen"/"essen"); level 1 only touchable nouns, level 2 mixes in abstract ones
+  ("Sprung", "Geist"), level 3 only abstract nouns, each next to a non-noun of its word family
+  ("springt") - and "Spiegelbuchstaben" (skill `read_mirror_letters`, `Spiegelbuchstaben`): find
+  one of b/d/p/q among the others, 4×4 at level 2, 5×5 at level 3. No read-aloud. Only the first
+  hand-in is scored (`SuchRasterWertung`: full / half / zero points for 0 / 1 / 2 mistakes - a
+  wrong tap or a missed tile - and a point off for each one beyond; up to one mistake counts as
+  solved for mastery). After a hand-in with mistakes they light up for 1.5 s and the child fixes
+  them: "Weiter" unlocks once everything is right or after 10 s; pressing it with mistakes left
+  marks them for good, and the grid still has to be fixed before going on.
+  Points scale with word count (`LesePunkte`, calibrated to a 5-10 min session to the reward), and
+  apart from the search grid wrong answers cost nothing. The old Silben
   tasks are mixed in via `TaskHost`'s `FillerSkills`/`FillerChance` (fixed ~1-in-8 rate, independent of
   mastery).
 - `TurboArithChallenge` is deliberately **not** on `TaskHost` - it's a fixed 3-minute timed round on
@@ -165,7 +180,7 @@ to serve it.
 
 - `ScoreService` — base + decaying bonus score (bonus decays on a `System.Threading.Timer`); also self-adjusts a difficulty/pacing target from elapsed time between answers.
 - `HudStateService` — combo count / timer visibility / current task difficulty, exposed via `OnChange` for HUD components to subscribe to. `TaskHost` sets the difficulty for every task it loads (and clears it on dispose); `DifficultyIndicator` in the HUD sidebar shows it under the combo.
-- Difficulty rewards: `Model/DifficultyInfo.cs` holds the kid-facing icon/label (🎈 Spielen, 💪 Arbeiten, 🔥 Anstrengend) and the point factor (×1 / ×1.5 / ×2) per `Difficulty`. `TaskSessionController.RecordSuccess` scales every success's points by it, so views pass Normal-level points; only points awarded outside of it (Silbenhammer's per-word `Score.AddPoints`) call `DifficultyInfo.Scale` themselves. `Difficulty` is relative to the candidate pool (easiest `DifficultyLevel` = Normal), not to the learner's mastery - see GitHub issue #1.
+- Difficulty rewards: `Model/DifficultyInfo.cs` holds the kid-facing icon/label (🎈 Spielen, 💪 Arbeiten, 💣 Bombe) and the point factor (×1 / ×1.5 / ×2) per `Difficulty`. `TaskSessionController.RecordSuccess` scales every success's points by it, so views pass Normal-level points; only points awarded outside of it (Silbenhammer's per-word `Score.AddPoints`) call `DifficultyInfo.Scale` themselves. `Difficulty` is relative to the candidate pool (easiest `DifficultyLevel` = Normal), not to the learner's mastery - see GitHub issue #1.
 - `LoggerService` — broadcasts `RenderFragment` log entries (`OnLogAppended`) for an in-page live log.
 - `SidWidgetService` — current player volume, exposed via `OnVolumeChanged` so pages/views can duck/restore music (e.g. `SilbenMultipleChoiceView` lowers volume while an exercise is active).
 - `SidPlayerService` (scoped) — thin JS-interop wrapper around `wwwroot/js/jsSID.js`'s `window.sidPlayer` (a C64 SID chiptune player) for the `SidPlayerWidget` component; SID files live in `wwwroot/sids`, cataloged in `sidfiles.json`.

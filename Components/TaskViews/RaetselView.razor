@@ -4,8 +4,7 @@
     <div class="raetsel-hinweise">
         @foreach (var hinweis in _aufgabe.Hinweise)
         {
-            <LeseSatz Text="@hinweis" Highlight="@(_showHint && hinweis == _aufgabe.Entscheidend ? hinweis : null)"
-                      HighlightColor="@HintColor" />
+            <LeseSatz Text="@hinweis" />
         }
     </div>
 

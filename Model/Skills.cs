@@ -14,6 +14,8 @@ public static class Skill
     public const string ReadSentenceTruth = "read_sentence_truth";
     public const string ReadWhQuestion = "read_wh_question";
     public const string ReadRiddle = "read_riddle";
+    public const string ReadNouns = "read_nouns";
+    public const string ReadMirrorLetters = "read_mirror_letters";
 
     public static class Math
     {
@@ -167,6 +169,22 @@ public static class SkillRegistry
             {
                 Id = Skill.ReadRiddle, Domain = TaskDomain.Reading, Category = "comprehension", Difficulty = 2,
                 DisplayName = "Wer bin ich?"
+            }
+        },
+        {
+            Skill.ReadNouns,
+            new SkillDefinition
+            {
+                Id = Skill.ReadNouns, Domain = TaskDomain.Reading, Category = "grammar", Difficulty = 2,
+                DisplayName = "Nomen finden"
+            }
+        },
+        {
+            Skill.ReadMirrorLetters,
+            new SkillDefinition
+            {
+                Id = Skill.ReadMirrorLetters, Domain = TaskDomain.Reading, Category = "phonetics", Difficulty = 2,
+                DisplayName = "Spiegelbuchstaben"
             }
         }
     };

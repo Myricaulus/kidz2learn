@@ -36,7 +36,6 @@ public sealed record WFrageAufgabe(
     string Text,
     FrageRolle Rolle,
     string Frage,
-    string Highlight,
     IReadOnlyList<WFrageOption> Optionen,
     string Richtig)
 {
@@ -152,7 +151,6 @@ public static class WFragen
             rahmen.Text,
             gefragt.Rolle,
             Frage(rahmen, gefragt),
-            gefragt.Phrase,
             optionen,
             usePhrases ? gefragt.Phrase : gefragt.Antwort);
     }

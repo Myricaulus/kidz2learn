@@ -117,7 +117,6 @@ public class WFragenTests
             Assert.Single(aufgabe.Optionen, o => o.Label == aufgabe.Richtig);
             Assert.StartsWith(aufgabe.Fragewort + " ", aufgabe.Frage);
             Assert.EndsWith("?", aufgabe.Frage);
-            Assert.Contains(aufgabe.Highlight, aufgabe.Text, StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -223,13 +222,6 @@ public class RaetselTests
             Assert.Equal(raetsel.Aehnliche.Append(raetsel.Loesung).Order(), aufgabe.Optionen.Order());
         }
     }
-
-    [Fact]
-    public void DecidingClue_IsTheLastOne()
-    {
-        var aufgabe = RaetselSammlung.Build(RaetselSammlung.Alle[0], RaetselSammlung.Alle[0].Aehnliche, Rng);
-        Assert.Equal(RaetselSammlung.Alle[0].Hinweise[^1], aufgabe.Entscheidend);
-    }
 }
 
 public class WordAudioTests
@@ -288,5 +280,123 @@ public class LesePunkteTests
         Assert.Equal(
             LesePunkte.ForText("Die Tante hört im Auto Radio. Wo hört die Tante Radio?"),
             LesePunkte.ForText("Die Tante hört im Auto Radio.", "Wo hört die Tante Radio?"));
+    }
+}
+
+public class NomenTests
+{
+    private static readonly Random Rng = new(4711);
+
+    private static readonly Func<Random, SuchRaster>[] Generators =
+        [NomenSammlung.GenerateLeicht, NomenSammlung.GenerateMittel, NomenSammlung.GenerateSchwer];
+
+    private static IEnumerable<string> AlleNomen =>
+        NomenSammlung.Konkret.Concat(NomenSammlung.Abstrakt.Select(a => a.Wort));
+
+    private static IEnumerable<string> AlleKeineNomen =>
+        NomenSammlung.KeineNomen.Concat(NomenSammlung.Abstrakt.SelectMany(a => a.Verwandte));
+
+    [Fact]
+    public void NoWord_IsListedAsNounAndAsNonNoun()
+    {
+        var nomen = AlleNomen.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain(AlleKeineNomen, nomen.Contains);
+    }
+
+    [Fact]
+    public void Nouns_AreCapitalized_AndNonNounsLowercase()
+    {
+        Assert.All(AlleNomen, n => Assert.True(char.IsUpper(n[0]), n));
+        Assert.All(AlleKeineNomen, k => Assert.Equal(k.ToLowerInvariant(), k));
+    }
+
+    [Fact]
+    public void Generators_FillTheGridWithDistinctWords_AndSixToEightNouns()
+    {
+        foreach (var generate in Generators)
+        for (var i = 0; i < 300; i++)
+        {
+            var aufgabe = generate(Rng);
+            Assert.Equal(NomenSammlung.Anzahl, aufgabe.Felder.Count);
+            Assert.Equal(NomenSammlung.Anzahl,
+                aufgabe.Felder.Select(w => w.Text).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            Assert.InRange(aufgabe.AnzahlTreffer, NomenSammlung.MinNomen, NomenSammlung.MaxNomen);
+        }
+    }
+
+    [Fact]
+    public void Generators_WriteTheWholeGridInLowerCase()
+    {
+        foreach (var generate in Generators)
+        for (var i = 0; i < 100; i++)
+            Assert.All(generate(Rng).Felder, w => Assert.Equal(w.Text.ToLowerInvariant(), w.Text));
+    }
+
+    [Fact]
+    public void Leicht_OnlyUsesTouchableNouns()
+    {
+        var konkret = NomenSammlung.Konkret.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < 200; i++)
+            Assert.All(NomenSammlung.GenerateLeicht(Rng).Felder.Where(w => w.Treffer),
+                w => Assert.Contains(w.Text, konkret));
+    }
+
+    [Fact]
+    public void Schwer_PutsARelatedNonNounNextToEveryAbstractNounThatHasOne()
+    {
+        for (var i = 0; i < 200; i++)
+        {
+            var woerter = NomenSammlung.GenerateSchwer(Rng).Felder
+                .Select(w => w.Text).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var nomen in NomenSammlung.Abstrakt.Where(a => woerter.Contains(a.Wort)))
+                if (nomen.Verwandte.Length > 0)
+                    Assert.Contains(nomen.Verwandte, woerter.Contains);
+        }
+    }
+
+    [Theory]
+    [InlineData(0, 10)]
+    [InlineData(1, 5)]
+    [InlineData(2, 0)]
+    [InlineData(3, -1)]
+    [InlineData(5, -3)]
+    public void Punkte_HalveForOneMistake_VanishForTwo_AndGoNegativeFromThree(int fehler, int expected)
+    {
+        Assert.Equal(expected, SuchRasterWertung.Punkte(10, fehler));
+    }
+}
+
+public class SpiegelbuchstabenTests
+{
+    private static readonly Random Rng = new(4711);
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void Build_FillsASquareGridWithMirrorLetters_AQuarterToAThirdBeingTheTarget(int seite)
+    {
+        for (var i = 0; i < 300; i++)
+        {
+            var raster = Spiegelbuchstaben.Build(seite, 5, Rng);
+            Assert.Equal(seite, raster.Spalten);
+            Assert.Equal(seite * seite, raster.Felder.Count);
+            Assert.All(raster.Felder, f => Assert.Contains(f.Text, Spiegelbuchstaben.Buchstaben));
+            Assert.All(raster.Felder, f => Assert.Equal(f.Text == raster.Ziel, f.Treffer));
+            Assert.InRange(raster.AnzahlTreffer, seite * seite / 4, seite * seite / 3);
+        }
+    }
+
+    [Fact]
+    public void EveryLetter_ComesUpAsTarget()
+    {
+        var ziele = Enumerable.Range(0, 200).Select(_ => Spiegelbuchstaben.GenerateMittel(Rng).Ziel).ToHashSet();
+        Assert.Equal(Spiegelbuchstaben.Buchstaben.ToHashSet(), ziele);
+    }
+
+    [Fact]
+    public void Levels_AreFourByFourAndFiveByFive()
+    {
+        Assert.Equal(16, Spiegelbuchstaben.GenerateMittel(Rng).Felder.Count);
+        Assert.Equal(25, Spiegelbuchstaben.GenerateSchwer(Rng).Felder.Count);
     }
 }
