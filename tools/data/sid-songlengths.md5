@@ -1,0 +1,14 @@
+; Song lengths for the tunes in wwwroot/sids - lines copied from HVSC's DOCUMENTS/Songlengths.md5
+; (https://www.hvsc.c64.org/download/C64Music/DOCUMENTS/Songlengths.md5): a "; <path>" line, then
+; "<md5 of the whole .sid file>=<length of subtune 1> <subtune 2> ...". tools/generate_manifests.py
+; matches a file by its MD5 first, then by file name (HVSC's version of a tune can differ).
+; A new .sid: copy its two lines here, or it plays for the default length.
+[Database]
+; /MUSICIANS/B/Bayliss_Richard/Alpacalypse.sid
+371f2c378f570f6f3d3dfde9782d0aec=2:48.541 1:54.914 2:33.219 0:04.09 0:03.852 0:05.048 3:27.005
+; /MUSICIANS/B/Bayliss_Richard/A_Wonder.sid
+1a306d4fcfae86dee941c244a3c68d3e=4:45
+; /MUSICIANS/S/Samplr/Back_in_1986.sid
+2b3a506394a80381f779fda40f6df9cc=1:01.288
+; /MUSICIANS/S/Spino2006/Dragons_Ballad.sid
+f468aa5eaace39cf6c91b6a6a4028d04=4:54.946

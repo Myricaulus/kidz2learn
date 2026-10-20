@@ -1,4 +1,4 @@
-﻿window.elementInterop = {
+﻿﻿window.elementInterop = {
     blurElementById: function (id) {
         document.getElementById(id)?.blur();
     },
@@ -18,6 +18,14 @@
 // to still allow it. Primes the *real*, persistently-mounted #audioPlayer element (see
 // MainLayout.razor) rather than a detached dummy, so the gesture-linkage is tied to the
 // same element that will actually play syllable audio afterward.
+// jsSID tunes loop forever; it only offers a callback once the current tune has played a given
+// number of seconds (paused time doesn't count). Reset by every load, so set it per tune.
+window.k4l_sidOnEnd = function (dotnetRef, seconds) {
+    window.sidPlayer.setendcallback(function () {
+        dotnetRef.invokeMethodAsync("OnSidEnded");
+    }, seconds);
+};
+
 window.k4l_primeAudioPlayer = function (id) {
     var el = document.getElementById(id);
     if (!el) return;

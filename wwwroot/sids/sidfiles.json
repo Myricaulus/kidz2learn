@@ -1,6 +1,18 @@
 [
-  "A_Wonder.sid",
-  "Alpacalypse.sid",
-  "Back_in_1986.sid",
-  "Dragon's_Ballad.sid"
+  {
+    "file": "A_Wonder.sid",
+    "seconds": 285.0
+  },
+  {
+    "file": "Alpacalypse.sid",
+    "seconds": 168.5
+  },
+  {
+    "file": "Back_in_1986.sid",
+    "seconds": 61.3
+  },
+  {
+    "file": "Dragon's_Ballad.sid",
+    "seconds": 294.9
+  }
 ]

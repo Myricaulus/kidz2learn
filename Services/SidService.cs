@@ -106,8 +106,9 @@ public class SidPlayerService
         await _js.InvokeVoidAsync("window.sidPlayer.setstartcallback", callbackName);
     }
 
-    public async Task SetEndCallback(string callbackName, int seconds)
+    /// <summary>Calls <c>OnSidEnded</c> on <paramref name="target" /> once the current tune has played <paramref name="seconds" />.</summary>
+    public async Task OnEnd<T>(DotNetObjectReference<T> target, double seconds) where T : class
     {
-        await _js.InvokeVoidAsync("window.sidPlayer.setendcallback", callbackName, seconds);
+        await _js.InvokeVoidAsync("k4l_sidOnEnd", target, seconds);
     }
 }

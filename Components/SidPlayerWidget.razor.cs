@@ -2,13 +2,25 @@
 using System.Net.Http.Json;
 using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Kidz2Learn.Components;
 
-public partial class SidPlayerWidget : ComponentBase
+/// <param name="Seconds">How long the tune runs before it loops (HVSC song length), null if unknown.</param>
+public sealed record SidFile(string File, double? Seconds);
+
+/// <summary>
+///     Background SID music: a random tune at start, and at the end of each tune (its HVSC length
+///     from <c>sidfiles.json</c>, <see cref="DefaultSeconds" /> if unknown) a random other one.
+/// </summary>
+public partial class SidPlayerWidget : ComponentBase, IDisposable
 {
+    private const double DefaultSeconds = 180;
+
     private bool _isStarted;
-    private List<string>? _sidFiles;
+    private List<SidFile>? _sidFiles;
+    private SidFile? _current;
+    private DotNetObjectReference<SidPlayerWidget>? _selfRef;
     [Inject] private HttpClient Http { get; set; } = null!;
     [Inject] public SidWidgetService Player { get; set; } = null!;
     public string SidTitle { get; set; } = string.Empty;
@@ -22,10 +34,16 @@ public partial class SidPlayerWidget : ComponentBase
     {
         Player.OnVolumeChanged += ApplyVolume;
         await Player.SetVolume(0.4); // seeds SidWidgetService's base volume, cascades via ApplyVolume below
-        _sidFiles = await Http.GetFromJsonAsync<List<string>>("sids/sidfiles.json");
+        _sidFiles = await Http.GetFromJsonAsync<List<SidFile>>("sids/sidfiles.json");
         await TogglePlay();
     }
     
+    [JSInvokable]
+    public async Task OnSidEnded()
+    {
+        await InvokeAsync(NextTitle);
+    }
+
     private async Task NextTitle()
     {
         await SidPlayer.Stop();
@@ -39,14 +57,19 @@ public partial class SidPlayerWidget : ComponentBase
     {
         if (!_isStarted)
         {
-            // Testweise einfach ein hartcodiertes SID File laden
-            var sid = _sidFiles?[_random.Next(_sidFiles.Count)];
-            
-            if (sid is not null)
+            var andere = _sidFiles?.Where(s => s != _current).ToList();
+            if (andere is { Count: 0 })
+                andere = _sidFiles;
+
+            if (andere is { Count: > 0 })
             {
-                SidTitle = sid;
-                await SidPlayer.LoadStart($"sids/{sid}", 0);
+                _current = andere[_random.Next(andere.Count)];
+                SidTitle = _current.File;
+                _selfRef ??= DotNetObjectReference.Create(this);
+                await SidPlayer.OnEnd(_selfRef, _current.Seconds ?? DefaultSeconds);
+                await SidPlayer.LoadStart($"sids/{_current.File}", 0);
                 _isStarted = true;
+                StateHasChanged();
             }
         }
         else
@@ -73,5 +96,6 @@ public partial class SidPlayerWidget : ComponentBase
     public void Dispose()
     {
         Player.OnVolumeChanged -= ApplyVolume;
+        _selfRef?.Dispose();
     }
 }
