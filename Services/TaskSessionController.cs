@@ -55,7 +55,11 @@ public sealed class TaskSessionController(
         _skillAttempts.Clear();
     }
 
-    /// <summary>Marks the moment the current task is shown; attempt durations are measured from here.</summary>
+    /// <summary>
+    ///     Marks the moment the current question is shown; attempt durations (telemetry and mastery)
+    ///     are measured from here and the attempt count starts over. <c>TaskHost</c> calls it per
+    ///     task, a view that asks several questions per task calls it again for each one.
+    /// </summary>
     public void BeginTask()
     {
         _taskStarted = DateTime.Now;
@@ -77,7 +81,7 @@ public sealed class TaskSessionController(
         SuccessfulAttempts++;
         RecordPerSkill(task, success: true);
         await affirmation.PlayErfolgAsync();
-        var mastery = await task.Success(kompetenz);
+        var mastery = await task.Success(kompetenz, ElapsedMs(answered));
         RecordTelemetry(task, answered, attempt, detail, correct: true, basePoints + bonusPoints, mastery);
     }
 
@@ -92,7 +96,7 @@ public sealed class TaskSessionController(
         TotalAttempts++;
         RecordPerSkill(task, success: false);
         await affirmation.PlayMisserfolgAsync();
-        var mastery = await task.Fail(kompetenz);
+        var mastery = await task.Fail(kompetenz, ElapsedMs(answered));
         RecordTelemetry(task, answered, attempt, detail, correct: false, basePoints + bonusPoints, mastery);
     }
 
@@ -100,10 +104,12 @@ public sealed class TaskSessionController(
         int points, IReadOnlyDictionary<string, MasteryChange> mastery)
     {
         telemetry.Record(new TelemetryEntry(answered, task.View, task.Skills, task.Level, task.Difficulty.ToString(),
-            attempt, detail, correct, points, (long)(answered - _taskStarted).TotalMilliseconds,
+            attempt, detail, correct, points, ElapsedMs(answered),
             mastery.ToDictionary(m => m.Key,
                 m => new TelemetryMastery(Math.Round(m.Value.Before, 4), Math.Round(m.Value.After, 4)))));
     }
+
+    private int ElapsedMs(DateTime answered) => (int)(answered - _taskStarted).TotalMilliseconds;
 
     private void RecordPerSkill(IChosenTask task, bool success)
     {

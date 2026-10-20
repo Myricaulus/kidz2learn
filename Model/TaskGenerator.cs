@@ -20,6 +20,7 @@ public sealed class LearningTask<T> : IChosenTask where T : BaseTaskDefinition
     ///     entfliehen können!
     ///     Ausserdem sollten sich die Unterschiede im Millisekunden bereich aufhalten...
     /// </summary>
+    /// <remarks>Only times <see cref="Success(Kompetenzniveau)" />/<see cref="Fail(Kompetenzniveau)" />.</remarks>
     private readonly DateTime _timeStarted = DateTime.Now;
 
     internal LearningTask(
@@ -61,22 +62,36 @@ public sealed class LearningTask<T> : IChosenTask where T : BaseTaskDefinition
     IReadOnlyList<string> IChosenTask.Skills => Task.Skills;
     int IChosenTask.Level => Task.DifficultyLevel;
 
+    /// <summary>Scores an attempt timed from this task's creation - for callers outside <c>TaskSessionController</c> (Turbo).</summary>
     public Task<IReadOnlyDictionary<string, MasteryChange>> Success(Kompetenzniveau kompetenz)
     {
-        return Adjust(kompetenz, true);
+        return Adjust(kompetenz, true, ElapsedMs);
     }
 
+    /// <inheritdoc cref="Success(Kompetenzniveau)" />
     public Task<IReadOnlyDictionary<string, MasteryChange>> Fail(Kompetenzniveau kompetenz)
     {
-        return Adjust(kompetenz, false);
+        return Adjust(kompetenz, false, ElapsedMs);
     }
 
-    private async Task<IReadOnlyDictionary<string, MasteryChange>> Adjust(Kompetenzniveau kompetenz, bool success)
+    public Task<IReadOnlyDictionary<string, MasteryChange>> Success(Kompetenzniveau kompetenz, int timeMs)
     {
-        var time = DateTime.Now - _timeStarted;
+        return Adjust(kompetenz, true, timeMs);
+    }
+
+    public Task<IReadOnlyDictionary<string, MasteryChange>> Fail(Kompetenzniveau kompetenz, int timeMs)
+    {
+        return Adjust(kompetenz, false, timeMs);
+    }
+
+    private int ElapsedMs => (int)(DateTime.Now - _timeStarted).TotalMilliseconds;
+
+    private async Task<IReadOnlyDictionary<string, MasteryChange>> Adjust(Kompetenzniveau kompetenz, bool success,
+        int timeMs)
+    {
         var changes = new Dictionary<string, MasteryChange>();
         foreach (var skill in Task.Skills)
-            changes[skill] = await _store.Adjust(skill, Difficulty, (int)time.TotalMilliseconds, kompetenz, success);
+            changes[skill] = await _store.Adjust(skill, Difficulty, timeMs, kompetenz, success);
         return changes;
     }
 }

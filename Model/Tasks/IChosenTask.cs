@@ -18,9 +18,12 @@ public interface IChosenTask
     /// <summary>The definition's absolute <see cref="BaseTaskDefinition.DifficultyLevel" />.</summary>
     int Level { get; }
 
-    /// <summary>Scores the attempt into every skill's mastery; returns each skill's change, keyed by skill id.</summary>
-    Task<IReadOnlyDictionary<string, MasteryChange>> Success(Kompetenzniveau kompetenz);
+    /// <summary>
+    ///     Scores the attempt into every skill's mastery; returns each skill's change, keyed by skill id.
+    ///     <paramref name="timeMs" /> is the time since the question was shown.
+    /// </summary>
+    Task<IReadOnlyDictionary<string, MasteryChange>> Success(Kompetenzniveau kompetenz, int timeMs);
 
     /// <inheritdoc cref="Success" />
-    Task<IReadOnlyDictionary<string, MasteryChange>> Fail(Kompetenzniveau kompetenz);
+    Task<IReadOnlyDictionary<string, MasteryChange>> Fail(Kompetenzniveau kompetenz, int timeMs);
 }

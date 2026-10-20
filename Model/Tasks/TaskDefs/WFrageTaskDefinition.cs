@@ -4,7 +4,7 @@ namespace Kidz2Learn.Model.Tasks.TaskDefs;
 
 public sealed class WFrageTaskDefinition : BaseTaskDefinition
 {
-    public required Func<Random, WFrageAufgabe> Generator { get; init; }
+    public required Func<Random, WFrageSerie> Generator { get; init; }
 
     internal override IChosenTask Choose(Random rng, Difficulty difficulty, ISkillMasteryStore store)
     {

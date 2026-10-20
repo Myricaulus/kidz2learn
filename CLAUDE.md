@@ -114,14 +114,19 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   (`"w-frage"`, skill `read_wh_question`) are the sentence-comprehension tasks on the `/`
   start page ("Lesedetektiv"), built for slow/imprecise readers: no pictures, no writing, short
   sentences from the known word list. Content is hand-written/templated in `Model/Lesen/`
-  (`QuatschSaetze`: true-vs-nonsense sentences; `WFragen`: one sentence, a color-coded W-question,
-  and *all of that sentence's own parts* as options, so keyword-matching never suffices).
+  (`QuatschSaetze`: true-vs-nonsense sentences; `WFragen`: one sentence and a series of 2-3 questions
+  about it (`WFrageSerie`), each a color-coded W-question in its own box with *all of that sentence's
+  own parts* as options, so keyword-matching never suffices; every question is its own scored
+  attempt, `TaskSessionController.BeginTask` per question).
   `RaetselView` (`"raetsel"`, skill `read_riddle`, "Wer bin ich?") joins them there: three clues
   from general to specific (`Model/Lesen/Raetsel.cs`, hand-written). Level 1 takes its wrong options
   from other `RaetselBereich`s, so the first clue already decides (`Unpassend` lists cross-kind
   pairs a clue would still fit). Level 2 uses each riddle's hand-picked `Aehnliche`, which the first
   clue fits too, so only the last clue decides. A wrong pick in W-Frage or Rätsel only greys that
-  option out - nothing in the text gets marked, so the answer still has to be read.
+  option out - nothing in the text gets marked, so the answer still has to be read. In W-Frage it
+  also costs points (`DifficultyInfo.Penalty`: -10 per wrong pick so far as in Silben, weighted ×1.5
+  / ×0.5 / ×0.2 for 🎈 / 💪 / 💣) and makes the question word blink and play (once `wer`/`wo`/...
+  are recorded) while the options stay locked for 1.6 s.
   All three render sentences via `LeseSatz`, where words in `WordMeta` can be tapped to hear them
   (`WordAudio.PathFor`). Answer words without a recording yet are queued for the next recording
   session in the local, gitignored `WaveSplit/names.txt`.
@@ -139,7 +144,7 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   them: "Weiter" unlocks once everything is right or after 10 s; pressing it with mistakes left
   marks them for good, and the grid still has to be fixed before going on.
   Points scale with word count (`LesePunkte`, calibrated to a 5-10 min session to the reward), and
-  apart from the search grid wrong answers cost nothing. The old Silben
+  apart from the search grid and W-Frage wrong answers cost nothing. The old Silben
   tasks are mixed in via `TaskHost`'s `FillerSkills`/`FillerChance` (fixed ~1-in-8 rate, independent of
   mastery).
 - `TurboArithChallenge` is deliberately **not** on `TaskHost` - it's a fixed 3-minute timed round on

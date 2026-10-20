@@ -40,4 +40,26 @@ public static class DifficultyInfo
     {
         return (int)Math.Round(points * PointFactor(difficulty), MidpointRounding.AwayFromZero);
     }
+
+    /// <summary>
+    ///     Weight of a wrong answer's penalty: guessing through the options of an easy task costs
+    ///     more than a slip on a hard one.
+    /// </summary>
+    public static double PenaltyFactor(Difficulty difficulty) => difficulty switch
+    {
+        Difficulty.Normal => 1.5,
+        Difficulty.Hard => 0.5,
+        Difficulty.Extreme => 0.2,
+        _ => throw new ArgumentOutOfRangeException(nameof(difficulty))
+    };
+
+    /// <summary>
+    ///     Base (and, separately, bonus) points for the <paramref name="wrongCount" />-th wrong answer
+    ///     to the same question: -10 per wrong answer so far, as in the Silben tasks, weighted by
+    ///     <see cref="PenaltyFactor" />.
+    /// </summary>
+    public static int Penalty(int wrongCount, Difficulty difficulty)
+    {
+        return -(int)Math.Round(10 * wrongCount * PenaltyFactor(difficulty), MidpointRounding.AwayFromZero);
+    }
 }

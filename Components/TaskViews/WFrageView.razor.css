@@ -34,15 +34,41 @@
     justify-content: space-around;
 }
 
+/* Same box shape as the sentence (LeseSatz) and the options, framed in the question word's color. */
 .lese-frage {
+    margin: 0 auto 25px;
+    padding: 12px 22px;
+    background: #fff;
+    border: 4px solid;
+    border-radius: 18px;
+}
+
+.lese-frage-nummer {
+    font-size: 1rem;
+    color: #777;
+}
+
+.lese-frage-text {
     font-size: clamp(1.5rem, 4.5vw, 2.2rem);
     font-weight: bold;
-    margin-bottom: 20px;
+    margin: 0;
 }
 
 .lese-fragewort {
+    display: inline-block;
     font-size: 1.25em;
     letter-spacing: 0.05em;
+}
+
+.lese-fragewort-hinweis {
+    animation: lese-fragewort-blinken 0.4s ease-in-out 4;
+}
+
+@keyframes lese-fragewort-blinken {
+    50% {
+        transform: scale(1.4);
+        opacity: 0.35;
+    }
 }
 
 .lese-option {

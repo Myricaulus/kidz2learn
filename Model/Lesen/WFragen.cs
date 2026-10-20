@@ -42,6 +42,12 @@ public sealed record WFrageAufgabe(
     public string Fragewort => Rolle.ToString();
 }
 
+/// <summary>
+///     Payload of a "W-Fragen" task: several questions about the same sentence, each asking for a
+///     different part, so the question word is the only thing that changes between them.
+/// </summary>
+public sealed record WFrageSerie(string Text, IReadOnlyList<WFrageAufgabe> Fragen);
+
 public static class WFragen
 {
     private static SatzTeil Wer(string phrase, string antwort) => new(FrageRolle.Wer, phrase, antwort);
@@ -123,25 +129,33 @@ public static class WFragen
             Was("sein Schwert", "Schwert"))
     ];
 
-    /// <summary>Level 1: three-part sentences, options are the sentence phrases ("im Sand").</summary>
-    public static WFrageAufgabe GenerateLeicht(Random rng)
+    /// <summary>Level 1: three-part sentences, two questions, options are the sentence phrases ("im Sand").</summary>
+    public static WFrageSerie GenerateLeicht(Random rng)
     {
         var pool = Rahmen.Where(r => r.Teile.Length <= 3).ToList();
-        return Build(pool[rng.Next(pool.Count)], usePhrases: true, rng);
+        return BuildSerie(pool[rng.Next(pool.Count)], usePhrases: true, fragen: 2, rng);
     }
 
     /// <summary>
-    ///     Level 2: any sentence, options are bare nouns ("Sand") - the preposition no longer hints
-    ///     at the question word, the child has to locate the part in the sentence.
+    ///     Level 2: any sentence, one question less than it has parts, options are bare nouns
+    ///     ("Sand") - the preposition no longer hints at the question word, the child has to locate
+    ///     the part in the sentence.
     /// </summary>
-    public static WFrageAufgabe GenerateSchwer(Random rng)
+    public static WFrageSerie GenerateSchwer(Random rng)
     {
-        return Build(Rahmen[rng.Next(Rahmen.Count)], usePhrases: false, rng);
+        var rahmen = Rahmen[rng.Next(Rahmen.Count)];
+        return BuildSerie(rahmen, usePhrases: false, fragen: rahmen.Teile.Length - 1, rng);
     }
 
-    public static WFrageAufgabe Build(WFrageRahmen rahmen, bool usePhrases, Random rng)
+    /// <summary>Asks for <paramref name="fragen" /> different parts of the sentence, in random order.</summary>
+    public static WFrageSerie BuildSerie(WFrageRahmen rahmen, bool usePhrases, int fragen, Random rng)
     {
-        var gefragt = rahmen.Teile[rng.Next(rahmen.Teile.Length)];
+        var gefragt = rahmen.Teile.OrderBy(_ => rng.Next()).Take(fragen);
+        return new WFrageSerie(rahmen.Text, gefragt.Select(teil => Build(rahmen, teil, usePhrases, rng)).ToList());
+    }
+
+    public static WFrageAufgabe Build(WFrageRahmen rahmen, SatzTeil gefragt, bool usePhrases, Random rng)
+    {
         var optionen = rahmen.Teile
             .Select(t => new WFrageOption(usePhrases ? t.Phrase : t.Antwort, t.Antwort))
             .OrderBy(_ => rng.Next())

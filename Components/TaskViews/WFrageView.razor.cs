@@ -10,14 +10,20 @@ using Tavenem.Blazor.IndexedDB;
 namespace Kidz2Learn.Components.TaskViews;
 
 /// <summary>
-///     "w-frage" view: a sentence, a question with a color-coded question word, and the sentence's
-///     own parts as options. A wrong pick only greys that option out and the child
-///     picks again - the sentence stays unmarked, so the answer still has to be read. Picking an option plays its word when
-///     it's in the known word list.
+///     "w-frage" view: a sentence and a series of questions about it (<see cref="WFrageSerie" />),
+///     each with a color-coded question word and the sentence's own parts as options. Every
+///     question is its own scored attempt (<see cref="TaskSessionController.BeginTask" /> per question).
+///     A wrong pick greys that option out, costs points (<see cref="DifficultyInfo.Penalty" />), and
+///     makes the question word blink and play while the options are locked - the sentence stays
+///     unmarked, so the answer still has to be read. A correct pick plays its word when it's in
+///     the known word list.
 /// </summary>
 public partial class WFrageView : ComponentBase, ITaskView
 {
     private const int CorrectDelayMs = 1400;
+
+    /// <summary>How long the question word blinks after a wrong pick; the options stay locked meanwhile.</summary>
+    private const int HinweisMs = 1600;
 
     /// <summary>One fixed color per question word, so the color itself becomes a cue over time.</summary>
     public static readonly IReadOnlyDictionary<FrageRolle, string> Farben = new Dictionary<FrageRolle, string>
@@ -39,7 +45,8 @@ public partial class WFrageView : ComponentBase, ITaskView
     [Inject] private TaskSessionController Session { get; set; } = null!;
 
     private IChosenTask? _loadedForTask;
-    private WFrageAufgabe _aufgabe = new(string.Empty, FrageRolle.Wer, "Wer?", [], string.Empty);
+    private WFrageSerie _serie = new(string.Empty, [new WFrageAufgabe(string.Empty, FrageRolle.Wer, "Wer?", [], string.Empty)]);
+    private int _index;
     private readonly HashSet<string> _wrongPicks = [];
     private bool _isProcessing;
     private bool _solved;
@@ -47,7 +54,11 @@ public partial class WFrageView : ComponentBase, ITaskView
     private int _correctCount;
     private int _wrongCount;
 
-    private string Farbe => Farben[_aufgabe.Rolle];
+    // Bumped on every wrong pick; keys the question-word span so the blink animation restarts.
+    private int _hinweisCount;
+
+    private WFrageAufgabe Aufgabe => _serie.Fragen[_index];
+    private string Farbe => Farben[Aufgabe.Rolle];
 
     protected override void OnParametersSet()
     {
@@ -55,18 +66,25 @@ public partial class WFrageView : ComponentBase, ITaskView
             return;
         _loadedForTask = ChosenTask;
 
-        _aufgabe = (WFrageAufgabe)ChosenTask.Payload;
+        _serie = (WFrageSerie)ChosenTask.Payload;
+        ShowFrage(0);
+    }
+
+    private void ShowFrage(int index)
+    {
+        _index = index;
         _wrongPicks.Clear();
         _solved = false;
         _feedbackText = null;
         _isProcessing = false;
+        _hinweisCount = 0;
     }
 
     private string OptionClass(WFrageOption option)
     {
         if (_wrongPicks.Contains(option.Label))
             return "lese-option-falsch";
-        return _solved && option.Label == _aufgabe.Richtig ? "lese-option-richtig" : string.Empty;
+        return _solved && option.Label == Aufgabe.Richtig ? "lese-option-richtig" : string.Empty;
     }
 
     private async Task Pick(WFrageOption option)
@@ -75,42 +93,73 @@ public partial class WFrageView : ComponentBase, ITaskView
             return;
         _isProcessing = true;
 
-        if (WordAudio.PathFor(option.AudioWort) is { } audio)
+        var aufgabe = Aufgabe;
+        var richtig = option.Label == aufgabe.Richtig;
+        var audio = richtig ? WordAudio.PathFor(option.AudioWort) : WordAudio.PathFor(aufgabe.Fragewort);
+        if (audio is not null)
             await Js.InvokeVoidAsync("k4l_playAudioFile", "audioPlayer", audio);
 
         var db = AufgabenDb["LeseAufgaben"] ?? throw new InvalidOperationException("LeseAufgaben store missing");
-        var id = SilbenLog.GenId($"{_aufgabe.Text}|{_aufgabe.Rolle}", Skill.ReadWhQuestion);
+        var id = SilbenLog.GenId($"{aufgabe.Text}|{aufgabe.Rolle}", Skill.ReadWhQuestion);
         var log = await db.GetItemAsync<SilbenLog>(id) ?? new SilbenLog { Id = id };
-        log.Wort = $"{_aufgabe.Fragewort}: {_aufgabe.Richtig}";
-        var detail = $"{_aufgabe.Text} | {_aufgabe.Frage} → {option.Label}";
+        log.Wort = $"{aufgabe.Fragewort}: {aufgabe.Richtig}";
+        var detail = $"{aufgabe.Text} | {aufgabe.Frage} → {option.Label}";
 
-        if (option.Label == _aufgabe.Richtig)
+        if (richtig)
         {
             _solved = true;
             _correctCount++;
             _feedbackText = "Richtig!";
             log.Falsch = _wrongPicks.Count;
             log.Kompetenz.AddRichtig();
-            // Half points after a wrong pick.
-            var points = LesePunkte.ForText(_aufgabe.Text, _aufgabe.Frage) / (_wrongPicks.Count > 0 ? 2 : 1);
-            await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points, detail);
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, Punkte(aufgabe), Punkte(aufgabe), detail);
             StateHasChanged();
 
-            _ = Task.Delay(CorrectDelayMs)
-                .ContinueWith(async _ => await InvokeAsync(() => OnNext.InvokeAsync()));
+            _ = Task.Delay(CorrectDelayMs).ContinueWith(async _ => await InvokeAsync(Weiter));
         }
         else
         {
             _wrongPicks.Add(option.Label);
             _wrongCount++;
-            _feedbackText = "Nochmal! Lies den Satz noch einmal.";
+            _hinweisCount++;
+            _feedbackText = $"Nochmal! Gefragt ist: {aufgabe.Fragewort.ToUpperInvariant()}?";
             log.Falsch = _wrongPicks.Count;
             log.Kompetenz.AddFalsch();
-            await Session.RecordFailure(ChosenTask, log.Kompetenz, 0, 0, detail);
-            _isProcessing = false;
+            var penalty = DifficultyInfo.Penalty(_wrongPicks.Count, ChosenTask.Difficulty);
+            await Session.RecordFailure(ChosenTask, log.Kompetenz, penalty, penalty, detail);
+            StateHasChanged();
+
+            _ = Task.Delay(HinweisMs).ContinueWith(async _ => await InvokeAsync(() =>
+            {
+                _isProcessing = false;
+                StateHasChanged();
+            }));
         }
 
         await db.StoreItemAsync(log);
         Logger.Log(log.ToRenderFragment());
+    }
+
+    /// <summary>
+    ///     The first question pays for reading the sentence too, follow-up questions only for
+    ///     reading the question - the sentence is already read. Half points after a wrong pick.
+    /// </summary>
+    private int Punkte(WFrageAufgabe aufgabe)
+    {
+        var punkte = _index == 0 ? LesePunkte.ForText(aufgabe.Text, aufgabe.Frage) : LesePunkte.ForText(aufgabe.Frage);
+        return punkte / (_wrongPicks.Count > 0 ? 2 : 1);
+    }
+
+    private async Task Weiter()
+    {
+        if (_index + 1 < _serie.Fragen.Count)
+        {
+            ShowFrage(_index + 1);
+            Session.BeginTask();
+            StateHasChanged();
+            return;
+        }
+
+        await OnNext.InvokeAsync();
     }
 }

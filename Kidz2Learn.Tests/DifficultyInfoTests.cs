@@ -29,4 +29,13 @@ public class DifficultyInfoTests
             Assert.False(string.IsNullOrWhiteSpace(DifficultyInfo.Label(level)));
         }
     }
+
+    [Fact]
+    public void Penalty_GrowsWithEachWrongAnswer_AndWeighsEasyTasksMost()
+    {
+        Assert.Equal(-15, DifficultyInfo.Penalty(1, Difficulty.Normal));
+        Assert.Equal(-30, DifficultyInfo.Penalty(2, Difficulty.Normal));
+        Assert.Equal(-5, DifficultyInfo.Penalty(1, Difficulty.Hard));
+        Assert.Equal(-2, DifficultyInfo.Penalty(1, Difficulty.Extreme));
+    }
 }

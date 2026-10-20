@@ -1,12 +1,19 @@
 <div class="lese-container">
-    <LeseSatz Text="@_aufgabe.Text" />
+    <LeseSatz Text="@_serie.Text" />
 
-    <h2 class="lese-frage">
-        <span class="lese-fragewort" style="color:@Farbe">@_aufgabe.Fragewort.ToUpperInvariant()</span>@_aufgabe.Frage[_aufgabe.Fragewort.Length..]
-    </h2>
+    <div class="lese-frage" style="border-color:@Farbe">
+        @if (_serie.Fragen.Count > 1)
+        {
+            <div class="lese-frage-nummer">Frage @(_index + 1) von @_serie.Fragen.Count</div>
+        }
+        <h2 class="lese-frage-text">
+            <span @key="_hinweisCount" class="lese-fragewort @(_hinweisCount > 0 ? "lese-fragewort-hinweis" : "")"
+                  style="color:@Farbe">@Aufgabe.Fragewort.ToUpperInvariant()</span>@Aufgabe.Frage[Aufgabe.Fragewort.Length..]
+        </h2>
+    </div>
 
     <div class="lese-optionen">
-        @foreach (var option in _aufgabe.Optionen)
+        @foreach (var option in Aufgabe.Optionen)
         {
             <button class="lese-option @OptionClass(option)"
                     disabled="@(_isProcessing || _wrongPicks.Contains(option.Label))"

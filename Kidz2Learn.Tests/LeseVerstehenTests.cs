@@ -110,10 +110,10 @@ public class WFragenTests
     [Fact]
     public void Generators_AlwaysOfferTheCorrectAnswer_AndStartTheQuestionWithItsQuestionWord()
     {
-        foreach (var generate in new Func<Random, WFrageAufgabe>[] { WFragen.GenerateLeicht, WFragen.GenerateSchwer })
+        foreach (var generate in new Func<Random, WFrageSerie>[] { WFragen.GenerateLeicht, WFragen.GenerateSchwer })
         for (var i = 0; i < 300; i++)
+        foreach (var aufgabe in generate(Rng).Fragen)
         {
-            var aufgabe = generate(Rng);
             Assert.Single(aufgabe.Optionen, o => o.Label == aufgabe.Richtig);
             Assert.StartsWith(aufgabe.Fragewort + " ", aufgabe.Frage);
             Assert.EndsWith("?", aufgabe.Frage);
@@ -121,10 +121,27 @@ public class WFragenTests
     }
 
     [Fact]
-    public void Leicht_OnlyUsesThreePartSentences()
+    public void Serie_AsksDifferentPartsOfTheSameSentence()
+    {
+        foreach (var generate in new Func<Random, WFrageSerie>[] { WFragen.GenerateLeicht, WFragen.GenerateSchwer })
+        for (var i = 0; i < 300; i++)
+        {
+            var serie = generate(Rng);
+            Assert.InRange(serie.Fragen.Count, 2, 3);
+            Assert.All(serie.Fragen, f => Assert.Equal(serie.Text, f.Text));
+            Assert.Equal(serie.Fragen.Count, serie.Fragen.Select(f => f.Rolle).Distinct().Count());
+        }
+    }
+
+    [Fact]
+    public void Leicht_OnlyUsesThreePartSentences_WithTwoQuestions()
     {
         for (var i = 0; i < 200; i++)
-            Assert.Equal(3, WFragen.GenerateLeicht(Rng).Optionen.Count);
+        {
+            var serie = WFragen.GenerateLeicht(Rng);
+            Assert.Equal(2, serie.Fragen.Count);
+            Assert.All(serie.Fragen, f => Assert.Equal(3, f.Optionen.Count));
+        }
     }
 
     [Fact]

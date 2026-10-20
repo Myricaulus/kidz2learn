@@ -181,9 +181,10 @@ public class ChooseAnyAsyncTests
         var generator = new AdaptiveTaskGenerator(store, new Random(1));
 
         var chosen = await generator.ChooseAnyAsync([Skill.Math.Add15]);
-        await chosen.Success(new Kompetenzniveau());
+        var changes = await chosen.Success(new Kompetenzniveau(), 1234);
 
         Assert.Equal(chosen.Skills, store.AdjustCalls.Select(c => c.SkillId));
+        Assert.Equal(chosen.Skills, changes.Keys);
         Assert.All(store.AdjustCalls, c => Assert.True(c.Success));
     }
 
@@ -194,9 +195,10 @@ public class ChooseAnyAsyncTests
         var generator = new AdaptiveTaskGenerator(store, new Random(1));
 
         var chosen = await generator.ChooseAnyAsync([Skill.Math.Add15]);
-        await chosen.Fail(new Kompetenzniveau());
+        var changes = await chosen.Fail(new Kompetenzniveau(), 1234);
 
         Assert.Equal(chosen.Skills, store.AdjustCalls.Select(c => c.SkillId));
+        Assert.Equal(chosen.Skills, changes.Keys);
         Assert.All(store.AdjustCalls, c => Assert.False(c.Success));
     }
 }
