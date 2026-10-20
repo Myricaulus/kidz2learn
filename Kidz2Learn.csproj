@@ -23,14 +23,22 @@
     <None Remove="Kidz2Learn.Tests/**/*" />
   </ItemGroup>
 
-  <!-- Regenerates the SID and audio-affirmation file manifests (wwwroot/sids/sidfiles.json,
-       wwwroot/audio/affirmations/affirmations.json) from whatever files are actually present in
-       those folders, so dropping in a new file and rebuilding is enough - no manual regen step
-       to forget. Needs python3 (standard library only, also present on Netlify's build image);
-       a failure fails the build, so a stale manifest can't ship silently. -->
-  <Target Name="RegenerateAudioManifests" BeforeTargets="Build">
+  <!-- Regenerates the SID and audio-affirmation file manifests (wwwroot/sids/sidfiles.<hash>.json,
+       wwwroot/audio/affirmations/affirmations.<hash>.json, their URLs in Shared/AssetManifests.g.cs)
+       from whatever files are actually present in those folders, so dropping in a new file and
+       rebuilding is enough - no manual regen step to forget. Needs python3 (standard library only,
+       also present on Netlify's build image); a failure fails the build, so a stale manifest can't
+       ship silently. Runs before compiling (the URLs are constants), and re-globs the manifests:
+       the evaluation-time wwwroot glob still lists the deleted old version, not the new one. -->
+  <Target Name="RegenerateAudioManifests" BeforeTargets="BeforeBuild">
     <Exec Command="python3 tools/generate_manifests.py"
           WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <ItemGroup>
+      <_DeletedManifest Include="@(Content)" Condition="!Exists('%(FullPath)')" />
+      <Content Remove="@(_DeletedManifest)" />
+      <Content Include="wwwroot/sids/sidfiles.*.json;wwwroot/audio/affirmations/affirmations.*.json"
+               Exclude="@(Content)" />
+    </ItemGroup>
   </Target>
 
 </Project>

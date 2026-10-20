@@ -1,4 +1,4 @@
-﻿using Kidz2Learn.Shared.Extensions;
+﻿using Kidz2Learn.Shared;
 using System.Net;
 using System.Net.Http.Json;
 using Kidz2Learn.Services;
@@ -35,7 +35,7 @@ public partial class SidPlayerWidget : ComponentBase, IDisposable
     {
         Player.OnVolumeChanged += ApplyVolume;
         await Player.SetVolume(0.4); // seeds SidWidgetService's base volume, cascades via ApplyVolume below
-        _sidFiles = await Http.GetFreshJsonAsync<List<SidFile>>("sids/sidfiles.json");
+        _sidFiles = await Http.GetFromJsonAsync<List<SidFile>>(AssetManifests.SidFiles);
         await TogglePlay();
     }
     

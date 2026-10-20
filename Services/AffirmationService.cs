@@ -1,4 +1,4 @@
-using Kidz2Learn.Shared.Extensions;
+using Kidz2Learn.Shared;
 using System.Net.Http.Json;
 using Microsoft.JSInterop;
 
@@ -7,13 +7,12 @@ namespace Kidz2Learn.Services;
 /// <summary>
 /// Plays a random success/failure sound after a task is answered, shared across all challenge
 /// pages via the persistently-mounted #affirmationPlayer element in MainLayout.razor. The file
-/// list comes from wwwroot/audio/affirmations/affirmations.json (regenerated from the "erfolg"/
-/// "misserfolg" folders by generate_affirmations_json.ps1); until sound files actually exist
+/// list comes from the affirmations manifest (<see cref="AssetManifests.Affirmations" />, regenerated
+/// from the "erfolg"/"misserfolg" folders by tools/generate_manifests.py); until sound files actually exist
 /// there, every category is empty and PlayAsync silently does nothing.
 /// </summary>
 public class AffirmationService(HttpClient http, IJSRuntime js)
 {
-    private const string ManifestUrl = "audio/affirmations/affirmations.json";
     private const string ElementId = "affirmationPlayer";
 
     private readonly Random _rng = new();
@@ -28,7 +27,7 @@ public class AffirmationService(HttpClient http, IJSRuntime js)
     {
         try
         {
-            return await http.GetFreshJsonAsync<Dictionary<string, List<string>>>(ManifestUrl);
+            return await http.GetFromJsonAsync<Dictionary<string, List<string>>>(AssetManifests.Affirmations);
         }
         catch
         {
