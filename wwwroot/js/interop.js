@@ -134,6 +134,20 @@ window.k4l_telemetryConfigure = function (value) {
     }
 };
 
+// Logs every attempt on every device, opted in or not, so a field test can follow along in the
+// console; copy(k4l_telemetrySession) copies the whole session so far as JSON.
+window.k4l_telemetryLog = function (entryJson, sessionJson) {
+    try {
+        var e = JSON.parse(entryJson);
+        window.k4l_telemetrySession = JSON.parse(sessionJson);
+        console.info("[telemetry] " + (e.correct ? "richtig" : "falsch") + " " + e.view + " L" + e.level + " " +
+            e.difficulty + " #" + e.attempt + " " + e.durationMs + " ms " + e.points + " P" +
+            (e.detail ? " - " + e.detail : ""), e);
+    } catch (err) {
+        console.warn("[telemetry] could not log entry", err);
+    }
+};
+
 window.k4l_telemetryEnabled = function () {
     return !!k4l_telemetryEndpoint();
 };

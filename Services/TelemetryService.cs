@@ -29,7 +29,9 @@ public sealed record TelemetryMastery(double Before, double After);
 ///     Opt-in per-device session log for the parent's own machines. A device is opted in only by
 ///     opening the app once with <c>?telemetrie=&lt;url&gt;</c>, which <c>k4l_telemetry*</c> in
 ///     <c>interop.js</c> keeps in localStorage; <c>?telemetrie=off</c> opts out again. On every
-///     other device this service never sends anything and never changes app behavior. Local dev runs
+///     other device this service never sends anything and never changes app behavior; every device,
+///     opted in or not, still logs each attempt to the browser console (field tests without opt-in).
+///     Local dev runs
 ///     opt in via the <c>Telemetrie</c> key of the gitignored <c>wwwroot/appsettings.Development.json</c>
 ///     instead (see <c>MainLayout.razor</c>); <c>App</c> in each session tells them apart from the
 ///     kids' sessions.
@@ -72,10 +74,10 @@ public sealed class TelemetryService(IJSRuntime js, ScoreService score, Navigati
 
     public void Record(TelemetryEntry entry)
     {
-        if (!IsEnabled)
-            return;
         _entries.Add(entry);
-        _ = SendAsync(TaskSendTimeoutMs);
+        _ = LogAsync(entry);
+        if (IsEnabled)
+            _ = SendAsync(TaskSendTimeoutMs);
     }
 
     /// <summary>
@@ -87,7 +89,7 @@ public sealed class TelemetryService(IJSRuntime js, ScoreService score, Navigati
         return !IsEnabled || await SendAsync(FinalSendTimeoutMs);
     }
 
-    private async Task<bool> SendAsync(int timeoutMs)
+    private string SessionJson()
     {
         var payload = new
         {
@@ -98,10 +100,25 @@ public sealed class TelemetryService(IJSRuntime js, ScoreService score, Navigati
             TotalScore = score.TotalScore,
             Entries = _entries
         };
+        return JsonSerializer.Serialize(payload, JsonOptions);
+    }
+
+    private async Task LogAsync(TelemetryEntry entry)
+    {
         try
         {
-            return await js.InvokeAsync<bool>("k4l_telemetrySend", _sessionId,
-                JsonSerializer.Serialize(payload, JsonOptions), timeoutMs);
+            await js.InvokeVoidAsync("k4l_telemetryLog", JsonSerializer.Serialize(entry, JsonOptions), SessionJson());
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private async Task<bool> SendAsync(int timeoutMs)
+    {
+        try
+        {
+            return await js.InvokeAsync<bool>("k4l_telemetrySend", _sessionId, SessionJson(), timeoutMs);
         }
         catch (JSException)
         {
