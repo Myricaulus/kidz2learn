@@ -33,7 +33,13 @@ public partial class WFrageView : ComponentBase, ITaskView
         [FrageRolle.Was] = "#2e7d32",
         [FrageRolle.Wo] = "#1565c0",
         [FrageRolle.Womit] = "#ef6c00",
-        [FrageRolle.Wann] = "#6a1b9a"
+        [FrageRolle.Wann] = "#6a1b9a",
+        [FrageRolle.Wohin] = "#00897b",
+        [FrageRolle.Woher] = "#6d4c41",
+        [FrageRolle.Wem] = "#b8860b",
+        [FrageRolle.MitWem] = "#546e7a",
+        [FrageRolle.Wie] = "#827717",
+        [FrageRolle.WieViele] = "#283593"
     };
 
     [Parameter] public IChosenTask ChosenTask { get; set; } = null!;
@@ -95,7 +101,7 @@ public partial class WFrageView : ComponentBase, ITaskView
 
         var aufgabe = Aufgabe;
         var richtig = option.Label == aufgabe.Richtig;
-        var audio = richtig ? WordAudio.PathFor(option.AudioWort) : WordAudio.PathFor(aufgabe.Fragewort);
+        var audio = richtig ? WordAudio.PathFor(option.AudioWort) : WordAudio.PathFor(WFragen.FragewortAudio(aufgabe.Rolle));
         if (audio is not null)
             await Js.InvokeVoidAsync("k4l_playAudioFile", "audioPlayer", audio);
 

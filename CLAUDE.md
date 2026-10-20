@@ -117,7 +117,9 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   (`QuatschSaetze`: true-vs-nonsense sentences; `WFragen`: one sentence and a series of 2-3 questions
   about it (`WFrageSerie`), each a color-coded W-question in its own box with *all of that sentence's
   own parts* as options, so keyword-matching never suffices; every question is its own scored
-  attempt, `TaskSessionController.BeginTask` per question).
+  attempt, `TaskSessionController.BeginTask` per question). Question words: Wer, Wen, Wem, Was, Wo,
+  Wohin, Woher, Womit, Mit wem, Wann, Wie, Wie viele; sentences pair the look-alikes (Wo + Wohin)
+  on purpose.
   `RaetselView` (`"raetsel"`, skill `read_riddle`, "Wer bin ich?") joins them there: three clues
   from general to specific (`Model/Lesen/Raetsel.cs`, hand-written). Level 1 takes its wrong options
   from other `RaetselBereich`s, so the first clue already decides (`Unpassend` lists cross-kind

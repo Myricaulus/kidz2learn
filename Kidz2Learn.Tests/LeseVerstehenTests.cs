@@ -1,3 +1,4 @@
+using Kidz2Learn.Components.TaskViews;
 using Kidz2Learn.Model;
 using Kidz2Learn.Model.Lesen;
 using Kidz2Learn.Model.Tasks;
@@ -160,6 +161,43 @@ public class WFragenTests
 
         Assert.Equal("Womit polstert der Igel sein Nest?", WFragen.Frage(rahmen, womit));
         Assert.Equal("Was polstert der Igel?", WFragen.Frage(rahmen, was));
+    }
+
+    [Fact]
+    public void EveryQuestionWord_IsUsed_AndHasItsOwnColor()
+    {
+        foreach (var rolle in Enum.GetValues<FrageRolle>())
+        {
+            Assert.Contains(WFragen.Rahmen, r => r.Teile.Any(t => t.Rolle == rolle));
+            Assert.True(WFrageView.Farben.ContainsKey(rolle), rolle.ToString());
+        }
+        Assert.Equal(WFrageView.Farben.Count, WFrageView.Farben.Values.Distinct().Count());
+    }
+
+    [Theory]
+    [InlineData("Die Oma gibt", FrageRolle.Wem, "Wem gibt die Oma einen Knochen?")]
+    [InlineData("Die Oma gibt", FrageRolle.Was, "Was gibt die Oma dem Hund?")]
+    [InlineData("Die Oma gibt", FrageRolle.Wer, "Wer gibt dem Hund einen Knochen?")]
+    [InlineData("Der Hase spielt", FrageRolle.MitWem, "Mit wem spielt der Hase?")]
+    [InlineData("Der Hase spielt", FrageRolle.Wer, "Wer spielt mit der Maus?")]
+    [InlineData("Die Katze springt im", FrageRolle.Wer, "Wer springt im Garten?")]
+    [InlineData("Die Katze springt im", FrageRolle.Wohin, "Wohin springt die Katze?")]
+    [InlineData("Der Bauer holt", FrageRolle.WieViele, "Wie viele Eier holt der Bauer?")]
+    [InlineData("Der Bauer holt", FrageRolle.Woher, "Woher holt der Bauer fünf Eier?")]
+    [InlineData("Der Hund bellt", FrageRolle.Wie, "Wie bellt der Hund?")]
+    public void NewQuestionWords_ReadAsGermanQuestions(string satzAnfang, FrageRolle rolle, string erwartet)
+    {
+        var rahmen = WFragen.Rahmen.Single(r => r.Text.StartsWith(satzAnfang));
+        Assert.Equal(erwartet, WFragen.Frage(rahmen, rahmen.Teile.Single(t => t.Rolle == rolle)));
+    }
+
+    [Theory]
+    [InlineData(FrageRolle.MitWem, "Mitwem")]
+    [InlineData(FrageRolle.WieViele, "Wieviele")]
+    [InlineData(FrageRolle.Wohin, "Wohin")]
+    public void QuestionWordAudio_IsOneWord(FrageRolle rolle, string erwartet)
+    {
+        Assert.Equal(erwartet, WFragen.FragewortAudio(rolle));
     }
 }
 

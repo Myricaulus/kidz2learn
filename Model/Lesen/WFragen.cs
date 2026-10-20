@@ -7,14 +7,21 @@ public enum FrageRolle
     Was,
     Wo,
     Womit,
-    Wann
+    Wann,
+    Wohin,
+    Woher,
+    Wem,
+    MitWem,
+    Wie,
+    WieViele
 }
 
 /// <summary>
 ///     One answerable part of a sentence: <see cref="Phrase" /> is how it appears in the text
-///     ("im Sand"), <see cref="Antwort" /> is the bare noun ("Sand").
+///     ("im Sand"), <see cref="Antwort" /> is the bare noun ("Sand"). <see cref="Gezaehlt" /> is the
+///     counted noun a <see cref="FrageRolle.WieViele" /> question names ("Wie viele Äpfel ...?").
 /// </summary>
-public sealed record SatzTeil(FrageRolle Rolle, string Phrase, string Antwort);
+public sealed record SatzTeil(FrageRolle Rolle, string Phrase, string Antwort, string? Gezaehlt = null);
 
 /// <summary>
 ///     A sentence plus its answerable parts. <see cref="Verb" /> is the finite verb exactly as
@@ -39,7 +46,7 @@ public sealed record WFrageAufgabe(
     IReadOnlyList<WFrageOption> Optionen,
     string Richtig)
 {
-    public string Fragewort => Rolle.ToString();
+    public string Fragewort => WFragen.Fragewort(Rolle);
 }
 
 /// <summary>
@@ -56,6 +63,30 @@ public static class WFragen
     private static SatzTeil Wo(string phrase, string antwort) => new(FrageRolle.Wo, phrase, antwort);
     private static SatzTeil Womit(string phrase, string antwort) => new(FrageRolle.Womit, phrase, antwort);
     private static SatzTeil Wann(string phrase, string antwort) => new(FrageRolle.Wann, phrase, antwort);
+    private static SatzTeil Wohin(string phrase, string antwort) => new(FrageRolle.Wohin, phrase, antwort);
+    private static SatzTeil Woher(string phrase, string antwort) => new(FrageRolle.Woher, phrase, antwort);
+    private static SatzTeil Wem(string phrase, string antwort) => new(FrageRolle.Wem, phrase, antwort);
+    private static SatzTeil MitWem(string phrase, string antwort) => new(FrageRolle.MitWem, phrase, antwort);
+    private static SatzTeil Wie(string wort) => new(FrageRolle.Wie, wort, wort);
+
+    private static SatzTeil WieViele(string zahl, string gezaehlt) =>
+        new(FrageRolle.WieViele, $"{zahl} {gezaehlt}", zahl, gezaehlt);
+
+    /// <summary>Parts a question keeps when it doesn't ask for them ("Wo gibt die Oma dem Hund einen Knochen?").</summary>
+    private static readonly FrageRolle[] Objekte = [FrageRolle.Wem, FrageRolle.Wen, FrageRolle.Was, FrageRolle.WieViele];
+
+    /// <summary>What a Wer question without an object names instead, in this order ("Wer springt im Garten?").</summary>
+    private static readonly FrageRolle[] WerErsatz = [FrageRolle.Wo, FrageRolle.Wohin, FrageRolle.Woher, FrageRolle.MitWem];
+
+    public static string Fragewort(FrageRolle rolle) => rolle switch
+    {
+        FrageRolle.MitWem => "Mit wem",
+        FrageRolle.WieViele => "Wie viele",
+        _ => rolle.ToString()
+    };
+
+    /// <summary>The question word as one WordMeta key ("Mit wem" is recorded as "mit-wem").</summary>
+    public static string FragewortAudio(FrageRolle rolle) => Fragewort(rolle).Replace(" ", "");
 
     public static readonly IReadOnlyList<WFrageRahmen> Rahmen =
     [
@@ -105,6 +136,30 @@ public static class WFragen
             Wer("der Igel", "Igel"), Was("sein Nest", "Nest"), Womit("mit Laub", "Laub")),
         new("In der Nacht fängt der Igel eine Maus.", "fängt",
             Wer("der Igel", "Igel"), Wann("in der Nacht", "Nacht"), Was("eine Maus", "Maus")),
+        new("Die Katze springt im Garten auf den Zaun.", "springt",
+            Wer("die Katze", "Katze"), Wo("im Garten", "Garten"), Wohin("auf den Zaun", "Zaun")),
+        new("Der Vogel fliegt am Abend in den Wald.", "fliegt",
+            Wer("der Vogel", "Vogel"), Wann("am Abend", "Abend"), Wohin("in den Wald", "Wald")),
+        new("Die Schnecke kriecht langsam in den Garten.", "kriecht",
+            Wer("die Schnecke", "Schnecke"), Wie("langsam"), Wohin("in den Garten", "Garten")),
+        new("Der Hund holt den Ball aus dem Wasser.", "holt",
+            Wer("der Hund", "Hund"), Was("den Ball", "Ball"), Woher("aus dem Wasser", "Wasser")),
+        new("Der Opa kommt am Abend aus dem Wald.", "kommt",
+            Wer("der Opa", "Opa"), Wann("am Abend", "Abend"), Woher("aus dem Wald", "Wald")),
+        new("Die Oma gibt dem Hund einen Knochen.", "gibt",
+            Wer("die Oma", "Oma"), Wem("dem Hund", "Hund"), Was("einen Knochen", "Knochen")),
+        new("Die Mutter schenkt der Tante eine Blume.", "schenkt",
+            Wer("die Mutter", "Mutter"), Wem("der Tante", "Tante"), Was("eine Blume", "Blume")),
+        new("Der Hase spielt am Morgen mit der Maus.", "spielt",
+            Wer("der Hase", "Hase"), Wann("am Morgen", "Morgen"), MitWem("mit der Maus", "Maus")),
+        new("Das Kind tanzt mit dem Vater im Haus.", "tanzt",
+            Wer("das Kind", "Kind"), MitWem("mit dem Vater", "Vater"), Wo("im Haus", "Haus")),
+        new("Der Hund bellt laut im Garten.", "bellt",
+            Wer("der Hund", "Hund"), Wie("laut"), Wo("im Garten", "Garten")),
+        new("Die Oma pflückt im Garten drei Äpfel.", "pflückt",
+            Wer("die Oma", "Oma"), Wo("im Garten", "Garten"), WieViele("drei", "Äpfel")),
+        new("Der Igel findet am Abend zwei Pilze.", "findet",
+            Wer("der Igel", "Igel"), Wann("am Abend", "Abend"), WieViele("zwei", "Pilze")),
 
         // Four parts - only offered at level 2.
         new("Die Oma liest am Abend im Haus ein Buch.", "liest",
@@ -126,7 +181,17 @@ public static class WFragen
             Was("eine Tomate", "Tomate")),
         new("Der Ritter putzt am Morgen mit dem Tuch sein Schwert.", "putzt",
             Wer("der Ritter", "Ritter"), Wann("am Morgen", "Morgen"), Womit("mit dem Tuch", "Tuch"),
-            Was("sein Schwert", "Schwert"))
+            Was("sein Schwert", "Schwert")),
+        new("Die Katze springt am Morgen schnell auf den Baum.", "springt",
+            Wer("die Katze", "Katze"), Wann("am Morgen", "Morgen"), Wie("schnell"), Wohin("auf den Baum", "Baum")),
+        new("Der Opa gibt am Abend dem Pferd einen Apfel.", "gibt",
+            Wer("der Opa", "Opa"), Wann("am Abend", "Abend"), Wem("dem Pferd", "Pferd"), Was("einen Apfel", "Apfel")),
+        new("Am Morgen fährt das Kind mit der Oma in die Stadt.", "fährt",
+            Wer("das Kind", "Kind"), Wann("am Morgen", "Morgen"), MitWem("mit der Oma", "Oma"),
+            Wohin("in die Stadt", "Stadt")),
+        new("Der Bauer holt am Morgen fünf Eier aus dem Stall.", "holt",
+            Wer("der Bauer", "Bauer"), Wann("am Morgen", "Morgen"), WieViele("fünf", "Eier"),
+            Woher("aus dem Stall", "Stall"))
     ];
 
     /// <summary>Level 1: three-part sentences, two questions, options are the sentence phrases ("im Sand").</summary>
@@ -170,23 +235,24 @@ public static class WFragen
     }
 
     /// <summary>
-    ///     Builds the question with the sentence's object kept in ("Wann fängt der Igel eine Maus?",
-    ///     "Wer wäscht den Hund?") - transitive verbs read wrong without it, and the Wer form puts
-    ///     subject and object side by side on purpose (who does it vs. to whom).
+    ///     Builds the question with the sentence's objects kept in, in sentence order ("Wann fängt der
+    ///     Igel eine Maus?", "Wer wäscht den Hund?") - transitive verbs read wrong without them, and the
+    ///     Wer form puts subject and object side by side on purpose (who does it vs. to whom).
     /// </summary>
     public static string Frage(WFrageRahmen rahmen, SatzTeil gefragt)
     {
-        var objekt = rahmen.Teile.FirstOrDefault(t => t.Rolle is FrageRolle.Was or FrageRolle.Wen);
+        var objekte = rahmen.Teile.Where(t => Objekte.Contains(t.Rolle) && t != gefragt).ToList();
 
         if (gefragt.Rolle == FrageRolle.Wer)
         {
-            var rest = objekt ?? rahmen.Teile.FirstOrDefault(t => t.Rolle == FrageRolle.Wo);
-            return rest is null ? $"Wer {rahmen.Verb}?" : $"Wer {rahmen.Verb} {rest.Phrase}?";
+            if (objekte.Count == 0 && WerErsatz
+                    .Select(rolle => rahmen.Teile.FirstOrDefault(t => t.Rolle == rolle))
+                    .FirstOrDefault(t => t is not null) is { } ersatz)
+                objekte.Add(ersatz);
+            return string.Join(" ", ["Wer", rahmen.Verb, ..objekte.Select(t => t.Phrase)]) + "?";
         }
 
-        var frage = $"{gefragt.Rolle} {rahmen.Verb} {rahmen.Subjekt.Phrase}";
-        if (objekt is not null && objekt != gefragt)
-            frage += $" {objekt.Phrase}";
-        return frage + "?";
+        var fragewort = gefragt.Gezaehlt is null ? Fragewort(gefragt.Rolle) : $"{Fragewort(gefragt.Rolle)} {gefragt.Gezaehlt}";
+        return string.Join(" ", [fragewort, rahmen.Verb, rahmen.Subjekt.Phrase, ..objekte.Select(t => t.Phrase)]) + "?";
     }
 }
