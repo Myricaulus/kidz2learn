@@ -76,7 +76,8 @@ Challenges are generic over a task-definition type deriving from `BaseTaskDefini
 - `SkillRegistry` is the static catalog of `SkillDefinition`s (id, domain — `TaskDomain.Math`/`Reading` —, category, difficulty, display name). `Skill` / `Skill.Math` hold the string ID constants used throughout.
 - `SkillMasteryStore` (backed by IndexedDB store `"SkillStates"`) adjusts a per-skill `Mastery` float (0–1) on each attempt, combining a base delta (by `Difficulty`: Normal/Hard/Extreme) with streak factors (`SkillRowFactor`), a per-specific-task streak factor (`TaskRowFactor`, from `Kompetenzniveau`), and a time-based factor. Several mastery-model TODOs (effective difficulty, Bayesian knowledge tracing, fail-reason inference) are intentionally unimplemented — don't assume they exist elsewhere.
 - A task definition's `SkillWeights` scale the mastery change per skill (default 1): word problems
-  count fully for `read_story_math` and half for `read_wh_question` and the matching arithmetic skill,
+  to calculate count fully for `read_story_math` and half for `read_wh_question` and the matching
+  arithmetic skill,
   so they also show up in the Lesedetektiv, the Mathe-Mix and `/ArithmeticChallenge`.
 - `Kompetenzniveau` is a small ring-style history (last 20 attempts as a `'R'/'F'` string) tracked per specific task instance (e.g. per "5+6"), distinct from the per-skill `SkillState` in IndexedDB.
 - `SkillMigrationHelper` initializes/migrates the IndexedDB skill schema on startup, including a one-time migration path from the legacy per-arithmetic-log storage (`ArithemticLog`/`ArithemticLogStats` in `Entities/Arithmetic.cs`) via `SkillInference.FromLegacyLog`. Bump `SkillMigrationHelper.CurrentSchemaVersion` and extend `MigrateAsync` when changing the skill schema.
@@ -123,10 +124,12 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   attempt, `TaskSessionController.BeginTask` per question). Question words: Wer, Wen, Wem, Was, Wo,
   Wohin, Woher, Womit, Mit wem, Wann, Wie, Wie viele; sentences pair the look-alikes (Wo + Wohin)
   on purpose.
-  Level 3 of the same view are word problems (`Model/Lesen/Rechengeschichten.cs`, skill
-  `read_story_math`, own page `/textaufgaben` "Textaufgaben"): a story about getting or giving away
-  things (before / change / now); two numbers are in the text, the one "Wie viele ...?" question asks
-  for the third, which has to be calculated; options add the wrong operation's result. Numbers stay <= 9 for now.
+  The same view shows word problems (`Model/Lesen/Rechengeschichten.cs`, skill `read_story_math`,
+  own page `/textaufgaben` "Textaufgaben"): a story about getting or giving away things (before /
+  change / now), two numbers in the text, one "Wie viele ...?" question; options add the wrong
+  operation's result. Level 2 calculates "jetzt" with the subject repeated, level 3 any number with
+  a pronoun, and a level-2 "Ablesen" kind asks for a number in the text (no arithmetic skill), so
+  the question has to be read. Numbers stay <= 9 for now.
   `RaetselView` (`"raetsel"`, skill `read_riddle`, "Wer bin ich?") joins them there: three clues
   from general to specific (`Model/Lesen/Raetsel.cs`, hand-written). Level 1 takes its wrong options
   from other `RaetselBereich`s, so the first clue already decides (`Unpassend` lists cross-kind

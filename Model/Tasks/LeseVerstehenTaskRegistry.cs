@@ -46,30 +46,36 @@ public static class LeseVerstehenTaskRegistry
             View = "w-frage",
             Generator = WFragen.GenerateSchwer
         },
+        Rechnen(Rechenart.Plus, 2, Rechengeschichten.GenerateRechnenLeicht),
+        Rechnen(Rechenart.Minus, 2, Rechengeschichten.GenerateRechnenLeicht),
+        Rechnen(Rechenart.Plus, 3, Rechengeschichten.GenerateRechnen),
+        Rechnen(Rechenart.Minus, 3, Rechengeschichten.GenerateRechnen),
         new()
         {
-            Skills = [Skill.ReadStoryMath, Skill.ReadWhQuestion, Skill.Math.Add10NoCarry],
-            SkillWeights = SideSkillsHalf(Skill.ReadWhQuestion, Skill.Math.Add10NoCarry),
-            DifficultyLevel = 3,
+            Skills = [Skill.ReadStoryMath, Skill.ReadWhQuestion],
+            SkillWeights = new Dictionary<string, float> { [Skill.ReadWhQuestion] = 0.5f },
+            DifficultyLevel = 2,
             View = "w-frage",
-            Generator = Rechengeschichten.GeneratePlus
-        },
-        new()
-        {
-            Skills = [Skill.ReadStoryMath, Skill.ReadWhQuestion, Skill.Math.Sub10],
-            SkillWeights = SideSkillsHalf(Skill.ReadWhQuestion, Skill.Math.Sub10),
-            DifficultyLevel = 3,
-            View = "w-frage",
-            Generator = Rechengeschichten.GenerateMinus
+            Generator = Rechengeschichten.GenerateAblesen
         }
     ];
 
     /// <summary>
-    ///     Word problems train <see cref="Skill.ReadStoryMath" /> fully and reading the question and
-    ///     calculating along the way, at half weight each.
+    ///     A word problem to calculate trains <see cref="Skill.ReadStoryMath" /> fully, and reading the
+    ///     question and the arithmetic along the way at half weight each.
     /// </summary>
-    private static Dictionary<string, float> SideSkillsHalf(params string[] skills) =>
-        skills.ToDictionary(s => s, _ => 0.5f);
+    private static WFrageTaskDefinition Rechnen(Rechenart art, int level, Func<Rechenart, Random, WFrageSerie> generate)
+    {
+        var rechnen = art == Rechenart.Plus ? Skill.Math.Add10NoCarry : Skill.Math.Sub10;
+        return new WFrageTaskDefinition
+        {
+            Skills = [Skill.ReadStoryMath, Skill.ReadWhQuestion, rechnen],
+            SkillWeights = new Dictionary<string, float> { [Skill.ReadWhQuestion] = 0.5f, [rechnen] = 0.5f },
+            DifficultyLevel = level,
+            View = "w-frage",
+            Generator = rng => generate(art, rng)
+        };
+    }
 
     private static readonly List<RaetselTaskDefinition> RaetselDefs =
     [

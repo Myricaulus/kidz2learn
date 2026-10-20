@@ -6,8 +6,8 @@ public enum Rechenart
     Minus
 }
 
-/// <summary>Which of the three numbers of a story the text leaves out, so it has to be calculated.</summary>
-public enum Unbekannt
+/// <summary>The three numbers of a story.</summary>
+public enum Zahl
 {
     Vorher,
     Aenderung,
@@ -26,10 +26,11 @@ public sealed record Figur(string Nominativ, string Dativ, string Pronomen)
 /// <summary>
 ///     Word problems ("Textaufgaben") as a <see cref="WFrageSerie" />: a short story about someone
 ///     getting or giving away things. Of its three numbers - before, the change, and now - two are in
-///     the text, and the one "Wie viele ...?" question asks for the third, which has to be calculated.
-///     The options are all three numbers plus the result of the wrong operation, so neither copying a
-///     number from the text nor the other arithmetic sign gets through. One question per story is
-///     already a 💣 task; the numbers that can just be read off aren't asked for.
+///     the text. The one "Wie viele ...?" question mostly asks for the third, which has to be
+///     calculated, sometimes for one in the text (<see cref="GenerateAblesen" />), so the question has
+///     to be read either way. The options are all three numbers plus the result of the wrong
+///     operation, so neither copying a number from the text nor the other arithmetic sign gets
+///     through. One question per story, since calculating one is already hard work.
 /// </summary>
 public static class Rechengeschichten
 {
@@ -57,14 +58,34 @@ public static class Rechengeschichten
     public static readonly IReadOnlyList<string> Dinge =
         ["Äpfel", "Birnen", "Nüsse", "Eier", "Pilze", "Steine", "Blumen", "Kekse"];
 
-    public static WFrageSerie GeneratePlus(Random rng) => Generate(Rechenart.Plus, rng);
+    /// <summary>Level 2: the subject is repeated instead of a pronoun, and "jetzt" is asked - just calculating forward.</summary>
+    public static WFrageSerie GenerateRechnenLeicht(Rechenart art, Random rng) =>
+        Generate(art, Zahl.Jetzt, Zahl.Jetzt, mitPronomen: false, rng);
 
-    public static WFrageSerie GenerateMinus(Random rng) => Generate(Rechenart.Minus, rng);
+    /// <summary>Level 3: any number can be left out and is asked, with a pronoun in the story.</summary>
+    public static WFrageSerie GenerateRechnen(Rechenart art, Random rng)
+    {
+        var fehlt = (Zahl)rng.Next(3);
+        return Generate(art, fehlt, fehlt, mitPronomen: true, rng);
+    }
 
-    public static WFrageSerie Generate(Rechenart art, Random rng)
+    /// <summary>
+    ///     The same stories as <see cref="GenerateRechnen" />/<see cref="GenerateRechnenLeicht" />, but
+    ///     asking for a number that is in the text - so a story can't be answered by calculating
+    ///     without reading what the question wants.
+    /// </summary>
+    public static WFrageSerie GenerateAblesen(Random rng)
+    {
+        var art = (Rechenart)rng.Next(2);
+        var mitPronomen = rng.Next(2) == 0;
+        var fehlt = mitPronomen ? (Zahl)rng.Next(3) : Zahl.Jetzt;
+        var imText = Enum.GetValues<Zahl>().Where(z => z != fehlt).ToList();
+        return Generate(art, fehlt, imText[rng.Next(imText.Count)], mitPronomen, rng);
+    }
+
+    private static WFrageSerie Generate(Rechenart art, Zahl fehlt, Zahl gefragt, bool mitPronomen, Random rng)
     {
         var figuren = Figuren.OrderBy(_ => rng.Next()).Take(2).ToList();
-        var unbekannt = (Unbekannt)rng.Next(3);
         var dinge = Dinge[rng.Next(Dinge.Count)];
 
         int vorher, aenderung;
@@ -87,42 +108,43 @@ public static class Rechengeschichten
             } while (aenderung == vorher - aenderung);
         }
 
-        return Build(art, unbekannt, figuren[0], figuren[1], dinge, vorher, aenderung, rng);
+        return Build(art, fehlt, gefragt, mitPronomen, figuren[0], figuren[1], dinge, vorher, aenderung, rng);
     }
 
+    /// <param name="fehlt">The number the story leaves out.</param>
+    /// <param name="gefragt">The number the question asks for: <paramref name="fehlt" /> to calculate it, any other to read it off.</param>
+    /// <param name="mitPronomen">"Jetzt hat er 7." instead of "Jetzt hat der Igel 7."</param>
     /// <param name="aenderung">How many things <paramref name="wer" /> gets (<see cref="Rechenart.Plus" />) or gives away.</param>
-    public static WFrageSerie Build(Rechenart art, Unbekannt unbekannt, Figur wer, Figur partner, string dinge,
-        int vorher, int aenderung, Random rng)
+    public static WFrageSerie Build(Rechenart art, Zahl fehlt, Zahl gefragt, bool mitPronomen, Figur wer,
+        Figur partner, string dinge, int vorher, int aenderung, Random rng)
     {
         var jetzt = art == Rechenart.Plus ? vorher + aenderung : vorher - aenderung;
         var subjekt = Gross(wer.Nominativ);
-        var er = wer.Pronomen;
+        var er = mitPronomen ? wer.Pronomen : wer.Nominativ;
 
-        var text = (art, unbekannt) switch
+        var text = (art, fehlt) switch
         {
-            (Rechenart.Plus, Unbekannt.Vorher) =>
+            (Rechenart.Plus, Zahl.Vorher) =>
                 $"{subjekt} hat {partner.VonDativ} {aenderung} neue {dinge} bekommen. Jetzt hat {er} {jetzt}.",
-            (Rechenart.Plus, Unbekannt.Aenderung) =>
+            (Rechenart.Plus, Zahl.Aenderung) =>
                 $"{subjekt} hatte {vorher} {dinge}. Dann hat {er} {partner.VonDativ} neue bekommen. Jetzt hat {er} {jetzt}.",
             (Rechenart.Plus, _) =>
                 $"{subjekt} hatte {vorher} {dinge}. Dann hat {er} {partner.VonDativ} {aenderung} neue bekommen.",
-            (_, Unbekannt.Vorher) =>
+            (_, Zahl.Vorher) =>
                 $"{subjekt} hat {partner.Dativ} {aenderung} {dinge} geschenkt. Jetzt hat {er} noch {jetzt}.",
-            (_, Unbekannt.Aenderung) =>
+            (_, Zahl.Aenderung) =>
                 $"{subjekt} hatte {vorher} {dinge}. Dann hat {er} {partner.Dativ} welche geschenkt. Jetzt hat {er} noch {jetzt}.",
             _ =>
                 $"{subjekt} hatte {vorher} {dinge}. Dann hat {er} {partner.Dativ} {aenderung} geschenkt."
         };
 
-        var optionen = Optionen(art, unbekannt, vorher, aenderung, jetzt, rng).OrderBy(_ => rng.Next()).ToList();
-        var aenderungsFrage = art == Rechenart.Plus
-            ? $"Wie viele {dinge} hat {wer.Nominativ} {partner.VonDativ} bekommen?"
-            : $"Wie viele {dinge} hat {wer.Nominativ} {partner.Dativ} geschenkt?";
-
-        var (frage, antwort) = unbekannt switch
+        var optionen = Optionen(art, fehlt, vorher, aenderung, jetzt, rng).OrderBy(_ => rng.Next()).ToList();
+        var (frage, antwort) = gefragt switch
         {
-            Unbekannt.Vorher => ($"Wie viele {dinge} hatte {wer.Nominativ} vorher?", vorher),
-            Unbekannt.Aenderung => (aenderungsFrage, aenderung),
+            Zahl.Vorher => ($"Wie viele {dinge} hatte {wer.Nominativ} vorher?", vorher),
+            Zahl.Aenderung when art == Rechenart.Plus =>
+                ($"Wie viele {dinge} hat {wer.Nominativ} {partner.VonDativ} bekommen?", aenderung),
+            Zahl.Aenderung => ($"Wie viele {dinge} hat {wer.Nominativ} {partner.Dativ} geschenkt?", aenderung),
             _ => ($"Wie viele {dinge} hat {wer.Nominativ} jetzt?", jetzt)
         };
 
@@ -134,17 +156,17 @@ public static class Rechengeschichten
     ///     The story's three numbers plus what the wrong operation on the two given ones yields
     ///     (7 + 3 where the text needs 7 - 3) - or, where that is no new positive number, any other one.
     /// </summary>
-    private static List<WFrageOption> Optionen(Rechenart art, Unbekannt unbekannt, int vorher, int aenderung,
+    private static List<WFrageOption> Optionen(Rechenart art, Zahl fehlt, int vorher, int aenderung,
         int jetzt, Random rng)
     {
         var zahlen = new HashSet<int> { vorher, aenderung, jetzt };
-        var falscheRechnung = (art, unbekannt) switch
+        var falscheRechnung = (art, fehlt) switch
         {
-            (Rechenart.Plus, Unbekannt.Vorher) => jetzt + aenderung,
-            (Rechenart.Plus, Unbekannt.Aenderung) => jetzt + vorher,
+            (Rechenart.Plus, Zahl.Vorher) => jetzt + aenderung,
+            (Rechenart.Plus, Zahl.Aenderung) => jetzt + vorher,
             (Rechenart.Plus, _) => vorher - aenderung,
-            (_, Unbekannt.Vorher) => jetzt - aenderung,
-            (_, Unbekannt.Aenderung) => vorher + jetzt,
+            (_, Zahl.Vorher) => jetzt - aenderung,
+            (_, Zahl.Aenderung) => vorher + jetzt,
             _ => vorher + aenderung
         };
 
