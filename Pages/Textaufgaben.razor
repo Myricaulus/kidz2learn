@@ -1,0 +1,7 @@
+@page "/textaufgaben"
+@using Kidz2Learn.Components
+@using Kidz2Learn.Model
+
+@* Word problems (Rechengeschichten) only. They also train W-questions and arithmetic, so they turn
+   up on the Lesedetektiv and in the Mathe-Mix as well. *@
+<TaskHost Skills="@(new[] { Skill.ReadStoryMath })" />

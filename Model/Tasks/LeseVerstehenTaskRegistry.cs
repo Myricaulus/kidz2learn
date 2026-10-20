@@ -45,8 +45,31 @@ public static class LeseVerstehenTaskRegistry
             DifficultyLevel = 2,
             View = "w-frage",
             Generator = WFragen.GenerateSchwer
+        },
+        new()
+        {
+            Skills = [Skill.ReadStoryMath, Skill.ReadWhQuestion, Skill.Math.Add10NoCarry],
+            SkillWeights = SideSkillsHalf(Skill.ReadWhQuestion, Skill.Math.Add10NoCarry),
+            DifficultyLevel = 3,
+            View = "w-frage",
+            Generator = Rechengeschichten.GeneratePlus
+        },
+        new()
+        {
+            Skills = [Skill.ReadStoryMath, Skill.ReadWhQuestion, Skill.Math.Sub10],
+            SkillWeights = SideSkillsHalf(Skill.ReadWhQuestion, Skill.Math.Sub10),
+            DifficultyLevel = 3,
+            View = "w-frage",
+            Generator = Rechengeschichten.GenerateMinus
         }
     ];
+
+    /// <summary>
+    ///     Word problems train <see cref="Skill.ReadStoryMath" /> fully and reading the question and
+    ///     calculating along the way, at half weight each.
+    /// </summary>
+    private static Dictionary<string, float> SideSkillsHalf(params string[] skills) =>
+        skills.ToDictionary(s => s, _ => 0.5f);
 
     private static readonly List<RaetselTaskDefinition> RaetselDefs =
     [

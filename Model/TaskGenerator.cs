@@ -91,7 +91,7 @@ public sealed class LearningTask<T> : IChosenTask where T : BaseTaskDefinition
     {
         var changes = new Dictionary<string, MasteryChange>();
         foreach (var skill in Task.Skills)
-            changes[skill] = await _store.Adjust(skill, Difficulty, timeMs, kompetenz, success);
+            changes[skill] = await _store.Adjust(skill, Difficulty, timeMs, kompetenz, success, Task.WeightOf(skill));
         return changes;
     }
 }

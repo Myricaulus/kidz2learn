@@ -16,6 +16,7 @@ public static class Skill
     public const string ReadRiddle = "read_riddle";
     public const string ReadNouns = "read_nouns";
     public const string ReadMirrorLetters = "read_mirror_letters";
+    public const string ReadStoryMath = "read_story_math";
 
     public static class Math
     {
@@ -186,6 +187,14 @@ public static class SkillRegistry
                 Id = Skill.ReadMirrorLetters, Domain = TaskDomain.Reading, Category = "phonetics", Difficulty = 2,
                 DisplayName = "Spiegelbuchstaben"
             }
+        },
+        {
+            Skill.ReadStoryMath,
+            new SkillDefinition
+            {
+                Id = Skill.ReadStoryMath, Domain = TaskDomain.Math, Category = "word_problems", Difficulty = 3,
+                DisplayName = "Textaufgaben"
+            }
         }
     };
 
@@ -211,17 +220,18 @@ public static class SkillRegistry
 
 public record SkillView(SkillDefinition Definition, SkillState State);
 
+/// <summary>A skill's mastery right before and after one attempt was scored.</summary>
+public sealed record MasteryChange(float Before, float After);
+
 /// <summary>
 ///     Storage boundary for skill mastery. Extracted so <see cref="AdaptiveTaskGenerator" /> can be
 ///     unit-tested with a fake store instead of a real IndexedDB/JSInterop-backed one.
 /// </summary>
-/// <summary>A skill's mastery right before and after one attempt was scored.</summary>
-public sealed record MasteryChange(float Before, float After);
-
 public interface ISkillMasteryStore
 {
+    /// <param name="weight">Share of the full mastery change this skill gets (<see cref="Tasks.BaseTaskDefinition.WeightOf" />).</param>
     Task<MasteryChange> Adjust(string skillId, Difficulty difficulty, int timeMs, Kompetenzniveau specificTaskHistory,
-        bool success);
+        bool success, float weight);
 
     Task<IEnumerable<SkillView>> GetSkillViewEnumerableAsync();
 }
@@ -232,7 +242,7 @@ public sealed class SkillMasteryStore(IndexedDb skillDb) : ISkillMasteryStore
                                              ?? throw new InvalidOperationException("SkillStates DB failed to init");
 
     public async Task<MasteryChange> Adjust(string skillId, Difficulty difficulty, int timeMs,
-        Kompetenzniveau specificTaskHistory, bool success)
+        Kompetenzniveau specificTaskHistory, bool success, float weight)
     {
         float delta;
         if (success)
@@ -323,7 +333,8 @@ public sealed class SkillMasteryStore(IndexedDb skillDb) : ISkillMasteryStore
         // This is the main key value for selecting a fitting Task for this or following skills
 
 
-        var finaldelta = delta *
+        var finaldelta = weight *
+                         delta *
                          SkillRowFactor(s) *
                          TaskRowFactor(specificTaskHistory) *
                          TimeFactor(timeMs, s.EffectiveDifficulty);

@@ -106,7 +106,7 @@ public partial class WFrageView : ComponentBase, ITaskView
             await Js.InvokeVoidAsync("k4l_playAudioFile", "audioPlayer", audio);
 
         var db = AufgabenDb["LeseAufgaben"] ?? throw new InvalidOperationException("LeseAufgaben store missing");
-        var id = SilbenLog.GenId($"{aufgabe.Text}|{aufgabe.Rolle}", Skill.ReadWhQuestion);
+        var id = SilbenLog.GenId($"{aufgabe.Text}|{aufgabe.Frage}", Skill.ReadWhQuestion);
         var log = await db.GetItemAsync<SilbenLog>(id) ?? new SilbenLog { Id = id };
         log.Wort = $"{aufgabe.Fragewort}: {aufgabe.Richtig}";
         var detail = $"{aufgabe.Text} | {aufgabe.Frage} → {option.Label}";

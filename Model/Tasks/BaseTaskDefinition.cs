@@ -7,6 +7,15 @@ namespace Kidz2Learn.Model.Tasks;
 public abstract class BaseTaskDefinition
 {
     public required string[] Skills { get; init; }
+
+    /// <summary>
+    ///     Share of a full mastery adjustment a skill gets from this task (1 = all of it, the default
+    ///     for every skill not listed). A task that trains one skill directly and others along the
+    ///     way (a word problem: reading the question, then calculating) weights the side skills lower.
+    /// </summary>
+    public IReadOnlyDictionary<string, float> SkillWeights { get; init; } = new Dictionary<string, float>();
+
+    public float WeightOf(string skill) => SkillWeights.GetValueOrDefault(skill, 1f);
     public int DifficultyLevel { get; init; } // 1 = leicht, 2 = mittel, 3 = schwer
 
     /// <summary>
