@@ -21,6 +21,7 @@ public static class TaskPresentationRegistry
         Register("w-frage", typeof(WFrageView));
         Register("raetsel", typeof(RaetselView));
         Register("such-raster", typeof(SuchRasterView));
+        Register("turbo-runde", typeof(TurboRundeView));
     }
 
     public static void Register(string view, Type componentType)
@@ -45,7 +46,7 @@ public static class TaskPresentationRegistry
     ///     Lets a mixed-pool picker (<see cref="AdaptiveTaskGenerator.ChooseAnyAsync" />) skip
     ///     candidates it couldn't render anyway, instead of picking one and blowing up in
     ///     <see cref="Resolve" /> - e.g. <c>"arith-turbo"</c>, which only <c>TurboArithChallenge</c>
-    ///     (not on <c>TaskHost</c>) knows how to present today.
+    ///     (not on <c>TaskHost</c>) presents.
     /// </summary>
     public static bool IsRegistered(string view)
     {

@@ -163,12 +163,12 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   apart from the search grid and W-Frage wrong answers cost nothing. The old Silben
   tasks are mixed in via `TaskHost`'s `FillerSkills`/`FillerChance` (fixed ~1-in-8 rate, independent of
   mastery).
-- `TurboArithChallenge` is deliberately **not** on `TaskHost` - it's a fixed 3-minute timed round on
-  one hardcoded skill (`Turbo10`) with its own start/running/summary state and end-of-round scoring,
-  not a "one task, one presentation" case. See `TASK_PRESENTATION_REDESIGN.md`, "Offener Punkt:
-  Event-artige Session-Bausteine im Mixer" for where this is headed - turning Turbo into a general
-  "event" the mixer can inject mid-session is tracked as its own GitHub issue ("Turbo als Event im
-  Mixer"), not in-repo.
+- `TurboArithChallenge` (`/ArithmeticTurbo`) stays its own 3-minute page, not on `TaskHost`. The
+  mixer has Turbo as an event instead: `TurboRundeView` (`"turbo-runde"`, `EventTaskRegistry`, skill
+  `turbo_10`, level 3 - a 💣 next to normal arithmetic) runs 20-30 s of `ArithTaskRegistry.TurboAufgabe`
+  after a "Los!" and scores the round once (`Model/Tasks/TurboRunde.cs`: solved with >= 3 right and
+  at most a quarter wrong; right answers earn points either way). GitHub issue "Turbo als Event im
+  Mixer" holds the rest (triggering it mid-session independent of the picker).
 
 ### Debug mode (Pages/Debug/) — forcing a specific task for manual testing
 

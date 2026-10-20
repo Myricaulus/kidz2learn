@@ -1,0 +1,41 @@
+@using Kidz2Learn.Model.Tasks
+@using MudBlazor
+<div class="turbo-container">
+    @switch (_phase)
+    {
+        case Phase.Start:
+            <div class="turbo-titel">🚀 Turbo!</div>
+            <div class="turbo-text">@_sekunden Sekunden: Rechne so viele Aufgaben, wie du schaffst!</div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.RocketLaunch" OnClick="Start">Los!</MudButton>
+            break;
+
+        case Phase.Laeuft:
+            <MudProgressLinear Value="@RestProzent" Color="Color.Warning" Size="Size.Large" Rounded="true"
+                               Class="turbo-zeit" />
+            <form @key="_blitzCount" class="turbo-aufgabe @_blitz" @onsubmit="Pruefen" @onsubmit:preventDefault>
+                @foreach (var teil in Teile)
+                {
+                    if (teil is null)
+                    {
+                        <input class="turbo-eingabe" inputmode="numeric" autocomplete="off" maxlength="2"
+                               @bind="_eingabe" @bind:event="oninput" @ref="_eingabeRef" />
+                    }
+                    else
+                    {
+                        <span>@teil</span>
+                    }
+                }
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">OK</MudButton>
+            </form>
+            <div class="turbo-zaehler">✔ @_richtig &nbsp; ✘ @_falsch</div>
+            break;
+
+        case Phase.Ende:
+            <div class="turbo-titel">Geschafft!</div>
+            <div class="turbo-text">@_richtig richtig, @_falsch falsch</div>
+            <div class="turbo-sterne">@TurboRunde.Sterne(_richtig, _falsch)</div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="Weiter">Weiter</MudButton>
+            break;
+    }
+</div>

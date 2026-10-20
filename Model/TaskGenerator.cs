@@ -178,9 +178,9 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
         if (skills is not null)
             candidates = candidates.Where(c => c.Skills.Any(skills.Contains)).ToList();
 
-        // Skip candidates whose View has no registered presentation yet (e.g. "arith-turbo" -
-        // only the standalone TurboArithChallenge page knows how to render that today) instead of
-        // picking one and having TaskPresentationRegistry.Resolve throw later.
+        // Skip candidates whose View has no registered presentation (e.g. "arith-turbo" - only the
+        // standalone TurboArithChallenge page renders that; the mixer has "turbo-runde" instead)
+        // instead of picking one and having TaskPresentationRegistry.Resolve throw later.
         candidates = candidates.Where(c => TaskPresentationRegistry.IsRegistered(c.View)).ToList();
 
         if (candidates.Count == 0)

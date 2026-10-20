@@ -18,6 +18,13 @@ public static class EventTaskRegistry
             DifficultyLevel = 2,
             View = "silben-hammer",
             Generator = _ => new EventLaunchOptions { RoundBudget = 4 }
+        },
+        new()
+        {
+            Skills = [Skill.Math.Turbo10],
+            DifficultyLevel = 3,
+            View = "turbo-runde",
+            Generator = r => new EventLaunchOptions { TargetDuration = TimeSpan.FromSeconds(r.Next(20, 31)) }
         }
     ];
 

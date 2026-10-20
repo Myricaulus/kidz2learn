@@ -1,9 +1,8 @@
 namespace Kidz2Learn.Model.Tasks.TaskDefs;
 
 /// <summary>
-///     Mixer entry point for a round-based mini-game "event" (Silbenhammer today - Turbo Rechnen
-///     is a natural future addition once its UI is extracted out of TurboArithChallenge into an
-///     ITaskView, the way SilbenHammerView already is). Distinct from a normal
+///     Mixer entry point for a round-based mini-game "event" (Silbenhammer, the short Turbo round).
+///     Distinct from a normal
 ///     <see cref="BaseTaskDefinition" /> subtype (one definition = one Q&amp;A payload, e.g.
 ///     <see cref="ArithTaskDefinition" />/<see cref="SilbenTaskDefinition" />): an event's own view
 ///     runs a whole internal session (a "burst") before handing control back to
@@ -38,6 +37,6 @@ public sealed record EventLaunchOptions
     /// <summary>How many rounds/words/attempts make up one session. Meaning is event-specific.</summary>
     public int? RoundBudget { get; init; }
 
-    /// <summary>How long the session should run, for time-boxed events (e.g. a future Turbo entry).</summary>
+    /// <summary>How long the session should run, for time-boxed events (the Turbo round).</summary>
     public TimeSpan? TargetDuration { get; init; }
 }

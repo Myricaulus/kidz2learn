@@ -134,10 +134,9 @@ public class ChooseAnyAsyncTests
     [Fact]
     public async Task ChooseAnyAsync_NeverReturnsATaskWithAnUnregisteredView()
     {
-        // "arith-turbo" (Skill.Math.Turbo10) has no TaskPresentationRegistry entry yet -
-        // TurboArithChallenge is a standalone page, not on TaskHost (see TASK_PRESENTATION_REDESIGN.md,
-        // "Event-artige Session-Bausteine im Mixer"). ChooseAnyAsync must not hand it back, or
-        // TaskHost's TaskPresentationRegistry.Resolve would throw.
+        // "arith-turbo" (the 3-minute TurboArithChallenge page's definition) has no
+        // TaskPresentationRegistry entry - the mixer runs Turbo10 as "turbo-runde" instead.
+        // ChooseAnyAsync must not hand it back, or TaskHost's TaskPresentationRegistry.Resolve would throw.
         var generator = new AdaptiveTaskGenerator(new FakeSkillMasteryStore(), new Random(7));
 
         for (var i = 0; i < 400; i++)

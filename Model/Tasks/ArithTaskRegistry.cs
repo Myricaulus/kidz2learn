@@ -89,38 +89,44 @@ public static class ArithTaskRegistry
             Skills = [Skill.Math.Turbo10],
             DifficultyLevel = 3,
             View = "arith-turbo",
-            Generator = r =>
-            {
-                if (r.Next(2) == 0)
-                {
-                    int? x, y;
-                    do
-                    {
-                        x = r.Next(1, 10);
-                        y = r.Next(1, 10);
-                    } while (x + y >= 10);
-
-                    var z = x + y;
-                    var i = r.Next(3);
-                    if (i == 0) x = null;
-                    else if (i == 1) y = null;
-                    else z = null;
-                    return (x, y, z, ArithOperator.Addition);
-                }
-                else
-                {
-                    int? x = r.Next(1, 10);
-                    int? y = r.Next(1, x.Value + 1);
-                    var z = x - y;
-                    var i = r.Next(3);
-                    if (i == 0) x = null;
-                    else if (i == 1) y = null;
-                    else z = null;
-                    return (x, y, z, ArithOperator.Subtraction);
-                }
-            }
+            Generator = TurboAufgabe
         }
     ];
+
+    /// <summary>
+    ///     One Turbo task up to 10, plus or minus, with any of the three numbers left out - shared by
+    ///     the standalone <c>TurboArithChallenge</c> page and the mixer's short Turbo round.
+    /// </summary>
+    public static (int? x, int? y, int? z, ArithOperator op) TurboAufgabe(Random r)
+    {
+        if (r.Next(2) == 0)
+        {
+            int? x, y;
+            do
+            {
+                x = r.Next(1, 10);
+                y = r.Next(1, 10);
+            } while (x + y >= 10);
+
+            var z = x + y;
+            var i = r.Next(3);
+            if (i == 0) x = null;
+            else if (i == 1) y = null;
+            else z = null;
+            return (x, y, z, ArithOperator.Addition);
+        }
+        else
+        {
+            int? x = r.Next(1, 10);
+            int? y = r.Next(1, x.Value + 1);
+            var z = x - y;
+            var i = r.Next(3);
+            if (i == 0) x = null;
+            else if (i == 1) y = null;
+            else z = null;
+            return (x, y, z, ArithOperator.Subtraction);
+        }
+    }
 
     public static IReadOnlyList<ArithTaskDefinition> All => Defs.Union(TurboDefs).ToList();
     public static IReadOnlyList<ArithTaskDefinition> Simple => Defs;
