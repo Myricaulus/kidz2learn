@@ -101,6 +101,10 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   (or `null` for everything, across every domain). `TaskHost` calls this on init and again whenever
   the active view raises `OnNext`, resolves the returned `IChosenTask.View` via
   `TaskPresentationRegistry`, and renders that component type via `DynamicComponent`.
+  It picks in two steps: a group first (definitions grouped by their first skill, weighted by the
+  group's easiest level and that skill's mastery), then a definition within it - so an exercise with
+  several variants (word problems: Rechnen leicht / Rechnen / Ablesen) counts once in the mix. 🎈/💪/💣
+  stay relative to the whole pool.
 - A view implements `ITaskView`: `[Parameter] IChosenTask ChosenTask` in, `[Parameter] EventCallback OnNext`
   out (raised when the view is done with the current task and wants the next one - timing, e.g.
   a delay after a correct answer, is the view's own business, not `TaskHost`'s). Views inject

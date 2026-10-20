@@ -167,6 +167,10 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
     ///     <see cref="ChooseTaskAsync{T}" /> - <c>skills = null</c> means "everything", across every
     ///     domain, not just one. Wired into <c>TaskHost</c> - see TASK_PRESENTATION_REDESIGN.md
     ///     (Baustein 4).
+    ///     Picks in two steps: first a group - every definition belongs to its first (primary)
+    ///     skill, so the three kinds of word problems are one group and W-Fragen another - then a
+    ///     definition within it. A group counts once however many definitions it has, so adding
+    ///     variants of one exercise doesn't crowd out the others.
     /// </summary>
     public async Task<IChosenTask> ChooseAnyAsync(IReadOnlyCollection<string>? skills = null)
     {
@@ -191,11 +195,19 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
 
         var easiestDifficulty = candidates.Min(c => c.DifficultyLevel);
 
-        var weighted = candidates
+        var groups = candidates
+            .GroupBy(d => d.Skills[0])
+            .Select(g => (def: g, weight: g.Min(d => d.DifficultyLevel)
+                                          + MasteryWeight(masteryBySkill.GetValueOrDefault(g.Key, 0f))))
+            .ToList();
+        var group = InvertedWeightedPick(groups);
+
+        var weighted = group
             .Select(d => (def: d, weight: d.DifficultyLevel + MasteryWeight(WeakestSkillMastery(d, masteryBySkill))))
             .ToList();
 
         var chosen = InvertedWeightedPick(weighted);
+        // Relative to the whole pool, not the group: a level-3 word problem stays a 💣 on the Lesedetektiv.
         var difficulty = chosen.DifficultyLevel switch
         {
             var x when x == easiestDifficulty => Difficulty.Normal,

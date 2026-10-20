@@ -148,6 +148,44 @@ public class ChooseAnyAsyncTests
     }
 
     [Fact]
+    public async Task ChooseAnyAsync_CountsEveryGroupOnce_HoweverManyDefinitionsItHas()
+    {
+        // read_story_math has five definitions, read_wh_question and read_riddle two each. Per
+        // group, only its easiest level counts (2 vs. 1 vs. 1 -> inverted weights 1 : 2 : 2), so the
+        // word problems come up a fifth of the time instead of five ninths.
+        var generator = new AdaptiveTaskGenerator(new FakeSkillMasteryStore(), new Random(11));
+        var counts = new Dictionary<string, int>();
+        const int runs = 3000;
+
+        for (var i = 0; i < runs; i++)
+        {
+            var chosen = await generator.ChooseAnyAsync([Skill.ReadStoryMath, Skill.ReadWhQuestion, Skill.ReadRiddle]);
+            counts[chosen.Skills[0]] = counts.GetValueOrDefault(chosen.Skills[0]) + 1;
+        }
+
+        Assert.Equal(3, counts.Count);
+        Assert.InRange(counts[Skill.ReadStoryMath], runs * 15 / 100, runs * 25 / 100);
+        Assert.InRange(counts[Skill.ReadWhQuestion], runs * 35 / 100, runs * 45 / 100);
+        Assert.InRange(counts[Skill.ReadRiddle], runs * 35 / 100, runs * 45 / 100);
+    }
+
+    [Fact]
+    public async Task ChooseAnyAsync_WithinAGroup_PicksEveryDefinition_AndRatesDifficultyAgainstTheWholePool()
+    {
+        var generator = new AdaptiveTaskGenerator(new FakeSkillMasteryStore(), new Random(13));
+        var levels = new HashSet<(int, Difficulty)>();
+
+        for (var i = 0; i < 600; i++)
+        {
+            var chosen = await generator.ChooseAnyAsync([Skill.ReadWhQuestion]);
+            if (chosen.Skills[0] == Skill.ReadStoryMath)
+                levels.Add((chosen.Level, chosen.Difficulty));
+        }
+
+        Assert.Equal([(2, Difficulty.Hard), (3, Difficulty.Extreme)], levels.Order());
+    }
+
+    [Fact]
     public async Task ChooseAnyAsync_UnknownSkillFilter_Throws()
     {
         var generator = new AdaptiveTaskGenerator(new FakeSkillMasteryStore(), new Random(1));
