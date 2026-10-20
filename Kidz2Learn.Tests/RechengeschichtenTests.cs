@@ -18,12 +18,11 @@ public class RechengeschichtenTests
         Regex.Matches(text, @"\d+").Select(m => int.Parse(m.Value)).ToList();
 
     [Fact]
-    public void EveryStory_AsksForAllThreeNumbers_WithFourDistinctOptions()
+    public void EveryStory_AsksOneQuestion_WithFourDistinctOptions()
     {
         foreach (var serie in Viele())
         {
-            Assert.Equal(3, serie.Fragen.Count);
-            Assert.Equal(3, serie.Fragen.Select(f => f.Richtig).Distinct().Count());
+            Assert.Single(serie.Fragen);
             foreach (var frage in serie.Fragen)
             {
                 Assert.Equal(4, frage.Optionen.Select(o => o.Label).Distinct().Count());
@@ -35,15 +34,15 @@ public class RechengeschichtenTests
     }
 
     [Fact]
-    public void TheTextGivesTwoNumbers_AndTheThirdHasToBeCalculated()
+    public void TheTextGivesTwoNumbers_AndTheQuestionAsksForTheThird()
     {
         foreach (var serie in Viele())
         {
             var imText = ZahlenIm(serie.Text);
-            var antworten = serie.Fragen.Select(f => int.Parse(f.Richtig)).ToList();
+            var antwort = int.Parse(serie.Fragen.Single().Richtig);
             Assert.Equal(2, imText.Count);
-            Assert.Single(antworten, a => !imText.Contains(a));
-            Assert.All(antworten, a => Assert.InRange(a, 2, Rechengeschichten.Maximum));
+            Assert.DoesNotContain(antwort, imText);
+            Assert.All(imText.Append(antwort), z => Assert.InRange(z, 2, Rechengeschichten.Maximum));
         }
     }
 
@@ -67,18 +66,18 @@ public class RechengeschichtenTests
         Assert.All(serie.Fragen, f => Assert.Contains(f.Optionen, o => o.Label == falscheRechnung.ToString()));
     }
 
-    [Fact]
-    public void Questions_NameTheThingsAndThePartner()
+    [Theory]
+    [InlineData(Unbekannt.Vorher, "Wie viele Nüsse hatte der Igel vorher?", "2")]
+    [InlineData(Unbekannt.Aenderung, "Wie viele Nüsse hat der Igel vom Hasen bekommen?", "5")]
+    [InlineData(Unbekannt.Jetzt, "Wie viele Nüsse hat der Igel jetzt?", "7")]
+    public void TheQuestion_NamesTheThingsAndThePartner(Unbekannt unbekannt, string frage, string antwort)
     {
         var igel = Rechengeschichten.Figuren.Single(f => f.Nominativ == "der Igel");
         var hase = Rechengeschichten.Figuren.Single(f => f.Nominativ == "der Hase");
-        var serie = Rechengeschichten.Build(Rechenart.Plus, Unbekannt.Jetzt, igel, hase, "Nüsse", 2, 5, Rng);
+        var aufgabe = Rechengeschichten.Build(Rechenart.Plus, unbekannt, igel, hase, "Nüsse", 2, 5, Rng).Fragen.Single();
 
-        Assert.Equal(
-            ["Wie viele Nüsse hat der Igel jetzt?", "Wie viele Nüsse hat der Igel vom Hasen bekommen?",
-                "Wie viele Nüsse hatte der Igel vorher?"],
-            serie.Fragen.Select(f => f.Frage).Order());
-        Assert.Equal("7", serie.Fragen.Single(f => f.Frage.EndsWith("jetzt?")).Richtig);
+        Assert.Equal(frage, aufgabe.Frage);
+        Assert.Equal(antwort, aufgabe.Richtig);
     }
 
     [Fact]

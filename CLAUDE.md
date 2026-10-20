@@ -125,8 +125,8 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   on purpose.
   Level 3 of the same view are word problems (`Model/Lesen/Rechengeschichten.cs`, skill
   `read_story_math`, own page `/textaufgaben` "Textaufgaben"): a story about getting or giving away
-  things, one "Wie viele ...?" question each for before / change / now; two numbers are in the text,
-  the third has to be calculated, options add the wrong operation's result. Numbers stay <= 9 for now.
+  things (before / change / now); two numbers are in the text, the one "Wie viele ...?" question asks
+  for the third, which has to be calculated; options add the wrong operation's result. Numbers stay <= 9 for now.
   `RaetselView` (`"raetsel"`, skill `read_riddle`, "Wer bin ich?") joins them there: three clues
   from general to specific (`Model/Lesen/Raetsel.cs`, hand-written). Level 1 takes its wrong options
   from other `RaetselBereich`s, so the first clue already decides (`Unpassend` lists cross-kind

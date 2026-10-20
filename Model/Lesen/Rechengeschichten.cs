@@ -25,10 +25,11 @@ public sealed record Figur(string Nominativ, string Dativ, string Pronomen)
 
 /// <summary>
 ///     Word problems ("Textaufgaben") as a <see cref="WFrageSerie" />: a short story about someone
-///     getting or giving away things, and one "Wie viele ...?" question per number of the story -
-///     before, the change, and now. Two of them are in the text, the third has to be calculated, and
-///     the options are all three numbers plus the result of the wrong operation, so neither copying a
-///     number from the text nor the other arithmetic sign gets through.
+///     getting or giving away things. Of its three numbers - before, the change, and now - two are in
+///     the text, and the one "Wie viele ...?" question asks for the third, which has to be calculated.
+///     The options are all three numbers plus the result of the wrong operation, so neither copying a
+///     number from the text nor the other arithmetic sign gets through. One question per story is
+///     already a 💣 task; the numbers that can just be read off aren't asked for.
 /// </summary>
 public static class Rechengeschichten
 {
@@ -113,23 +114,20 @@ public static class Rechengeschichten
                 $"{subjekt} hatte {vorher} {dinge}. Dann hat {er} {partner.Dativ} {aenderung} geschenkt."
         };
 
-        var optionen = Optionen(art, unbekannt, vorher, aenderung, jetzt, rng);
+        var optionen = Optionen(art, unbekannt, vorher, aenderung, jetzt, rng).OrderBy(_ => rng.Next()).ToList();
         var aenderungsFrage = art == Rechenart.Plus
             ? $"Wie viele {dinge} hat {wer.Nominativ} {partner.VonDativ} bekommen?"
             : $"Wie viele {dinge} hat {wer.Nominativ} {partner.Dativ} geschenkt?";
 
-        var fragen = new (string Frage, int Antwort)[]
-            {
-                ($"Wie viele {dinge} hatte {wer.Nominativ} vorher?", vorher),
-                (aenderungsFrage, aenderung),
-                ($"Wie viele {dinge} hat {wer.Nominativ} jetzt?", jetzt)
-            }
-            .OrderBy(_ => rng.Next())
-            .Select(f => new WFrageAufgabe(text, FrageRolle.WieViele, f.Frage,
-                optionen.OrderBy(_ => rng.Next()).ToList(), f.Antwort.ToString()))
-            .ToList();
+        var (frage, antwort) = unbekannt switch
+        {
+            Unbekannt.Vorher => ($"Wie viele {dinge} hatte {wer.Nominativ} vorher?", vorher),
+            Unbekannt.Aenderung => (aenderungsFrage, aenderung),
+            _ => ($"Wie viele {dinge} hat {wer.Nominativ} jetzt?", jetzt)
+        };
 
-        return new WFrageSerie(text, fragen);
+        return new WFrageSerie(text,
+            [new WFrageAufgabe(text, FrageRolle.WieViele, frage, optionen, antwort.ToString())]);
     }
 
     /// <summary>
