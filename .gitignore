@@ -62,6 +62,8 @@ WaveSplit/*
 !WaveSplit/data/de_50k.txt
 !WaveSplit/data/silben-hammer-blocklist.txt
 !WaveSplit/data/silben-hammer-corrections.txt
+!WaveSplit/GenerateLeseTurboWords.py
+!WaveSplit/data/lese-turbo-blocklist.txt
 
 # Debug
 /**/Bildschirmfoto_*.png

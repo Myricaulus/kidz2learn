@@ -1,0 +1,29 @@
+# Lese-Turbo Sperrliste
+#
+# Ein Wort, das hier steht (Kleinschreibung, eine Zeile pro Wort), verwendet
+# GenerateLeseTurboWords.py nie - weder als echtes Wort noch als Quatschwort.
+# - Quatschwörter, die doch echte Wörter, Namen oder Orte sind und in WaveSplit/data/de_50k.txt
+#   fehlen (sonst wäre "Quatschwort" die falsche Antwort).
+# - Echte Wörter aus WordMeta, die sich nicht eignen: Namen/Marken (auch echte Wörter, aber keine,
+#   bei denen ein Kind "echtes Wort" sicher weiß), falsch geschriebene oder falsch großgeschriebene
+#   Einträge.
+# Nach dem Ergänzen: uv run python WaveSplit/GenerateLeseTurboWords.py
+
+# Quatschwort-Zufallstreffer
+eibe
+tosen
+meissen
+hede
+
+# Ungeeignete echte Wörter
+china
+ninjago
+minecraft
+lego
+einser
+satelit
+viel
+vielleicht
+vier
+voll
+vorbei

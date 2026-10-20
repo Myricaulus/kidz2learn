@@ -189,6 +189,14 @@ public static class SkillRegistry
             }
         },
         {
+            Skill.TurboRead,
+            new SkillDefinition
+            {
+                Id = Skill.TurboRead, Domain = TaskDomain.Reading, Category = "fluency", Difficulty = 3,
+                DisplayName = "Turbo-Lesen"
+            }
+        },
+        {
             Skill.ReadStoryMath,
             new SkillDefinition
             {

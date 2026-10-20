@@ -169,6 +169,14 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   after a "Los!" and scores the round once (`Model/Tasks/TurboRunde.cs`: solved with >= 3 right and
   at most a quarter wrong; right answers earn points either way). GitHub issue "Turbo als Event im
   Mixer" holds the rest (triggering it mid-session independent of the picker).
+- `LeseTurboView` (`"lese-turbo"`, `EventTaskRegistry`, skill `read_turbo`, level 3, on the
+  Lesedetektiv) is the reading counterpart: 20-30 s of "echtes Wort oder Quatschwort?" (buttons or
+  ←/→), no speed feedback during the round, a word left 5 s counts as wrong, scored once at the end
+  (`Model/Lesen/LeseTurbo.cs`: >= 8 words, >= 80 % right). Words are generated offline into
+  `Model/Lesen/LeseTurboWords.g.cs` by `uv run python WaveSplit/GenerateLeseTurboWords.py`: real
+  words from WordMeta, nonsense words from their syllables, checked against `de_50k.txt`, the
+  Silbenhammer catalog and WordMeta; anything wrong either way goes in
+  `WaveSplit/data/lese-turbo-blocklist.txt`.
 
 ### Debug mode (Pages/Debug/) — forcing a specific task for manual testing
 

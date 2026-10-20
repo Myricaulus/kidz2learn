@@ -1,0 +1,37 @@
+@using Kidz2Learn.Model.Lesen
+@using MudBlazor
+<div class="leseturbo-container">
+    @switch (_phase)
+    {
+        case Phase.Start:
+            <div class="leseturbo-titel">🐆 Lese-Turbo!</div>
+            <div class="leseturbo-text">
+                @_sekunden Sekunden: Ist das ein echtes Wort oder ein Quatschwort? So schnell du kannst!
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.RocketLaunch" OnClick="Start">Los!</MudButton>
+            break;
+
+        case Phase.Laeuft:
+            <MudProgressLinear Value="@RestProzent" Color="Color.Warning" Size="Size.Large" Rounded="true"
+                               Class="leseturbo-zeit" />
+            <div class="leseturbo-feld" tabindex="0" @ref="_feldRef" @onkeydown="Taste">
+                <div @key="_wortCount" class="leseturbo-wort @_blitz">@_wort.Text</div>
+                <div class="leseturbo-knoepfe">
+                    <button class="leseturbo-knopf leseturbo-echt" @onclick="() => Antwort(true)">
+                        ✔ Echtes Wort <span class="leseturbo-taste">←</span>
+                    </button>
+                    <button class="leseturbo-knopf leseturbo-quatsch" @onclick="() => Antwort(false)">
+                        ✘ Quatschwort <span class="leseturbo-taste">→</span>
+                    </button>
+                </div>
+            </div>
+            break;
+
+        case Phase.Ende:
+            <div class="leseturbo-titel">Geschafft!</div>
+            <div class="leseturbo-text">@_richtig richtig, @_falsch falsch</div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="Weiter">Weiter</MudButton>
+            break;
+    }
+</div>
