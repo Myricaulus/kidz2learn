@@ -18,6 +18,11 @@ public interface IChosenTask
     /// <summary>The definition's absolute <see cref="BaseTaskDefinition.DifficultyLevel" />.</summary>
     int Level { get; }
 
+    /// <summary>How many levels above the pool's easiest one this task lies (a 💣 can be +2 or more).</summary>
+    int LevelsAboveEasiest { get; }
+
+    BaseTaskDefinition Definition { get; }
+
     /// <summary>
     ///     Scores the attempt into every skill's mastery; returns each skill's change, keyed by skill id.
     ///     <paramref name="timeMs" /> is the time since the question was shown.

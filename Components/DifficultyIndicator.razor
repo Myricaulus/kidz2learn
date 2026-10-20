@@ -1,12 +1,16 @@
 @using Kidz2Learn.Model
 
-@* HUD badge for the current task's difficulty, with the point factor it earns. Hidden while no
-   TaskHost task is on screen (Level null). *@
+@* HUD badge for the current task's difficulty, with the point factor it earns and, next to the
+   icon, how many levels above the page's easiest task it lies (a 💣 covers +2 and up). Hidden
+   while no TaskHost task is on screen (Level null). *@
 @if (Level is { } level)
 {
-    <div @key="level" class="difficulty-indicator difficulty-@level.ToString().ToLowerInvariant()"
+    <div @key="(level, LevelsAboveEasiest)" class="difficulty-indicator difficulty-@level.ToString().ToLowerInvariant()"
          title="Schwierigkeit: @DifficultyInfo.Label(level)">
-        <span class="difficulty-icon">@DifficultyInfo.Icon(level)</span>
+        <span class="difficulty-icon">@DifficultyInfo.Icon(level)@if (LevelsAboveEasiest > 0)
+            {
+                <span class="difficulty-steps">+@LevelsAboveEasiest</span>
+            }</span>
         <span class="difficulty-label">@DifficultyInfo.Label(level)</span>
         @if (level != Difficulty.Normal)
         {
@@ -17,4 +21,5 @@
 
 @code {
     [Parameter] public Difficulty? Level { get; set; }
+    [Parameter] public int LevelsAboveEasiest { get; set; }
 }

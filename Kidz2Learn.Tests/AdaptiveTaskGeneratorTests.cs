@@ -169,19 +169,63 @@ public class ChooseAnyAsyncTests
     }
 
     [Fact]
-    public async Task ChooseAnyAsync_WithinAGroup_PicksEveryDefinition_AndRatesDifficultyAgainstTheWholePool()
+    public async Task ChooseAnyAsync_WithinAGroup_PicksEveryUnlockedDefinition_AndRatesDifficultyAgainstTheWholePool()
     {
-        var generator = new AdaptiveTaskGenerator(new FakeSkillMasteryStore(), new Random(13));
-        var levels = new HashSet<(int, Difficulty)>();
+        var store = new FakeSkillMasteryStore(new Dictionary<string, float> { [Skill.ReadStoryMath] = 0.3f });
+        var generator = new AdaptiveTaskGenerator(store, new Random(13));
+        var levels = new HashSet<(int, Difficulty, int)>();
 
         for (var i = 0; i < 600; i++)
         {
             var chosen = await generator.ChooseAnyAsync([Skill.ReadWhQuestion]);
             if (chosen.Skills[0] == Skill.ReadStoryMath)
-                levels.Add((chosen.Level, chosen.Difficulty));
+                levels.Add((chosen.Level, chosen.Difficulty, chosen.LevelsAboveEasiest));
         }
 
-        Assert.Equal([(2, Difficulty.Hard), (3, Difficulty.Extreme)], levels.Order());
+        Assert.Equal([(2, Difficulty.Hard, 1), (3, Difficulty.Extreme, 2)], levels.Order());
+    }
+
+    [Fact]
+    public async Task ChooseAnyAsync_KeepsHarderLevelsLocked_UntilTheGroupsSkillIsFarEnough()
+    {
+        var generator = new AdaptiveTaskGenerator(new FakeSkillMasteryStore(), new Random(17));
+
+        for (var i = 0; i < 300; i++)
+            Assert.Equal(1, (await generator.ChooseAnyAsync([Skill.ReadNouns])).Level);
+    }
+
+    [Theory]
+    [InlineData(0.2f, 1)]
+    [InlineData(0.3f, 2)]
+    [InlineData(0.6f, 3)]
+    [InlineData(0.75f, 4)]
+    [InlineData(0.9f, 5)]
+    public async Task ChooseAnyAsync_UnlocksOneLevelPerThreshold(float mastery, int hardest)
+    {
+        var store = new FakeSkillMasteryStore(new Dictionary<string, float> { [Skill.ReadNouns] = mastery });
+        var generator = new AdaptiveTaskGenerator(store, new Random(19));
+        var levels = new HashSet<int>();
+
+        for (var i = 0; i < 1500; i++)
+            levels.Add((await generator.ChooseAnyAsync([Skill.ReadNouns])).Level);
+
+        Assert.Equal(Enumerable.Range(1, hardest), levels.Order());
+    }
+
+    [Fact]
+    public async Task ChooseAnyAsync_LeavesExcludedTasksOut_UnlessNothingElseIsLeft()
+    {
+        var generator = new AdaptiveTaskGenerator(new FakeSkillMasteryStore(), new Random(23));
+
+        for (var i = 0; i < 200; i++)
+        {
+            var chosen = await generator.ChooseAnyAsync([Skill.ReadNouns, Skill.ReadRiddle],
+                d => d.Skills[0] == Skill.ReadNouns);
+            Assert.Equal(Skill.ReadRiddle, chosen.Skills[0]);
+        }
+
+        var nurNomen = await generator.ChooseAnyAsync([Skill.ReadNouns], _ => true);
+        Assert.Equal(Skill.ReadNouns, nurNomen.Skills[0]);
     }
 
     [Fact]

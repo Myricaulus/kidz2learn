@@ -32,5 +32,13 @@ public abstract class BaseTaskDefinition
     ///     type switch. Uses the same <see cref="Random" /> instance the picker itself draws from,
     ///     matching how pages call <c>Generator(rng)</c> with their own rng today.
     /// </summary>
-    internal abstract IChosenTask Choose(Random rng, Difficulty difficulty, ISkillMasteryStore store);
+    /// <param name="levelsAboveEasiest">How far <see cref="DifficultyLevel" /> lies above the pool's easiest level.</param>
+    internal abstract IChosenTask Choose(Random rng, Difficulty difficulty, ISkillMasteryStore store,
+        int levelsAboveEasiest);
+
+    /// <summary>
+    ///     Runs for a fixed time (the Turbo rounds), so it always counts as long in
+    ///     <see cref="LangeAufgaben" />; every other task's length is measured.
+    /// </summary>
+    public bool FesteDauer { get; init; }
 }

@@ -42,17 +42,20 @@ public sealed class LearningTask<T> : IChosenTask where T : BaseTaskDefinition
         T task,
         object? payload,
         Difficulty difficulty,
-        ISkillMasteryStore store)
+        ISkillMasteryStore store,
+        int levelsAboveEasiest = 0)
     {
         Task = task;
         Payload = payload;
         Difficulty = difficulty;
+        LevelsAboveEasiest = levelsAboveEasiest;
         _store = store;
     }
 
     public T Task { get; }
     public object? Payload { get; }
     public Difficulty Difficulty { get; }
+    public int LevelsAboveEasiest { get; }
 
     object IChosenTask.Payload => Payload ?? throw new InvalidOperationException(
         $"{nameof(Payload)} was never generated for this task - it was chosen via the legacy " +
@@ -61,6 +64,7 @@ public sealed class LearningTask<T> : IChosenTask where T : BaseTaskDefinition
     string IChosenTask.View => Task.View;
     IReadOnlyList<string> IChosenTask.Skills => Task.Skills;
     int IChosenTask.Level => Task.DifficultyLevel;
+    BaseTaskDefinition IChosenTask.Definition => Task;
 
     /// <summary>Scores an attempt timed from this task's creation - for callers outside <c>TaskSessionController</c> (Turbo).</summary>
     public Task<IReadOnlyDictionary<string, MasteryChange>> Success(Kompetenzniveau kompetenz)
@@ -105,6 +109,19 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
     ///     neither difficulty nor mastery dominates the pick.
     /// </summary>
     private const int MasteryWeightRange = 4;
+
+    /// <summary>
+    ///     Mastery of a group's skill a definition needs, by how many levels it lies above the
+    ///     group's easiest one: the easiest is always open, the next only from 0.25 on, and so on.
+    /// </summary>
+    private static readonly float[] LevelThresholds = [0f, 0.25f, 0.5f, 0.7f, 0.85f];
+
+    public static bool IsUnlocked(int levelsAboveEasiest, float mastery)
+    {
+        return levelsAboveEasiest < LevelThresholds.Length
+            ? mastery >= LevelThresholds[Math.Max(levelsAboveEasiest, 0)]
+            : mastery >= 1f;
+    }
 
     /// <summary>
     ///     Debug hook so a wrapper page can force a specific task instead of the adaptive pick,
@@ -172,7 +189,12 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
     ///     definition within it. A group counts once however many definitions it has, so adding
     ///     variants of one exercise doesn't crowd out the others.
     /// </summary>
-    public async Task<IChosenTask> ChooseAnyAsync(IReadOnlyCollection<string>? skills = null)
+    /// <param name="exclude">
+    ///     Candidates to leave out for now (long tasks right after a long one, see
+    ///     <see cref="LangeAufgaben" />) - ignored where it would leave nothing.
+    /// </param>
+    public async Task<IChosenTask> ChooseAnyAsync(IReadOnlyCollection<string>? skills = null,
+        Func<BaseTaskDefinition, bool>? exclude = null)
     {
         var candidates = TaskRegistry.All;
         if (skills is not null)
@@ -188,14 +210,24 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
                 $"No tasks match skills [{string.Join(", ", skills ?? [])}].");
 
         if (DebugOverride?.TryForce(candidates) is { } forced)
-            return forced.Choose(rng, Difficulty.Normal, store);
+            return forced.Choose(rng, Difficulty.Normal, store, 0);
 
         var masteryBySkill = (await store.GetSkillViewEnumerableAsync())
             .ToDictionary(sv => sv.State.Id, sv => sv.State.Mastery);
 
+        // 🎈/💪/💣 stay relative to the whole pool, before anything is left out for now.
         var easiestDifficulty = candidates.Min(c => c.DifficultyLevel);
 
-        var groups = candidates
+        // A harder variant only once its group's skill is far enough along.
+        var unlocked = candidates
+            .GroupBy(d => d.Skills[0])
+            .SelectMany(g => g.Where(d => IsUnlocked(d.DifficultyLevel - g.Min(x => x.DifficultyLevel),
+                masteryBySkill.GetValueOrDefault(g.Key, 0f))))
+            .ToList();
+        if (exclude is not null && unlocked.Any(d => !exclude(d)))
+            unlocked = unlocked.Where(d => !exclude(d)).ToList();
+
+        var groups = unlocked
             .GroupBy(d => d.Skills[0])
             .Select(g => (def: g, weight: g.Min(d => d.DifficultyLevel)
                                           + MasteryWeight(masteryBySkill.GetValueOrDefault(g.Key, 0f))))
@@ -215,7 +247,7 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
             _ => Difficulty.Extreme
         };
 
-        return chosen.Choose(rng, difficulty, store);
+        return chosen.Choose(rng, difficulty, store, chosen.DifficultyLevel - easiestDifficulty);
     }
 
     /// <summary>

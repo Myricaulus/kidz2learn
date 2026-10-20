@@ -8,8 +8,10 @@ public sealed class SilbenTaskDefinition : BaseTaskDefinition
 {
     public required Func<Random, (string correct,string[] options)> Generator { get; init; }
 
-    internal override IChosenTask Choose(Random rng, Difficulty difficulty, ISkillMasteryStore store)
+    internal override IChosenTask Choose(Random rng, Difficulty difficulty, ISkillMasteryStore store,
+        int levelsAboveEasiest)
     {
-        return new LearningTask<SilbenTaskDefinition>(this, Generator(rng), difficulty, store);
+        return new LearningTask<SilbenTaskDefinition>(this, Generator(rng), difficulty, store,
+            levelsAboveEasiest);
     }
 }

@@ -15,9 +15,11 @@ public sealed class EventTaskDefinition : BaseTaskDefinition
 {
     public required Func<Random, EventLaunchOptions> Generator { get; init; }
 
-    internal override IChosenTask Choose(Random rng, Difficulty difficulty, ISkillMasteryStore store)
+    internal override IChosenTask Choose(Random rng, Difficulty difficulty, ISkillMasteryStore store,
+        int levelsAboveEasiest)
     {
-        return new LearningTask<EventTaskDefinition>(this, Generator(rng), difficulty, store);
+        return new LearningTask<EventTaskDefinition>(this, Generator(rng), difficulty, store,
+            levelsAboveEasiest);
     }
 }
 

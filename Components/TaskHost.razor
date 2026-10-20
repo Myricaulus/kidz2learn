@@ -24,7 +24,9 @@
     [Inject] private TaskSessionController Session { get; set; } = null!;
 
     private readonly Random _rng = new();
+    private readonly LangeAufgaben _lang = new();
     private IChosenTask? _chosen;
+    private DateTime _shown;
     private Type? _viewType;
     private IDictionary<string, object>? _parameters;
 
@@ -44,12 +46,16 @@
 
     private async Task LoadNext()
     {
+        if (_chosen is not null)
+            _lang.Erledigt(_chosen.Definition, DateTime.Now - _shown);
+
         var store = new SkillMasteryStore(AufgabenDb);
         var generator = new AdaptiveTaskGenerator(store, _rng);
         var pool = FillerSkills is not null && _rng.NextDouble() < FillerChance ? FillerSkills : Skills;
-        _chosen = await generator.ChooseAnyAsync(pool);
+        _chosen = await generator.ChooseAnyAsync(pool, _lang.Gesperrt);
+        _shown = DateTime.Now;
         _viewType = TaskPresentationRegistry.Resolve(_chosen.View);
-        Hud.SetDifficulty(_chosen.Difficulty);
+        Hud.SetDifficulty(_chosen.Difficulty, _chosen.LevelsAboveEasiest);
         Session.BeginTask();
         _parameters = new Dictionary<string, object>
         {
@@ -62,6 +68,6 @@
     // pages without tasks (Profil).
     public void Dispose()
     {
-        Hud.SetDifficulty(null);
+        Hud.SetDifficulty(null, 0);
     }
 }

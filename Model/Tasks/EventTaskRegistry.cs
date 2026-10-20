@@ -24,6 +24,7 @@ public static class EventTaskRegistry
             Skills = [Skill.Math.Turbo10],
             DifficultyLevel = 3,
             View = "turbo-runde",
+            FesteDauer = true,
             Generator = r => new EventLaunchOptions { TargetDuration = TimeSpan.FromSeconds(r.Next(20, 31)) }
         },
         new()
@@ -31,6 +32,7 @@ public static class EventTaskRegistry
             Skills = [Skill.TurboRead],
             DifficultyLevel = 3,
             View = "lese-turbo",
+            FesteDauer = true,
             Generator = r => new EventLaunchOptions { TargetDuration = TimeSpan.FromSeconds(r.Next(20, 31)) }
         }
     ];

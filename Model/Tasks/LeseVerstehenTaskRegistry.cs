@@ -97,27 +97,15 @@ public static class LeseVerstehenTaskRegistry
 
     private static readonly List<SuchRasterTaskDefinition> SuchRasterDefs =
     [
-        new()
-        {
-            Skills = [Skill.ReadNouns],
-            DifficultyLevel = 1,
-            View = "such-raster",
-            Generator = NomenSammlung.GenerateLeicht
-        },
-        new()
-        {
-            Skills = [Skill.ReadNouns],
-            DifficultyLevel = 2,
-            View = "such-raster",
-            Generator = NomenSammlung.GenerateMittel
-        },
-        new()
-        {
-            Skills = [Skill.ReadNouns],
-            DifficultyLevel = 3,
-            View = "such-raster",
-            Generator = NomenSammlung.GenerateSchwer
-        },
+        .. from groesse in Enum.GetValues<NomenRaster.Groesse>()
+            from art in Enum.GetValues<NomenRaster.WortArt>()
+            select new SuchRasterTaskDefinition
+            {
+                Skills = [Skill.ReadNouns],
+                DifficultyLevel = NomenRaster.Stufe(groesse, art),
+                View = "such-raster",
+                Generator = rng => NomenSammlung.Generate(groesse, art, rng)
+            },
         new()
         {
             Skills = [Skill.ReadMirrorLetters],

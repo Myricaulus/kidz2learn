@@ -342,8 +342,12 @@ public class NomenTests
 {
     private static readonly Random Rng = new(4711);
 
-    private static readonly Func<Random, SuchRaster>[] Generators =
-        [NomenSammlung.GenerateLeicht, NomenSammlung.GenerateMittel, NomenSammlung.GenerateSchwer];
+    private static readonly (NomenRaster.Groesse Groesse, NomenRaster.WortArt Art)[] Varianten =
+    [
+        .. from groesse in Enum.GetValues<NomenRaster.Groesse>()
+            from art in Enum.GetValues<NomenRaster.WortArt>()
+            select (groesse, art)
+    ];
 
     private static IEnumerable<string> AlleNomen =>
         NomenSammlung.Konkret.Concat(NomenSammlung.Abstrakt.Select(a => a.Wort));
@@ -366,42 +370,57 @@ public class NomenTests
     }
 
     [Fact]
-    public void Generators_FillTheGridWithDistinctWords_AndSixToEightNouns()
+    public void EveryVariant_FillsItsGridWithDistinctWords_AndItsRangeOfNouns()
     {
-        foreach (var generate in Generators)
+        foreach (var (groesse, art) in Varianten)
         for (var i = 0; i < 300; i++)
         {
-            var aufgabe = generate(Rng);
-            Assert.Equal(NomenSammlung.Anzahl, aufgabe.Felder.Count);
-            Assert.Equal(NomenSammlung.Anzahl,
+            var (spalten, anzahl, minNomen, maxNomen) = NomenRaster.Masse(groesse);
+            var aufgabe = NomenSammlung.Generate(groesse, art, Rng);
+            Assert.Equal(spalten, aufgabe.Spalten);
+            Assert.Equal(anzahl, aufgabe.Felder.Count);
+            Assert.Equal(anzahl,
                 aufgabe.Felder.Select(w => w.Text).Distinct(StringComparer.OrdinalIgnoreCase).Count());
-            Assert.InRange(aufgabe.AnzahlTreffer, NomenSammlung.MinNomen, NomenSammlung.MaxNomen);
+            Assert.InRange(aufgabe.AnzahlTreffer, minNomen, maxNomen);
         }
+    }
+
+    [Fact]
+    public void Stufe_AddsOneLevelPerStepOnEitherKnob()
+    {
+        Assert.Equal(1, NomenRaster.Stufe(NomenRaster.Groesse.Klein, NomenRaster.WortArt.Konkret));
+        Assert.Equal(2, NomenRaster.Stufe(NomenRaster.Groesse.Klein, NomenRaster.WortArt.Gemischt));
+        Assert.Equal(2, NomenRaster.Stufe(NomenRaster.Groesse.Mittel, NomenRaster.WortArt.Konkret));
+        Assert.Equal(4, NomenRaster.Stufe(NomenRaster.Groesse.Gross, NomenRaster.WortArt.Gemischt));
+        Assert.Equal(5, NomenRaster.Stufe(NomenRaster.Groesse.Gross, NomenRaster.WortArt.Abstrakt));
     }
 
     [Fact]
     public void Generators_WriteTheWholeGridInLowerCase()
     {
-        foreach (var generate in Generators)
+        foreach (var (groesse, art) in Varianten)
         for (var i = 0; i < 100; i++)
-            Assert.All(generate(Rng).Felder, w => Assert.Equal(w.Text.ToLowerInvariant(), w.Text));
+            Assert.All(NomenSammlung.Generate(groesse, art, Rng).Felder,
+                w => Assert.Equal(w.Text.ToLowerInvariant(), w.Text));
     }
 
     [Fact]
-    public void Leicht_OnlyUsesTouchableNouns()
+    public void Konkret_OnlyUsesTouchableNouns()
     {
         var konkret = NomenSammlung.Konkret.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var groesse in Enum.GetValues<NomenRaster.Groesse>())
         for (var i = 0; i < 200; i++)
-            Assert.All(NomenSammlung.GenerateLeicht(Rng).Felder.Where(w => w.Treffer),
+            Assert.All(NomenSammlung.Generate(groesse, NomenRaster.WortArt.Konkret, Rng).Felder.Where(w => w.Treffer),
                 w => Assert.Contains(w.Text, konkret));
     }
 
     [Fact]
-    public void Schwer_PutsARelatedNonNounNextToEveryAbstractNounThatHasOne()
+    public void Abstrakt_PutsARelatedNonNounNextToEveryAbstractNounThatHasOne()
     {
+        foreach (var groesse in Enum.GetValues<NomenRaster.Groesse>())
         for (var i = 0; i < 200; i++)
         {
-            var woerter = NomenSammlung.GenerateSchwer(Rng).Felder
+            var woerter = NomenSammlung.Generate(groesse, NomenRaster.WortArt.Abstrakt, Rng).Felder
                 .Select(w => w.Text).ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (var nomen in NomenSammlung.Abstrakt.Where(a => woerter.Contains(a.Wort)))
                 if (nomen.Verwandte.Length > 0)

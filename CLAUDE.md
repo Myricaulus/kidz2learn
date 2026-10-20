@@ -108,7 +108,12 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   It picks in two steps: a group first (definitions grouped by their first skill, weighted by the
   group's easiest level and that skill's mastery), then a definition within it - so an exercise with
   several variants (word problems: Rechnen leicht / Rechnen / Ablesen) counts once in the mix. 🎈/💪/💣
-  stay relative to the whole pool.
+  stay relative to the whole pool (+2 and up is a 💣; the HUD shows the exact "+N" next to it). A
+  variant above its group's easiest level is only picked once the group's skill has the mastery
+  for it (`AdaptiveTaskGenerator.IsUnlocked`: +1 from 0.25, +2 from 0.5, +3 from 0.7, +4 from 0.85).
+  `TaskHost` keeps long tasks apart (`Model/LangeAufgaben.cs`): a definition that took over 30 s on
+  this page visit, or has a `FesteDauer` (the Turbo rounds), is left out for the next 3 picks after
+  a long one.
 - A view implements `ITaskView`: `[Parameter] IChosenTask ChosenTask` in, `[Parameter] EventCallback OnNext`
   out (raised when the view is done with the current task and wants the next one - timing, e.g.
   a delay after a correct answer, is the view's own business, not `TaskHost`'s). Views inject
@@ -152,11 +157,11 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   session in the local, gitignored `WaveSplit/names.txt`.
   `SuchRasterView` (`"such-raster"`) is the search grid there: tap every matching tile, hand in
   with "Fertig!". Two kinds share it via the `SuchRaster` payload (`Model/Lesen/SuchRaster.cs`):
-  "Nomen finden" (skill `read_nouns`, `NomenSammlung`) - 16 words, 6-8 of them nouns, all in
-  lower case; word lists are hand-picked to be unambiguous that way (no
-  "Decke"/"decke", "Essen"/"essen"); level 1 only touchable nouns, level 2 mixes in abstract ones
-  ("Sprung", "Geist"), level 3 only abstract nouns, each next to a non-noun of its word family
-  ("springt") - and "Spiegelbuchstaben" (skill `read_mirror_letters`, `Spiegelbuchstaben`): find
+  "Nomen finden" (skill `read_nouns`, `NomenSammlung`) - all words in lower case; word lists are
+  hand-picked to be unambiguous that way (no "Decke"/"decke", "Essen"/"essen"). Two knobs add up
+  to its level (`NomenRaster.Stufe`, 1-5, nine definitions): grid size 3×3 / 4×3 / 4×4 and words -
+  only touchable nouns / half abstract ones ("Sprung", "Geist") / only abstract nouns, each next to
+  a non-noun of its word family ("springt") - and "Spiegelbuchstaben" (skill `read_mirror_letters`, `Spiegelbuchstaben`): find
   one of b/d/p/q among the others, 4×4 at level 2, 5×5 at level 3. No read-aloud. Only the first
   hand-in is scored (`SuchRasterWertung`: full / half / zero points for 0 / 1 / 2 mistakes - a
   wrong tap or a missed tile - and a point off for each one beyond; up to one mistake counts as

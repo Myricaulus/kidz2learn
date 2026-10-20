@@ -12,12 +12,8 @@ public sealed record AbstraktNomen(string Wort, params string[] Verwandte);
 /// </summary>
 public static class NomenSammlung
 {
-    public const int Anzahl = 16;
-    public const int Spalten = 4;
-    public const int MinNomen = 6;
-    public const int MaxNomen = 8;
 
-    /// <summary>Things you can touch - level 1's only nouns.</summary>
+    /// <summary>Things you can touch - the only nouns of <see cref="NomenRaster.WortArt.Konkret" />.</summary>
     public static readonly IReadOnlyList<string> Konkret =
     [
         "Ball", "Tisch", "Stuhl", "Bett", "Lampe", "Fenster", "Tür", "Uhr", "Kissen", "Koffer",
@@ -31,7 +27,8 @@ public static class NomenSammlung
     ];
 
     /// <summary>
-    ///     Nouns you can't touch. <see cref="AbstraktNomen.Verwandte" /> are level 3's traps: they
+    ///     Nouns you can't touch. <see cref="AbstraktNomen.Verwandte" /> are the traps of
+    ///     <see cref="NomenRaster.WortArt.Abstrakt" />: they
     ///     sound like the noun but aren't one.
     /// </summary>
     public static readonly IReadOnlyList<AbstraktNomen> Abstrakt =
@@ -88,57 +85,111 @@ public static class NomenSammlung
         return woerter.OrderBy(_ => rng.Next());
     }
 
-    /// <summary>Level 1: only touchable things among plain verbs, adjectives and small words.</summary>
-    public static SuchRaster GenerateLeicht(Random rng)
+    /// <summary>
+    ///     A grid of <paramref name="groesse" /> with nouns of <paramref name="art" />; its
+    ///     <see cref="NomenRaster.Stufe" /> adds up both.
+    /// </summary>
+    public static SuchRaster Generate(NomenRaster.Groesse groesse, NomenRaster.WortArt art, Random rng)
     {
-        var anzahl = rng.Next(MinNomen, MaxNomen + 1);
-        var nomen = Mischen(Konkret, rng).Take(anzahl);
-        return Build(1, nomen, Mischen(KeineNomen, rng), rng);
+        var (_, _, minNomen, maxNomen) = NomenRaster.Masse(groesse);
+        var anzahl = rng.Next(minNomen, maxNomen + 1);
+        var (nomen, keineNomen) = art switch
+        {
+            NomenRaster.WortArt.Konkret => Leicht(anzahl, rng),
+            NomenRaster.WortArt.Gemischt => Mittel(anzahl, rng),
+            _ => Schwer(anzahl, rng)
+        };
+        return Build(groesse, art, nomen, keineNomen, rng);
     }
 
-    /// <summary>Level 2: about half of the nouns are abstract ("Sprung", "Geist").</summary>
-    public static SuchRaster GenerateMittel(Random rng)
+    /// <summary>Only touchable things among plain verbs, adjectives and small words.</summary>
+    private static (IEnumerable<string>, IEnumerable<string>) Leicht(int anzahl, Random rng)
     {
-        var anzahl = rng.Next(MinNomen, MaxNomen + 1);
+        return (Mischen(Konkret, rng).Take(anzahl), Mischen(KeineNomen, rng));
+    }
+
+    /// <summary>About half of the nouns are abstract ("Sprung", "Geist").</summary>
+    private static (IEnumerable<string>, IEnumerable<string>) Mittel(int anzahl, Random rng)
+    {
         var abstrakt = anzahl / 2;
         var nomen = Mischen(Abstrakt.Select(a => a.Wort), rng).Take(abstrakt)
             .Concat(Mischen(Konkret, rng).Take(anzahl - abstrakt));
-        return Build(2, nomen, Mischen(KeineNomen, rng), rng);
+        return (nomen, Mischen(KeineNomen, rng));
     }
 
     /// <summary>
-    ///     Level 3: only abstract nouns, each next to a non-noun of its own word family where it has
-    ///     one ("Sprung" and "springt"), so the meaning alone doesn't give the noun away.
+    ///     Only abstract nouns, each next to a non-noun of its own word family where it has one
+    ///     ("Sprung" and "springt"), so the meaning alone doesn't give the noun away.
     /// </summary>
-    public static SuchRaster GenerateSchwer(Random rng)
+    private static (IEnumerable<string>, IEnumerable<string>) Schwer(int anzahl, Random rng)
     {
-        var anzahl = rng.Next(MinNomen, MaxNomen + 1);
         var nomen = Abstrakt.OrderBy(_ => rng.Next()).Take(anzahl).ToList();
         var fallen = nomen
             .Where(n => n.Verwandte.Length > 0)
             .Select(n => n.Verwandte[rng.Next(n.Verwandte.Length)]);
         var andereVerwandte = Abstrakt.Except(nomen).SelectMany(a => a.Verwandte);
-        var keineNomen = fallen.Concat(Mischen(andereVerwandte.Concat(KeineNomen), rng));
-        return Build(3, nomen.Select(n => n.Wort), keineNomen, rng);
+        return (nomen.Select(n => n.Wort), fallen.Concat(Mischen(andereVerwandte.Concat(KeineNomen), rng)));
     }
 
     /// <summary>
-    ///     Fills the grid up to <see cref="Anzahl" /> with <paramref name="keineNomen" /> in the given
+    ///     Fills the grid up to its size with <paramref name="keineNomen" /> in the given
     ///     order (skipping repeats), shuffles it and writes it all in lower case. Points
     ///     scale with the number of words to read, like every reading task.
     /// </summary>
-    public static SuchRaster Build(int stufe, IEnumerable<string> nomen, IEnumerable<string> keineNomen, Random rng)
+    public static SuchRaster Build(NomenRaster.Groesse groesse, NomenRaster.WortArt art, IEnumerable<string> nomen,
+        IEnumerable<string> keineNomen, Random rng)
     {
+        var (spalten, anzahl, _, _) = NomenRaster.Masse(groesse);
         var woerter = nomen.Select(n => (Wort: n, IstNomen: true))
             .Concat(keineNomen.Select(k => (Wort: k, IstNomen: false)))
             .DistinctBy(w => w.Wort, StringComparer.OrdinalIgnoreCase)
-            .Take(Anzahl);
+            .Take(anzahl);
 
         var felder = woerter
             .OrderBy(_ => rng.Next())
             .Select(w => new RasterFeld(w.Wort.ToLowerInvariant(), w.IstNomen))
             .ToList();
         var punkte = LesePunkte.ForText([.. felder.Select(f => f.Text)]);
-        return new SuchRaster("Nomen", Spalten, felder, punkte, $"Nomen{stufe}");
+        return new SuchRaster("Nomen", spalten, felder, punkte, $"Nomen-{groesse}-{art}");
+    }
+}
+
+/// <summary>
+///     The two difficulty knobs of "Nomen finden". Each step on either one makes a grid one level
+///     harder: a small grid with abstract nouns is as hard as a large one with touchable things.
+/// </summary>
+public static class NomenRaster
+{
+    /// <summary>3×3, 4×3 and 4×4 tiles.</summary>
+    public enum Groesse
+    {
+        Klein,
+        Mittel,
+        Gross
+    }
+
+    /// <summary>Touchable nouns, half abstract ones, only abstract ones next to their word family.</summary>
+    public enum WortArt
+    {
+        Konkret,
+        Gemischt,
+        Abstrakt
+    }
+
+    /// <summary>Columns, tiles, and the range of nouns among them.</summary>
+    public static (int Spalten, int Anzahl, int MinNomen, int MaxNomen) Masse(Groesse groesse)
+    {
+        return groesse switch
+        {
+            Groesse.Klein => (3, 9, 3, 4),
+            Groesse.Mittel => (4, 12, 4, 6),
+            _ => (4, 16, 6, 8)
+        };
+    }
+
+    /// <summary>1 for a small grid of touchable things, up to 5 for a large one of abstract nouns.</summary>
+    public static int Stufe(Groesse groesse, WortArt art)
+    {
+        return 1 + (int)groesse + (int)art;
     }
 }
