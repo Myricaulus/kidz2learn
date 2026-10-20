@@ -1,3 +1,4 @@
+using Kidz2Learn.Shared.Extensions;
 using System.Net.Http.Json;
 using Microsoft.JSInterop;
 
@@ -27,7 +28,7 @@ public class AffirmationService(HttpClient http, IJSRuntime js)
     {
         try
         {
-            return await http.GetFromJsonAsync<Dictionary<string, List<string>>>(ManifestUrl);
+            return await http.GetFreshJsonAsync<Dictionary<string, List<string>>>(ManifestUrl);
         }
         catch
         {
