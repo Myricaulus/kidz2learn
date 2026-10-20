@@ -14,6 +14,13 @@ public interface IChosenTask
     string View { get; }
     IReadOnlyList<string> Skills { get; }
     Difficulty Difficulty { get; }
-    Task Success(Kompetenzniveau kompetenz);
-    Task Fail(Kompetenzniveau kompetenz);
+
+    /// <summary>The definition's absolute <see cref="BaseTaskDefinition.DifficultyLevel" />.</summary>
+    int Level { get; }
+
+    /// <summary>Scores the attempt into every skill's mastery; returns each skill's change, keyed by skill id.</summary>
+    Task<IReadOnlyDictionary<string, MasteryChange>> Success(Kompetenzniveau kompetenz);
+
+    /// <inheritdoc cref="Success" />
+    Task<IReadOnlyDictionary<string, MasteryChange>> Fail(Kompetenzniveau kompetenz);
 }

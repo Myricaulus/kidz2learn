@@ -15,11 +15,12 @@ public class FakeSkillMasteryStore(IReadOnlyDictionary<string, float>? mastery =
 
     public List<(string SkillId, bool Success)> AdjustCalls { get; } = [];
 
-    public Task Adjust(string skillId, Difficulty difficulty, int timeMs, Kompetenzniveau specificTaskHistory,
-        bool success)
+    public Task<MasteryChange> Adjust(string skillId, Difficulty difficulty, int timeMs,
+        Kompetenzniveau specificTaskHistory, bool success)
     {
         AdjustCalls.Add((skillId, success));
-        return Task.CompletedTask;
+        var mastery = _mastery.GetValueOrDefault(skillId);
+        return Task.FromResult(new MasteryChange(mastery, mastery));
     }
 
     public Task<IEnumerable<SkillView>> GetSkillViewEnumerableAsync()

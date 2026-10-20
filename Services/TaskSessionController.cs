@@ -35,6 +35,7 @@ public sealed class TaskSessionController(
     TelemetryService telemetry)
 {
     private DateTime _taskStarted = DateTime.Now;
+    private int _taskAttempts;
 
     public int TotalAttempts { get; private set; }
     public int SuccessfulAttempts { get; private set; }
@@ -58,6 +59,7 @@ public sealed class TaskSessionController(
     public void BeginTask()
     {
         _taskStarted = DateTime.Now;
+        _taskAttempts = 0;
     }
 
     /// <param name="basePoints">Points at <see cref="Difficulty.Normal" />; scaled here by <see cref="DifficultyInfo.PointFactor" />.</param>
@@ -65,36 +67,42 @@ public sealed class TaskSessionController(
     public async Task RecordSuccess(IChosenTask task, Kompetenzniveau kompetenz, int basePoints, int bonusPoints,
         string? detail = null)
     {
+        var answered = DateTime.Now;
+        var attempt = ++_taskAttempts;
         basePoints = DifficultyInfo.Scale(basePoints, task.Difficulty);
         bonusPoints = DifficultyInfo.Scale(bonusPoints, task.Difficulty);
-        RecordTelemetry(task, detail, correct: true, basePoints + bonusPoints);
         score.AddPoints(basePoints, bonusPoints);
         hud.IncrementCombo();
         TotalAttempts++;
         SuccessfulAttempts++;
         RecordPerSkill(task, success: true);
         await affirmation.PlayErfolgAsync();
-        await task.Success(kompetenz);
+        var mastery = await task.Success(kompetenz);
+        RecordTelemetry(task, answered, attempt, detail, correct: true, basePoints + bonusPoints, mastery);
     }
 
     /// <param name="detail">Human-readable task and answer for the telemetry log ("Hund → Hand").</param>
     public async Task RecordFailure(IChosenTask task, Kompetenzniveau kompetenz, int basePoints, int bonusPoints,
         string? detail = null)
     {
-        RecordTelemetry(task, detail, correct: false, basePoints + bonusPoints);
+        var answered = DateTime.Now;
+        var attempt = ++_taskAttempts;
         score.AddPoints(basePoints, bonusPoints);
         hud.SetCombo(0);
         TotalAttempts++;
         RecordPerSkill(task, success: false);
         await affirmation.PlayMisserfolgAsync();
-        await task.Fail(kompetenz);
+        var mastery = await task.Fail(kompetenz);
+        RecordTelemetry(task, answered, attempt, detail, correct: false, basePoints + bonusPoints, mastery);
     }
 
-    private void RecordTelemetry(IChosenTask task, string? detail, bool correct, int points)
+    private void RecordTelemetry(IChosenTask task, DateTime answered, int attempt, string? detail, bool correct,
+        int points, IReadOnlyDictionary<string, MasteryChange> mastery)
     {
-        var now = DateTime.Now;
-        telemetry.Record(new TelemetryEntry(now, task.View, task.Skills, detail, correct, points,
-            (long)(now - _taskStarted).TotalMilliseconds));
+        telemetry.Record(new TelemetryEntry(answered, task.View, task.Skills, task.Level, task.Difficulty.ToString(),
+            attempt, detail, correct, points, (long)(answered - _taskStarted).TotalMilliseconds,
+            mastery.ToDictionary(m => m.Key,
+                m => new TelemetryMastery(Math.Round(m.Value.Before, 4), Math.Round(m.Value.After, 4)))));
     }
 
     private void RecordPerSkill(IChosenTask task, bool success)

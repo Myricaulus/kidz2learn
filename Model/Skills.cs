@@ -215,9 +215,12 @@ public record SkillView(SkillDefinition Definition, SkillState State);
 ///     Storage boundary for skill mastery. Extracted so <see cref="AdaptiveTaskGenerator" /> can be
 ///     unit-tested with a fake store instead of a real IndexedDB/JSInterop-backed one.
 /// </summary>
+/// <summary>A skill's mastery right before and after one attempt was scored.</summary>
+public sealed record MasteryChange(float Before, float After);
+
 public interface ISkillMasteryStore
 {
-    Task Adjust(string skillId, Difficulty difficulty, int timeMs, Kompetenzniveau specificTaskHistory,
+    Task<MasteryChange> Adjust(string skillId, Difficulty difficulty, int timeMs, Kompetenzniveau specificTaskHistory,
         bool success);
 
     Task<IEnumerable<SkillView>> GetSkillViewEnumerableAsync();
@@ -228,8 +231,8 @@ public sealed class SkillMasteryStore(IndexedDb skillDb) : ISkillMasteryStore
     private readonly IndexedDbStore _store = skillDb["SkillStates"]
                                              ?? throw new InvalidOperationException("SkillStates DB failed to init");
 
-    public async Task Adjust(string skillId, Difficulty difficulty, int timeMs, Kompetenzniveau specificTaskHistory,
-        bool success)
+    public async Task<MasteryChange> Adjust(string skillId, Difficulty difficulty, int timeMs,
+        Kompetenzniveau specificTaskHistory, bool success)
     {
         float delta;
         if (success)
@@ -324,10 +327,12 @@ public sealed class SkillMasteryStore(IndexedDb skillDb) : ISkillMasteryStore
                          SkillRowFactor(s) *
                          TaskRowFactor(specificTaskHistory) *
                          TimeFactor(timeMs, s.EffectiveDifficulty);
+        var before = s.Mastery;
         s.LastAttempt = DateTime.Now;
         s.Mastery = Math.Clamp(s.Mastery + finaldelta, 0, 1);
         Console.WriteLine($"{skillId}|A:{s.Attempts}|S:{s.Success}|M:{s.Mastery}|Δ:{delta}");
         await _store.StoreItemAsync(s);
+        return new MasteryChange(before, s.Mastery);
     }
 
     private async Task<IReadOnlyDictionary<string, SkillState>> Snapshot()

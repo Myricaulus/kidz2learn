@@ -59,19 +59,25 @@ public sealed class LearningTask<T> : IChosenTask where T : BaseTaskDefinition
 
     string IChosenTask.View => Task.View;
     IReadOnlyList<string> IChosenTask.Skills => Task.Skills;
+    int IChosenTask.Level => Task.DifficultyLevel;
 
-    public async Task Success(Kompetenzniveau kompetenz)
+    public Task<IReadOnlyDictionary<string, MasteryChange>> Success(Kompetenzniveau kompetenz)
     {
-        var time = DateTime.Now - _timeStarted;
-        foreach (var skill in Task.Skills)
-            await _store.Adjust(skill, Difficulty, (int)time.TotalMilliseconds, kompetenz, true);
+        return Adjust(kompetenz, true);
     }
 
-    public async Task Fail(Kompetenzniveau kompetenz)
+    public Task<IReadOnlyDictionary<string, MasteryChange>> Fail(Kompetenzniveau kompetenz)
+    {
+        return Adjust(kompetenz, false);
+    }
+
+    private async Task<IReadOnlyDictionary<string, MasteryChange>> Adjust(Kompetenzniveau kompetenz, bool success)
     {
         var time = DateTime.Now - _timeStarted;
+        var changes = new Dictionary<string, MasteryChange>();
         foreach (var skill in Task.Skills)
-            await _store.Adjust(skill, Difficulty, (int)time.TotalMilliseconds, kompetenz, false);
+            changes[skill] = await _store.Adjust(skill, Difficulty, (int)time.TotalMilliseconds, kompetenz, success);
+        return changes;
     }
 }
 

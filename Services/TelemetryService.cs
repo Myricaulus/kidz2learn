@@ -5,14 +5,25 @@ using Microsoft.JSInterop;
 namespace Kidz2Learn.Services;
 
 /// <summary>One answered attempt, as sent to the telemetry receiver.</summary>
+/// <param name="Level">The task definition's absolute difficulty level (1 = leicht).</param>
+/// <param name="Difficulty">Difficulty relative to the candidate pool (Normal/Hard/Extreme), as shown in the HUD.</param>
+/// <param name="Attempt">1 for the first answer to a task, 2 for the next try at the same task, ...</param>
+/// <param name="DurationMs">Time since the task was shown, so it keeps growing across retries.</param>
+/// <param name="Mastery">Per skill id, the mastery right before and after this attempt was scored.</param>
 public sealed record TelemetryEntry(
     DateTime Time,
     string View,
     IReadOnlyList<string> Skills,
+    int Level,
+    string Difficulty,
+    int Attempt,
     string? Detail,
     bool Correct,
     int Points,
-    long DurationMs);
+    long DurationMs,
+    IReadOnlyDictionary<string, TelemetryMastery> Mastery);
+
+public sealed record TelemetryMastery(double Before, double After);
 
 /// <summary>
 ///     Opt-in per-device session log for the parent's own machines. A device is opted in only by
