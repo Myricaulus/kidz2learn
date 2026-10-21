@@ -1,3 +1,4 @@
+using Kidz2Learn.Entities;
 using Kidz2Learn.Model;
 using Kidz2Learn.Model.Lesen;
 using Kidz2Learn.Model.Tasks;
@@ -174,19 +175,31 @@ public partial class SuchRasterView : ComponentBase, ITaskView, IDisposable
         var detail = $"{_raster.Ziel}: [{string.Join(", ", _raster.Felder.Select(f => f.Text))}] → [{markiert}] " +
                      $"({falschMarkiert} falsch, {vergessen} vergessen)";
 
+        var fehlerItems = _raster.Felder
+            .Select((f, i) => (f, marked: _marked.Contains(i)))
+            .Where(x => x.f.Treffer != x.marked)
+            .Select(x => new BeobachtungsItem(x.f.Text, null, x.marked ? "falsch-markiert" : "vergessen", 0))
+            .ToList();
+        var daten = new BeobachtungsDaten(_raster.Ziel, Werte: new Dictionary<string, string>
+        {
+            ["felder"] = _raster.Felder.Count.ToString(),
+            ["spalten"] = _raster.Spalten.ToString(),
+            ["treffer"] = _raster.AnzahlTreffer.ToString()
+        }, Items: fehlerItems);
+
         var points = SuchRasterWertung.Punkte(_raster.BasisPunkte, fehler);
         if (SuchRasterWertung.Geschafft(fehler))
         {
             _correctCount++;
             log.Kompetenz.AddRichtig();
-            await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points, detail);
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points, detail, daten);
         }
         else
         {
             _wrongCount++;
             log.Kompetenz.AddFalsch();
             // Below zero only the base score shrinks; the bonus stays untouched.
-            await Session.RecordFailure(ChosenTask, log.Kompetenz, points, 0, detail);
+            await Session.RecordFailure(ChosenTask, log.Kompetenz, points, 0, detail, daten);
         }
 
         await db.StoreItemAsync(log);

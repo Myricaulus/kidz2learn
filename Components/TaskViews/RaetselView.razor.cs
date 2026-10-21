@@ -1,4 +1,6 @@
+using Kidz2Learn.Entities;
 using Kidz2Learn.Model;
+using Kidz2Learn.Model.Merkmale;
 using Kidz2Learn.Model.Lesen;
 using Kidz2Learn.Model.Tasks;
 using Kidz2Learn.Pages.SilbenChallenge;
@@ -70,6 +72,8 @@ public partial class RaetselView : ComponentBase, ITaskView
         var log = await db.GetItemAsync<SilbenLog>(id) ?? new SilbenLog { Id = id };
         log.Wort = $"Rätsel: {_aufgabe.Richtig}";
         var detail = $"{string.Join(" ", _aufgabe.Hinweise)} | [{string.Join(", ", _aufgabe.Optionen)}] → {option}";
+        var daten = new BeobachtungsDaten(_aufgabe.Richtig, option, _aufgabe.Optionen,
+            Lesezeit.Mindest([.. _aufgabe.Hinweise]));
 
         if (option == _aufgabe.Richtig)
         {
@@ -80,7 +84,7 @@ public partial class RaetselView : ComponentBase, ITaskView
             log.Kompetenz.AddRichtig();
             // Half points after a wrong pick.
             var points = LesePunkte.ForText([.. _aufgabe.Hinweise]) / (_wrongPicks.Count > 0 ? 2 : 1);
-            await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points, detail);
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points, detail, daten);
             StateHasChanged();
 
             _ = Task.Delay(CorrectDelayMs)
@@ -93,7 +97,7 @@ public partial class RaetselView : ComponentBase, ITaskView
             _feedbackText = "Nochmal! Lies die Sätze noch einmal.";
             log.Falsch = _wrongPicks.Count;
             log.Kompetenz.AddFalsch();
-            await Session.RecordFailure(ChosenTask, log.Kompetenz, 0, 0, detail);
+            await Session.RecordFailure(ChosenTask, log.Kompetenz, 0, 0, detail, daten);
             _isProcessing = false;
         }
 

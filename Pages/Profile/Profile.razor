@@ -1,4 +1,5 @@
 @page "/profile"
+@using Kidz2Learn.Components
 @using Kidz2Learn.Model
 @using Kidz2Learn.Shared.Extensions
 @using MudBlazor
@@ -29,6 +30,8 @@
         </RowTemplate>
     </MudTable>
 </MudPaper>
+
+<MerkmalProfil />
 
 @code {
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;

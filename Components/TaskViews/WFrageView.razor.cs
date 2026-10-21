@@ -1,4 +1,6 @@
+using Kidz2Learn.Entities;
 using Kidz2Learn.Model;
+using Kidz2Learn.Model.Merkmale;
 using Kidz2Learn.Model.Lesen;
 using Kidz2Learn.Model.Tasks;
 using Kidz2Learn.Pages.SilbenChallenge;
@@ -110,6 +112,15 @@ public partial class WFrageView : ComponentBase, ITaskView
         var log = await db.GetItemAsync<SilbenLog>(id) ?? new SilbenLog { Id = id };
         log.Wort = $"{aufgabe.Fragewort}: {aufgabe.Richtig}";
         var detail = $"{aufgabe.Text} | {aufgabe.Frage} → {option.Label}";
+        var daten = new BeobachtungsDaten(aufgabe.Richtig, option.Label, [.. aufgabe.Optionen.Select(o => o.Label)],
+            _index == 0 ? Lesezeit.Mindest(aufgabe.Text, aufgabe.Frage) : Lesezeit.Mindest(aufgabe.Frage),
+            new Dictionary<string, string>
+            {
+                ["frage"] = aufgabe.Fragewort,
+                ["frageNr"] = (_index + 1).ToString(),
+                ["optionen"] = aufgabe.Optionen.Count.ToString(),
+                ["hinweisAudio"] = WordAudio.PathFor(WFragen.FragewortAudio(aufgabe.Rolle)) is null ? "nein" : "ja"
+            });
 
         if (richtig)
         {
@@ -118,7 +129,7 @@ public partial class WFrageView : ComponentBase, ITaskView
             _feedbackText = "Richtig!";
             log.Falsch = _wrongPicks.Count;
             log.Kompetenz.AddRichtig();
-            await Session.RecordSuccess(ChosenTask, log.Kompetenz, Punkte(aufgabe), Punkte(aufgabe), detail);
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, Punkte(aufgabe), Punkte(aufgabe), detail, daten);
             StateHasChanged();
 
             _ = Task.Delay(CorrectDelayMs).ContinueWith(async _ => await InvokeAsync(Weiter));
@@ -132,7 +143,7 @@ public partial class WFrageView : ComponentBase, ITaskView
             log.Falsch = _wrongPicks.Count;
             log.Kompetenz.AddFalsch();
             var penalty = DifficultyInfo.Penalty(_wrongPicks.Count, ChosenTask.Difficulty);
-            await Session.RecordFailure(ChosenTask, log.Kompetenz, penalty, penalty, detail);
+            await Session.RecordFailure(ChosenTask, log.Kompetenz, penalty, penalty, detail, daten);
             StateHasChanged();
 
             _ = Task.Delay(HinweisMs).ContinueWith(async _ => await InvokeAsync(() =>

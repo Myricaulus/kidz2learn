@@ -1,0 +1,192 @@
+@using Kidz2Learn.Entities
+@using Kidz2Learn.Model.Merkmale
+@using MudBlazor
+@using Tavenem.Blazor.IndexedDB
+
+@* The reading profile on /profile (LESE_MERKMALE.md): one row per feature from -1 (clearly not)
+   to +1 (clear evidence), computed from the last Fenster days, next to the Fenster days before
+   that and the weekly snapshots, so a feature that gets better or turns out wrong shows. *@
+<MudPaper Class="p-4 mt-4">
+    <MudText Typo="Typo.h5">Lese-Merkmale</MudText>
+    <MudText Typo="Typo.body2" Class="mb-2">
+        Keine Diagnose: Jedes Merkmal vergleicht das Kind mit sich selbst (gleiche Aufgabe, zwei
+        Bedingungen). +1 = deutlicher Hinweis, -1 = spricht klar dagegen. Letzte @Fenster Tage,
+        daneben die @Fenster Tage davor.
+    </MudText>
+
+    @if (_jetzt is null)
+    {
+        <MudProgressLinear Indeterminate="true" />
+    }
+    else
+    {
+        <MudText Typo="Typo.caption">@_anzahl Beobachtungen gespeichert.</MudText>
+        <MudTable Items="_jetzt" Dense="true" Hover="true">
+            <HeaderContent>
+                <MudTh>Merkmal</MudTh>
+                <MudTh>Hinweis</MudTh>
+                <MudTh>Wert</MudTh>
+                <MudTh>Zustand</MudTh>
+                <MudTh>Davor</MudTh>
+                <MudTh>Verlauf</MudTh>
+                <MudTh>n</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <b>@context.Name</b><br />
+                    <span class="merkmal-klein">@context.Beschreibung</span>
+                </MudTd>
+                <MudTd>
+                    <div class="merkmal-balken">
+                        <div class="merkmal-mitte"></div>
+                        @if (context.Wert is { } w)
+                        {
+                            <div class="merkmal-fuellung" style="@Fuellung(w, context.Status)"></div>
+                        }
+                    </div>
+                </MudTd>
+                <MudTd>@(context.Wert?.ToString("+0.00;-0.00;0.00") ?? "–")</MudTd>
+                <MudTd><span style="color:@Farbe(context.Status)">@StatusText(context.Status)</span></MudTd>
+                <MudTd>@Davor(context)</MudTd>
+                <MudTd>@((MarkupString)Verlauf(context.Id))</MudTd>
+                <MudTd>@context.N</MudTd>
+            </RowTemplate>
+            <ChildRowContent>
+                <MudTr>
+                    <td colspan="7" class="merkmal-quellen">
+                        @foreach (var q in context.Quellen)
+                        {
+                            <div>
+                                • @q.Name: <b>@(q.Wert?.ToString("+0.00;-0.00;0.00") ?? "zu wenig Daten")</b>
+                                @if (q.Evidenz is { } e)
+                                {
+                                    <span>(@Faktor(e))</span>
+                                }
+                                – @q.Begruendung
+                            </div>
+                        }
+                        @if (context.Hinweis is not null)
+                        {
+                            <div><i>@context.Hinweis</i></div>
+                        }
+                    </td>
+                </MudTr>
+            </ChildRowContent>
+        </MudTable>
+
+        @if (_angetippt.Count > 0)
+        {
+            <MudText Typo="Typo.h6" Class="mt-4">Zum Vorlesen angetippt</MudText>
+            <MudText Typo="Typo.body2">
+                Wörter, die sich das Kind beim Lesen vorspielen ließ (letzte @Fenster Tage):
+                @string.Join(", ", _angetippt.Select(a => $"{a.Wort} ({a.Anzahl}×)"))
+            </MudText>
+        }
+    }
+</MudPaper>
+
+<style>
+    .merkmal-klein { font-size: 0.8em; opacity: 0.75; }
+    .merkmal-balken { position: relative; width: 140px; height: 12px; background: rgba(128, 128, 128, 0.2); border-radius: 6px; }
+    .merkmal-mitte { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: rgba(128, 128, 128, 0.8); }
+    .merkmal-fuellung { position: absolute; top: 0; bottom: 0; border-radius: 6px; }
+    .merkmal-quellen { font-size: 0.8em; padding: 2px 16px 8px 24px; opacity: 0.85; }
+</style>
+
+@code {
+    private const int Fenster = 28;
+
+    [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
+
+    private IReadOnlyList<MerkmalErgebnis>? _jetzt;
+    private Dictionary<string, MerkmalErgebnis> _davor = [];
+    private List<MerkmalSchnappschuss> _verlauf = [];
+    private List<(string Wort, int Anzahl)> _angetippt = [];
+    private int _anzahl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var store = new BeobachtungsStore(AufgabenDb);
+        var alle = await store.GetAllAsync();
+        var heute = DateTime.Now;
+        var grenze = heute.AddDays(-Fenster);
+        _anzahl = alle.Count;
+        _jetzt = MerkmalRechner.Berechne(alle, grenze, heute.AddMinutes(1));
+        _davor = MerkmalRechner.Berechne(alle, grenze.AddDays(-Fenster), grenze).ToDictionary(m => m.Id);
+        _angetippt = alle.Where(b => b.Zeit >= grenze)
+            .SelectMany(b => b.Angetippt)
+            .GroupBy(w => w, StringComparer.OrdinalIgnoreCase)
+            .Select(g => (g.Key, g.Count()))
+            .OrderByDescending(g => g.Item2)
+            .Take(30)
+            .ToList();
+
+        if (alle.Count > 0)
+            await store.SpeichereWocheAsync(heute, _jetzt);
+        _verlauf = await store.GetVerlaufAsync();
+    }
+
+    private string Davor(MerkmalErgebnis jetzt)
+    {
+        if (!_davor.TryGetValue(jetzt.Id, out var davor) || davor.Wert is null)
+            return "–";
+        var text = davor.Wert.Value.ToString("+0.00;-0.00;0.00");
+        if (jetzt.Wert is null)
+            return text;
+        var diff = jetzt.Wert.Value - davor.Wert.Value;
+        return Math.Abs(diff) < 0.15 ? $"{text} →" : diff < 0 ? $"{text} ↘ besser" : $"{text} ↗";
+    }
+
+    /// <summary>Small line of the weekly snapshots, -1 at the bottom, +1 at the top.</summary>
+    private string Verlauf(string id)
+    {
+        var werte = _verlauf
+            .Select(s => s.Merkmale.FirstOrDefault(m => m.Id == id)?.Wert)
+            .Where(w => w is not null)
+            .Select(w => w!.Value)
+            .ToList();
+        if (werte.Count < 2)
+            return "–";
+        const int breite = 80, hoehe = 20;
+        var punkte = string.Join(" ", werte.Select((w, i) =>
+            $"{i * breite / (werte.Count - 1.0):0.#},{hoehe / 2.0 - w * (hoehe / 2.0 - 1):0.#}"));
+        return $"<svg width='{breite}' height='{hoehe}'><line x1='0' y1='{hoehe / 2}' x2='{breite}' y2='{hoehe / 2}' " +
+               $"stroke='gray' stroke-width='0.5'/><polyline points='{punkte}' fill='none' stroke='currentColor' " +
+               "stroke-width='1.5'/></svg>";
+    }
+
+    /// <summary>The likelihood ratio behind a source's value, in words.</summary>
+    private static string Faktor(double evidenz)
+    {
+        var faktor = Math.Exp(Math.Abs(evidenz));
+        if (faktor < 1.1)
+            return "passt zu beidem gleich gut";
+        var text = faktor >= 1000 ? "über 1000" : faktor.ToString(faktor < 10 ? "0.#" : "0");
+        return evidenz > 0 ? $"passt {text}× besser zu „Problem“" : $"passt {text}× besser zu „kein Problem“";
+    }
+
+    private static string Fuellung(double wert, MerkmalStatus status)
+    {
+        var breite = Math.Abs(wert) * 50;
+        var links = wert >= 0 ? 50 : 50 - breite;
+        return $"left:{links:0.#}%;width:{breite:0.#}%;background:{Farbe(status)}";
+    }
+
+    private static string Farbe(MerkmalStatus status) => status switch
+    {
+        MerkmalStatus.Dafuer => "#e65100",
+        MerkmalStatus.Dagegen => "#2e7d32",
+        MerkmalStatus.Widerspruechlich => "#8e24aa",
+        MerkmalStatus.Unklar => "#757575",
+        _ => "#9e9e9e"
+    };
+
+    private static string StatusText(MerkmalStatus status) => status switch
+    {
+        MerkmalStatus.Dafuer => "Hinweis dafür",
+        MerkmalStatus.Dagegen => "spricht dagegen",
+        MerkmalStatus.Widerspruechlich => "widersprüchlich",
+        MerkmalStatus.Unklar => "unklar",
+        _ => "keine Daten"
+    };
+}

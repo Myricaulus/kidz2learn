@@ -88,7 +88,8 @@ Challenges are generic over a task-definition type deriving from `BaseTaskDefini
 
 ### IndexedDB persistence
 
-Uses `Tavenem.Blazor.IndexedDB`. The database (`AufgabenDB`, versioned in `Program.cs`) has value stores `ArithmetikAufgaben`, `LeseAufgaben`, `SkillMeta`, `SkillStates`. Components inject the DB via `[Inject(Key = "AufgabenDB")] IndexedDb`, then index into a specific store (e.g. `AufgabenDb["ArithmetikAufgaben"]`). `Shared/Extensions/IndexedDbExtensions.ToDictionaryAsync<T>` is a helper for snapshotting a whole store keyed by `IIdItem.Id`.
+Uses `Tavenem.Blazor.IndexedDB`. The database (`AufgabenDB`, versioned in `Program.cs`) has value stores `ArithmetikAufgaben`, `LeseAufgaben`, `SkillMeta`, `SkillStates`,
+`SilbenHammerRatings`, `Beobachtungen`, `MerkmalVerlauf`. Components inject the DB via `[Inject(Key = "AufgabenDB")] IndexedDb`, then index into a specific store (e.g. `AufgabenDb["ArithmetikAufgaben"]`). `Shared/Extensions/IndexedDbExtensions.ToDictionaryAsync<T>` is a helper for snapshotting a whole store keyed by `IIdItem.Id`.
 
 ### Task presentation: TaskHost + ITaskView (Components/TaskHost.razor, Components/TaskViews/)
 
@@ -186,6 +187,22 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   words from WordMeta, nonsense words from their syllables, checked against `de_50k.txt`, the
   Silbenhammer catalog and WordMeta; anything wrong either way goes in
   `WaveSplit/data/lese-turbo-blocklist.txt`.
+
+### Reading profile (Model/Merkmale/, LESE_MERKMALE.md)
+
+Recognition only (no picker changes): `TaskSessionController.RecordSuccess/RecordFailure` store
+every answer as a `Beobachtung` in IndexedDB store `Beobachtungen` (unlimited). Views pass the
+task-specific part as `BeobachtungsDaten` (target, answer, options, `MindestLeseMs` via `Lesezeit`,
+`Werte` like `frage`/`a`/`b`/`op`, `Items` for Lese-Turbo words and search-grid mistakes); the
+controller adds attempt, duration, audio replays (`NoteVorgespielt`) and words tapped in `LeseSatz`
+(`NoteAngetippt`). The telemetry carries the same object. `MerkmalRechner.Berechne` (pure, tested)
+turns them into 17 features M1-M17, each -1..+1 with a state (keine Daten / unklar / dafür /
+dagegen / widersprüchlich), from per-source likelihood ratios in `Statistik` that add up per
+feature; `FehlerartRechner` classifies
+a wrong written option (Spiegel, Vokalfolge, Auslaut, ...). `/profile` shows them
+(`Components/MerkmalProfil.razor`) for the last 28 days next to the 28 before, and stores one
+snapshot per ISO week in `MerkmalVerlauf`. A view that wants to feed a feature passes
+`BeobachtungsDaten`; a new source is a function in `MerkmalRechner`'s `Definitionen`.
 
 ### Debug mode (Pages/Debug/) — forcing a specific task for manual testing
 

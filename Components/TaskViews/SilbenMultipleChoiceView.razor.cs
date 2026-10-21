@@ -1,3 +1,4 @@
+using Kidz2Learn.Entities;
 using Kidz2Learn.Model;
 using Kidz2Learn.Model.Tasks;
 using Kidz2Learn.Pages.SilbenChallenge;
@@ -109,6 +110,12 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
         return _wrongSelectedOption.Contains(option) ? "k4l-option-wrong" : "";
     }
 
+    private async Task Anhoeren()
+    {
+        Session.NoteVorgespielt();
+        await PlayAudio();
+    }
+
     private async Task PlayAudio()
     {
         await Js.InvokeVoidAsync("k4l_playAudioFile", "audioPlayer", _currentAudio);
@@ -122,6 +129,7 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
 
         var correctAnswer = _correctSyllable.Replace("-", "");
         var correct = answer.Equals(correctAnswer, StringComparison.OrdinalIgnoreCase);
+        var daten = new BeobachtungsDaten(correctAnswer, answer, _currentOptions);
 
         if (correct)
         {
@@ -139,7 +147,7 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
             // im else-Zweig unten je einen eigenen AddFalsch()/RecordFailure()-Eintrag bekommen.
             log.Kompetenz.AddRichtig();
 
-            await Session.RecordSuccess(ChosenTask, log.Kompetenz, 5, 5, $"{correctAnswer} → {answer}");
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, 5, 5, $"{correctAnswer} → {answer}", daten);
             _showFeedback = true;
             StateHasChanged();
             // Feedback bleibt sichtbar, bis TaskHost die nächste Aufgabe geliefert hat -
@@ -167,7 +175,7 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
             log.Falsch = _wrongCount;
             log.Kompetenz.AddFalsch();
             await Session.RecordFailure(ChosenTask, log.Kompetenz, -10 * _wrongCount, -10 * _wrongCount,
-                $"{correctAnswer} → {answer}");
+                $"{correctAnswer} → {answer}", daten);
             await ReadingDb.StoreItemAsync(log);
 
             if (ChosenTask.Skills.Contains(Skill.ReadPrecise))

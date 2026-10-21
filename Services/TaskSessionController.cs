@@ -1,5 +1,9 @@
+using Kidz2Learn.Entities;
 using Kidz2Learn.Model;
+using Kidz2Learn.Model.Merkmale;
 using Kidz2Learn.Model.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Tavenem.Blazor.IndexedDB;
 
 namespace Kidz2Learn.Services;
 
@@ -32,10 +36,16 @@ public sealed class TaskSessionController(
     ScoreService score,
     AffirmationService affirmation,
     HudStateService hud,
-    TelemetryService telemetry)
+    TelemetryService telemetry,
+    [FromKeyedServices("AufgabenDB")] IndexedDb aufgabenDb)
 {
+    private readonly BeobachtungsStore _beobachtungen = new(aufgabenDb);
     private DateTime _taskStarted = DateTime.Now;
     private int _taskAttempts;
+
+    // What the child did before the next answer; goes into that answer's Beobachtung, then starts over.
+    private int _vorgespielt;
+    private readonly List<string> _angetippt = [];
 
     public int TotalAttempts { get; private set; }
     public int SuccessfulAttempts { get; private set; }
@@ -64,12 +74,21 @@ public sealed class TaskSessionController(
     {
         _taskStarted = DateTime.Now;
         _taskAttempts = 0;
+        _vorgespielt = 0;
+        _angetippt.Clear();
     }
+
+    /// <summary>The child replayed the target audio of the current question.</summary>
+    public void NoteVorgespielt() => _vorgespielt++;
+
+    /// <summary>The child tapped a word of the text to hear it.</summary>
+    public void NoteAngetippt(string wort) => _angetippt.Add(wort);
 
     /// <param name="basePoints">Points at <see cref="Difficulty.Normal" />; scaled here by <see cref="DifficultyInfo.PointFactor" />.</param>
     /// <param name="detail">Human-readable task and answer for the telemetry log ("Hund → Hand").</param>
+    /// <param name="daten">Structured task and answer for the reading profile (<see cref="Beobachtung" />).</param>
     public async Task RecordSuccess(IChosenTask task, Kompetenzniveau kompetenz, int basePoints, int bonusPoints,
-        string? detail = null)
+        string? detail = null, BeobachtungsDaten? daten = null)
     {
         var answered = DateTime.Now;
         var attempt = ++_taskAttempts;
@@ -82,12 +101,14 @@ public sealed class TaskSessionController(
         RecordPerSkill(task, success: true);
         await affirmation.PlayErfolgAsync();
         var mastery = await task.Success(kompetenz, ElapsedMs(answered));
-        RecordTelemetry(task, answered, attempt, detail, correct: true, basePoints + bonusPoints, mastery);
+        var beobachtung = await RecordBeobachtung(task, answered, attempt, correct: true, daten);
+        RecordTelemetry(task, answered, attempt, detail, correct: true, basePoints + bonusPoints, mastery, beobachtung);
     }
 
     /// <param name="detail">Human-readable task and answer for the telemetry log ("Hund → Hand").</param>
+    /// <param name="daten">Structured task and answer for the reading profile (<see cref="Beobachtung" />).</param>
     public async Task RecordFailure(IChosenTask task, Kompetenzniveau kompetenz, int basePoints, int bonusPoints,
-        string? detail = null)
+        string? detail = null, BeobachtungsDaten? daten = null)
     {
         var answered = DateTime.Now;
         var attempt = ++_taskAttempts;
@@ -97,16 +118,46 @@ public sealed class TaskSessionController(
         RecordPerSkill(task, success: false);
         await affirmation.PlayMisserfolgAsync();
         var mastery = await task.Fail(kompetenz, ElapsedMs(answered));
-        RecordTelemetry(task, answered, attempt, detail, correct: false, basePoints + bonusPoints, mastery);
+        var beobachtung = await RecordBeobachtung(task, answered, attempt, correct: false, daten);
+        RecordTelemetry(task, answered, attempt, detail, correct: false, basePoints + bonusPoints, mastery, beobachtung);
+    }
+
+    private async Task<Beobachtung> RecordBeobachtung(IChosenTask task, DateTime answered, int attempt, bool correct,
+        BeobachtungsDaten? daten)
+    {
+        var beobachtung = new Beobachtung
+        {
+            Id = $"{answered:yyyyMMdd-HHmmss.fff}-{Guid.NewGuid().ToString("N")[..6]}",
+            Zeit = answered,
+            View = task.View,
+            Skills = [.. task.Skills],
+            Level = task.Level,
+            Versuch = attempt,
+            Richtig = correct,
+            DauerMs = ElapsedMs(answered),
+            Vorgespielt = _vorgespielt,
+            Angetippt = [.. _angetippt],
+            Ziel = daten?.Ziel,
+            Antwort = daten?.Antwort,
+            Optionen = daten?.Optionen?.ToList(),
+            MindestLeseMs = daten?.MindestLeseMs,
+            Werte = daten?.Werte?.ToDictionary(),
+            Items = daten?.Items?.ToList()
+        };
+        _vorgespielt = 0;
+        _angetippt.Clear();
+        await _beobachtungen.AddAsync(beobachtung);
+        return beobachtung;
     }
 
     private void RecordTelemetry(IChosenTask task, DateTime answered, int attempt, string? detail, bool correct,
-        int points, IReadOnlyDictionary<string, MasteryChange> mastery)
+        int points, IReadOnlyDictionary<string, MasteryChange> mastery, Beobachtung beobachtung)
     {
         telemetry.Record(new TelemetryEntry(answered, task.View, task.Skills, task.Level, task.Difficulty.ToString(),
             attempt, detail, correct, points, ElapsedMs(answered),
             mastery.ToDictionary(m => m.Key,
-                m => new TelemetryMastery(Math.Round(m.Value.Before, 4), Math.Round(m.Value.After, 4)))));
+                m => new TelemetryMastery(Math.Round(m.Value.Before, 4), Math.Round(m.Value.After, 4))),
+            beobachtung));
     }
 
     private int ElapsedMs(DateTime answered) => (int)(answered - _taskStarted).TotalMilliseconds;

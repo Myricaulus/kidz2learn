@@ -1,4 +1,6 @@
+using Kidz2Learn.Entities;
 using Kidz2Learn.Model;
+using Kidz2Learn.Model.Merkmale;
 using Kidz2Learn.Model.Lesen;
 using Kidz2Learn.Model.Tasks;
 using Kidz2Learn.Pages.SilbenChallenge;
@@ -72,6 +74,8 @@ public partial class QuatschDetektorView : ComponentBase, ITaskView
         var log = await db.GetItemAsync<SilbenLog>(id) ?? new SilbenLog { Id = id };
         log.Wort = _satz.Text;
         log.Falsch = _lastCorrect ? 0 : 1;
+        var daten = new BeobachtungsDaten(_satz.Stimmt ? "Stimmt" : "Quatsch", stimmt ? "Stimmt" : "Quatsch",
+            MindestLeseMs: Lesezeit.Mindest(_satz.Text), Werte: new Dictionary<string, string> { ["satz"] = _satz.Text });
 
         if (_lastCorrect)
         {
@@ -79,7 +83,7 @@ public partial class QuatschDetektorView : ComponentBase, ITaskView
             _feedbackText = _satz.Stimmt ? "Richtig, das stimmt!" : "Richtig, das ist Quatsch!";
             log.Kompetenz.AddRichtig();
             var points = LesePunkte.ForText(_satz.Text);
-            await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points, Detail(stimmt));
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points, Detail(stimmt), daten);
         }
         else
         {
@@ -88,7 +92,7 @@ public partial class QuatschDetektorView : ComponentBase, ITaskView
             log.Kompetenz.AddFalsch();
             // No deduction: a wrong judgement on a sentence he struggled through shouldn't cost
             // what he already earned.
-            await Session.RecordFailure(ChosenTask, log.Kompetenz, 0, 0, Detail(stimmt));
+            await Session.RecordFailure(ChosenTask, log.Kompetenz, 0, 0, Detail(stimmt), daten);
         }
 
         StateHasChanged();

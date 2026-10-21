@@ -1,3 +1,4 @@
+using Kidz2Learn.Entities;
 using Kidz2Learn.Model;
 using Kidz2Learn.Model.Lesen;
 using Kidz2Learn.Model.Tasks;
@@ -39,6 +40,7 @@ public partial class LeseTurboView : ComponentBase, ITaskView, IDisposable
     private readonly Random _rng = new();
     private readonly HashSet<string> _gezeigt = [];
     private readonly List<string> _verlauf = [];
+    private readonly List<BeobachtungsItem> _items = [];
     private CancellationTokenSource? _uhr;
     private IChosenTask? _loadedForTask;
 
@@ -73,6 +75,7 @@ public partial class LeseTurboView : ComponentBase, ITaskView, IDisposable
         _falsch = 0;
         _gezeigt.Clear();
         _verlauf.Clear();
+        _items.Clear();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -150,6 +153,8 @@ public partial class LeseTurboView : ComponentBase, ITaskView, IDisposable
             _falsch++;
 
         var sekunden = (DateTime.Now - _wortStart).TotalSeconds;
+        _items.Add(new BeobachtungsItem(_wort.Text, _wort.Echt, echt is null ? "zeit" : richtig ? "richtig" : "falsch",
+            (int)(sekunden * 1000)));
         _verlauf.Add($"{_wort.Text}{(_wort.Echt ? "" : "*")}{(echt is null ? "⏱" : richtig ? "✓" : "✗")}{sekunden:0.0}");
         NaechstesWort(richtig ? string.Empty : "leseturbo-falsch");
     }
@@ -168,16 +173,17 @@ public partial class LeseTurboView : ComponentBase, ITaskView, IDisposable
         log.Falsch = _falsch;
         // Nonsense words are marked with *, timeouts with ⏱, then the seconds it took.
         var detail = $"{_sekunden} s: {_richtig} richtig, {_falsch} falsch | {string.Join(" ", _verlauf)}";
+        var daten = new BeobachtungsDaten(Items: [.. _items]);
 
         if (LeseTurbo.Geschafft(_richtig, _falsch))
         {
             log.Kompetenz.AddRichtig();
-            await Session.RecordSuccess(ChosenTask, log.Kompetenz, _richtig, _richtig, detail);
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, _richtig, _richtig, detail, daten);
         }
         else
         {
             log.Kompetenz.AddFalsch();
-            await Session.RecordFailure(ChosenTask, log.Kompetenz, _richtig / 2, 0, detail);
+            await Session.RecordFailure(ChosenTask, log.Kompetenz, _richtig / 2, 0, detail, daten);
         }
 
         await db.StoreItemAsync(log);

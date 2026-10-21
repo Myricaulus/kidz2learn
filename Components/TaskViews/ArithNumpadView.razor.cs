@@ -1,3 +1,4 @@
+using Kidz2Learn.Entities;
 using Kidz2Learn.Model.Tasks;
 using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components;
@@ -162,18 +163,25 @@ public partial class ArithNumpadView : ComponentBase, ITaskView
         log.Op = _isAddition ? "+" : "-";
         log.UserZahl = userValue;
         log.Richtig = userValue == _expectedResult;
+        var daten = new BeobachtungsDaten(_expectedResult.ToString(), userValue.ToString(), Werte: new Dictionary<string, string>
+        {
+            ["a"] = _number1.ToString(),
+            ["b"] = _number2.ToString(),
+            ["op"] = log.Op,
+            ["antwort"] = userValue.ToString()
+        });
 
         if (userValue == _expectedResult)
         {
             log.Kompetenz.AddRichtig();
-            await Session.RecordSuccess(ChosenTask, log.Kompetenz, 2, 8, $"{id} → {userValue}");
+            await Session.RecordSuccess(ChosenTask, log.Kompetenz, 2, 8, $"{id} → {userValue}", daten);
             stats.Erfolgreich++;
             stats.Versuche++;
         }
         else
         {
             log.Kompetenz.AddFalsch();
-            await Session.RecordFailure(ChosenTask, log.Kompetenz, -5, 0, $"{id} → {userValue}");
+            await Session.RecordFailure(ChosenTask, log.Kompetenz, -5, 0, $"{id} → {userValue}", daten);
             stats.Versuche++;
             _feedback =
                 $"Falsch! Richtige Lösung: {_expectedResult}.<br />Versuche: {log.Kompetenz.Versuche}. Richtig:{log.Kompetenz.GetProzent()}";

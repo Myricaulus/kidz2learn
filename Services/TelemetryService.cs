@@ -10,6 +10,7 @@ namespace Kidz2Learn.Services;
 /// <param name="Attempt">1 for the first answer to a task, 2 for the next try at the same task, ...</param>
 /// <param name="DurationMs">Time since the task was shown, so it keeps growing across retries.</param>
 /// <param name="Mastery">Per skill id, the mastery right before and after this attempt was scored.</param>
+/// <param name="Beobachtung">The same attempt as stored for the in-app reading profile, so it can be checked offline.</param>
 public sealed record TelemetryEntry(
     DateTime Time,
     string View,
@@ -21,7 +22,8 @@ public sealed record TelemetryEntry(
     bool Correct,
     int Points,
     long DurationMs,
-    IReadOnlyDictionary<string, TelemetryMastery> Mastery);
+    IReadOnlyDictionary<string, TelemetryMastery> Mastery,
+    Kidz2Learn.Entities.Beobachtung? Beobachtung = null);
 
 public sealed record TelemetryMastery(double Before, double After);
 
