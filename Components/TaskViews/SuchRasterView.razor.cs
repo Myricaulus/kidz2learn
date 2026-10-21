@@ -175,20 +175,7 @@ public partial class SuchRasterView : ComponentBase, ITaskView, IDisposable
         var detail = $"{_raster.Ziel}: [{string.Join(", ", _raster.Felder.Select(f => f.Text))}] → [{markiert}] " +
                      $"({falschMarkiert} falsch, {vergessen} vergessen)";
 
-        var fehlerItems = _raster.Felder
-            .Select((f, i) => (f, marked: _marked.Contains(i)))
-            .Where(x => x.f.Treffer != x.marked)
-            .Select(x => new BeobachtungsItem(x.f.Text, null, x.marked ? "falsch-markiert" : "vergessen", 0))
-            .ToList();
-        var werte = new Dictionary<string, string>
-        {
-            ["felder"] = _raster.Felder.Count.ToString(),
-            ["spalten"] = _raster.Spalten.ToString(),
-            ["treffer"] = _raster.AnzahlTreffer.ToString()
-        };
-        if (_raster.Eng is { } eng)
-            werte["abstand"] = eng ? "eng" : "weit";
-        var daten = new BeobachtungsDaten(_raster.Ziel, Werte: werte, Items: fehlerItems);
+        var daten = _raster.Beobachtung(_marked);
 
         var points = SuchRasterWertung.Punkte(_raster.BasisPunkte, fehler);
         if (SuchRasterWertung.Geschafft(fehler))

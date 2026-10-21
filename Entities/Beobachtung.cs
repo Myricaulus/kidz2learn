@@ -13,7 +13,8 @@ namespace Kidz2Learn.Entities;
 ///     "vergessen" for search-grid tiles.
 /// </param>
 /// <param name="Ms">Time the item was on screen before the answer, 0 where not measured.</param>
-public sealed record BeobachtungsItem(string Text, bool? Echt, string Ergebnis, int Ms);
+/// <param name="Stelle">Search-grid tiles: index in the grid, row by row. Null where not recorded.</param>
+public sealed record BeobachtungsItem(string Text, bool? Echt, string Ergebnis, int Ms, int? Stelle = null);
 
 /// <summary>
 ///     The task-specific part of a <see cref="Beobachtung" />, filled in by the view that asked the

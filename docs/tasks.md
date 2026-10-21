@@ -136,7 +136,7 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
 Recognition only (no picker changes): `TaskSessionController.RecordSuccess/RecordFailure` store
 every answer as a `Beobachtung` in IndexedDB store `Beobachtungen` (unlimited). Views pass the
 task-specific part as `BeobachtungsDaten` (target, answer, options, `MindestLeseMs` via `Lesezeit`,
-`Werte` like `frage`/`a`/`b`/`op`, `Items` for Lese-Turbo words and search-grid mistakes); the
+`Werte` like `frage`/`a`/`b`/`op`, `Items` for Lese-Turbo words and search-grid mistakes with their tile index); the
 controller adds attempt, duration, audio replays (`NoteVorgespielt`) and words tapped in `LeseSatz`
 (`NoteAngetippt`). The telemetry carries the same object. Generators spread the compared
 conditions evenly themselves: `read_precise` picks a `Distraktorart` first, then a word that has it

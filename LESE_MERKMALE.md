@@ -55,7 +55,7 @@ sich). Zustände, nach dem auf zwei Stellen gerundeten Wert:
 
 | Id | Merkmal | Quellen | Fehlt noch |
 |---|---|---|---|
-| M1 | Crowding | Spiegelgitter eng gegen weit gesetzt (gleiche Schriftgröße, falsche Felder, ab 8 % Unterschied; grob, ohne Zeitdruck) | Kurz-Einblendung eng/weit (Schritt 4) |
+| M1 | Crowding | Spiegelgitter eng gegen weit gesetzt (gleiche Schriftgröße, falsche Felder, ab 8 % Unterschied; grob, ohne Zeitdruck) | Kurz-Einblendung eng/weit (Schritt 4); Fehler innen gegen am Rand des engen Gitters (Positionen werden gespeichert) |
 | M2 | Sehschärfe/Schriftgröße | – | Kurz-Einblendung klein/groß (Schritt 4) |
 | M3 | Spiegelbuchstaben | Hören→Schreibweise: Anziehung b/d, p/q; Spiegelgitter weit gesetzt, ohne Zeitdruck (eng gehört zu M1) | Bedingung "kurz eingeblendet" |
 | M4 | Lesen am Wortbild | Lese-Turbo: Quatschwort nah an echtem Wort gegen fernes; vertauschtes echtes Wort mit gleichem Umriss (Birne → Brine) gegen anderem (Bild → Blid), je für echt gehalten | Nachbarn gegen de_50k |

@@ -1,3 +1,5 @@
+using Kidz2Learn.Entities;
+
 namespace Kidz2Learn.Model.Lesen;
 
 /// <summary>One tile of a search grid; <see cref="Treffer" /> tiles are the ones to tap.</summary>
@@ -21,6 +23,30 @@ public sealed record SuchRaster(
     bool? Eng = null)
 {
     public int AnzahlTreffer => Felder.Count(f => f.Treffer);
+
+    /// <summary>
+    ///     The reading profile's record of a hand-in: one item per mistake (a wrongly tapped or a
+    ///     missed tile) with its position, plus where the targets were - together that tells mistakes
+    ///     inside the grid, between neighbors on all sides, from mistakes at its edge (crowding).
+    /// </summary>
+    public BeobachtungsDaten Beobachtung(IReadOnlySet<int> markiert)
+    {
+        var fehler = Felder
+            .Select((f, i) => (f, i, marked: markiert.Contains(i)))
+            .Where(x => x.f.Treffer != x.marked)
+            .Select(x => new BeobachtungsItem(x.f.Text, null, x.marked ? "falsch-markiert" : "vergessen", 0, x.i))
+            .ToList();
+        var werte = new Dictionary<string, string>
+        {
+            ["felder"] = Felder.Count.ToString(),
+            ["spalten"] = Spalten.ToString(),
+            ["treffer"] = AnzahlTreffer.ToString(),
+            ["trefferstellen"] = string.Join(",", Felder.Select((f, i) => (f, i)).Where(x => x.f.Treffer).Select(x => x.i))
+        };
+        if (Eng is { } eng)
+            werte["abstand"] = eng ? "eng" : "weit";
+        return new BeobachtungsDaten(Ziel, Werte: werte, Items: fehler);
+    }
 }
 
 /// <summary>

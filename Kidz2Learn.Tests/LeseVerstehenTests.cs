@@ -450,6 +450,21 @@ public class NomenTests
     {
         Assert.Equal(expected, SuchRasterWertung.Punkte(10, fehler));
     }
+
+    [Fact]
+    public void Beobachtung_RecordsWhereTheMistakesAndTheTargetsAre()
+    {
+        var felder = "bbpdpdqbqqqpdpdp".Select(c => new RasterFeld(c.ToString(), c == 'p')).ToList();
+        var raster = new SuchRaster("p", 4, felder, 5, "bdpq4", Eng: true);
+
+        var daten = raster.Beobachtung(new HashSet<int> { 2, 4, 6 });
+
+        Assert.Equal("2,4,11,13,15", daten.Werte!["trefferstellen"]);
+        Assert.Equal("eng", daten.Werte["abstand"]);
+        Assert.Equal(
+            [("q", "falsch-markiert", 6), ("p", "vergessen", 11), ("p", "vergessen", 13), ("p", "vergessen", 15)],
+            daten.Items!.Select(i => (i.Text, i.Ergebnis, i.Stelle!.Value)));
+    }
 }
 
 public class SpiegelbuchstabenTests
