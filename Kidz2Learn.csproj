@@ -5,7 +5,15 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>69014,69654</NoWarn>
+    <!-- Shown on the welcome screen with the commit and the build day (Shared/AppVersion.cs).
+         The commit already tells deployments apart; raise this by hand for a release worth naming. -->
+    <Version>1.0.0</Version>
   </PropertyGroup>
+
+  <!-- The UTC build day for the welcome screen; day-exact, so an unchanged project still builds incrementally. -->
+  <ItemGroup>
+    <AssemblyMetadata Include="BuildDate" Value="$([System.DateTime]::UtcNow.ToString('yyyy-MM-dd'))" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.22" />
