@@ -85,6 +85,9 @@ public static class WFragen
         _ => rolle.ToString()
     };
 
+    /// <summary>Wo, Wer, Wen, Wem, Was, Wie - the short look-alikes, against Wann, Womit, Mit wem, ... (reading profile, M5).</summary>
+    public static bool IstKurz(string fragewort) => fragewort.Length <= 3;
+
     /// <summary>The question word as one WordMeta key ("Mit wem" is recorded as "mit-wem").</summary>
     public static string FragewortAudio(FrageRolle rolle) => Fragewort(rolle).Replace(" ", "");
 
@@ -212,10 +215,18 @@ public static class WFragen
         return BuildSerie(rahmen, usePhrases: false, fragen: rahmen.Teile.Length - 1, rng);
     }
 
-    /// <summary>Asks for <paramref name="fragen" /> different parts of the sentence, in random order.</summary>
+    /// <summary>
+    ///     Asks for <paramref name="fragen" /> different parts of the sentence, in random order. A part
+    ///     with a long question word is always among them when the sentence has one, so short and
+    ///     long question words come up about equally often - most parts are Wer/Was/Wo.
+    /// </summary>
     public static WFrageSerie BuildSerie(WFrageRahmen rahmen, bool usePhrases, int fragen, Random rng)
     {
-        var gefragt = rahmen.Teile.OrderBy(_ => rng.Next()).Take(fragen);
+        var gemischt = rahmen.Teile.OrderBy(_ => rng.Next()).ToList();
+        var lang = gemischt.FirstOrDefault(t => !IstKurz(Fragewort(t.Rolle)));
+        var gefragt = (lang is null ? gemischt : [lang, .. gemischt.Where(t => !ReferenceEquals(t, lang))])
+            .Take(fragen)
+            .OrderBy(_ => rng.Next());
         return new WFrageSerie(rahmen.Text, gefragt.Select(teil => Build(rahmen, teil, usePhrases, rng)).ToList());
     }
 

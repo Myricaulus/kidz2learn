@@ -1,5 +1,6 @@
 using Kidz2Learn.Entities;
 using Kidz2Learn.Model;
+using Kidz2Learn.Model.Lesen;
 using Kidz2Learn.Model.Merkmale;
 using Xunit;
 
@@ -210,12 +211,58 @@ public class MerkmalRechnerTests
     }
 
     [Fact]
+    public void TakingTransposedWordsWithTheSameOutlineForReal_ShowsWortbild()
+    {
+        // Brine, Drof, ... (outline kept) mostly "echt"; Blid, Edre, ... (outline changed) mostly seen through.
+        var items = LeseTurboWords.VertauschtGleich.Take(12)
+            .Select((w, i) => new BeobachtungsItem(w, false, i < 9 ? "falsch" : "richtig", 1500))
+            .Concat(LeseTurboWords.VertauschtAnders.Take(12)
+                .Select((w, i) => new BeobachtungsItem(w, false, i < 1 ? "falsch" : "richtig", 1500)))
+            .ToList();
+        var turbo = new Beobachtung
+        {
+            Zeit = Start,
+            View = "lese-turbo",
+            Skills = [Skill.TurboRead],
+            Versuch = 1,
+            Items = items
+        };
+
+        var m4 = Merkmal(Profil([turbo]), "M4");
+
+        Assert.Equal(MerkmalStatus.Dafuer, m4.Status);
+        Assert.Null(m4.Quellen[0].Wert);
+    }
+
+    private static Beobachtung SpiegelGitter(int i, bool eng, int fehler) => new()
+    {
+        Zeit = Start.AddDays(i),
+        View = "such-raster",
+        Skills = [Skill.ReadMirrorLetters],
+        Versuch = 1,
+        Richtig = fehler <= 1,
+        Werte = new Dictionary<string, string> { ["felder"] = "16", ["abstand"] = eng ? "eng" : "weit" },
+        Items = Enumerable.Range(0, fehler).Select(_ => new BeobachtungsItem("d", null, "vergessen", 0)).ToList()
+    };
+
+    [Fact]
+    public void MistakesOnlyInTightGrids_ShowCrowding_NotMirrorLetters()
+    {
+        var gitter = Enumerable.Range(0, 10).Select(i => SpiegelGitter(i, i % 2 == 0, i % 2 == 0 ? 3 : 0)).ToList();
+
+        var profil = Profil(gitter);
+
+        Assert.Equal(MerkmalStatus.Dafuer, Merkmal(profil, "M1").Status);
+        Assert.True(Merkmal(profil, "M3").Wert < 0);
+    }
+
+    [Fact]
     public void FeatureWithoutTask_ExplainsWhatIsMissing()
     {
-        var m1 = Merkmal(Profil([]), "M1");
+        var m10 = Merkmal(Profil([]), "M10");
 
-        Assert.Equal(MerkmalStatus.KeineDaten, m1.Status);
-        Assert.NotNull(m1.Hinweis);
+        Assert.Equal(MerkmalStatus.KeineDaten, m10.Status);
+        Assert.NotNull(m10.Hinweis);
     }
 
     [Fact]

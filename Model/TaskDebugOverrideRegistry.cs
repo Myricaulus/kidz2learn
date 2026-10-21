@@ -16,6 +16,7 @@ public static class TaskDebugOverrideRegistry
     static TaskDebugOverrideRegistry()
     {
         Register(new SilbenDebugOverrideFactory());
+        Register(new SkillDebugOverrideFactory());
     }
 
     public static void Register(ITaskDebugOverrideFactory factory)

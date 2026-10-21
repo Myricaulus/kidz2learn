@@ -25,6 +25,13 @@ public class FehlerartTests
     [InlineData("Nase", "Mase", Fehlerart.Formaehnlich)]
     [InlineData("Haus", "Hals", Fehlerart.AndererBuchstabe)]
     [InlineData("finster", "Fenster", Fehlerart.Vokal)]
+    [InlineData("Banane", "Nabane", Fehlerart.Silbenfolge)]
+    [InlineData("Garten", "Tengar", Fehlerart.Silbenfolge)]
+    [InlineData("Bein", "Bin", Fehlerart.Diphthong)]
+    [InlineData("Baum", "Bam", Fehlerart.Diphthong)]
+    [InlineData("Ben", "Bein", Fehlerart.Diphthong)]
+    [InlineData("Garten", "Gaten", Fehlerart.Auslassung)]
+    [InlineData("Fernseher", "Seher", Fehlerart.Auslassung)]
     [InlineData("Hund", "Katze", Fehlerart.AnderesWort)]
     public void Bestimme_ClassifiesTheDifference(string ziel, string option, Fehlerart erwartet)
     {

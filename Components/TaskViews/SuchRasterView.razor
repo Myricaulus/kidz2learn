@@ -1,11 +1,11 @@
 <div class="lese-container">
     <h2 class="lese-titel">Tippe alle <span class="raster-ziel">@_raster.Ziel</span> an!</h2>
 
-    <div class="raster @(_raster.Ziel.Length == 1 ? "raster-buchstaben" : "")"
-         style="grid-template-columns: repeat(@_raster.Spalten, minmax(0, 1fr))">
+    <div class="raster @(_raster.Ziel.Length == 1 ? "raster-buchstaben" : "") @(_raster.Eng == true ? "raster-eng" : "")"
+         style="grid-template-columns: repeat(@_raster.Spalten, @(_raster.Eng == true ? "0.9em" : "minmax(0, 1fr)"))">
         @foreach (var (feld, index) in _raster.Felder.Select((f, i) => (f, i)))
         {
-            <button class="raster-feld @FeldClass(feld, index)"
+            <button class="raster-feld @(_raster.Eng == true ? "raster-feld-eng" : "") @FeldClass(feld, index)"
                     disabled="@(_phase == Phase.Geloest)"
                     @onclick="() => Toggle(index)">
                 @feld.Text

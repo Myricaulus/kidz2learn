@@ -15,6 +15,14 @@ read like German but aren't.
     data/lese-turbo-blocklist.txt (which also takes unsuitable real words out of Echt: names,
     misspelled or wrongly capitalized WordMeta entries). Generated with a fixed seed, so a rerun only changes the list
     when its inputs change.
+  - VertauschtGleich / VertauschtAnders: real words from Echt with two neighboring letters inside
+    swapped (Birne -> Binre), passing the same checks as Quatsch plus a pronounceability rule
+    (every consonant cluster splits into a German coda and onset). Gleich swaps two letters of the
+    same height - both ascenders, both descenders or both neither - so the word's outline stays the
+    same; Anders changes it (Bild -> Blid). At most one of each per real word and at most
+    PAIR_LIMIT per swapped pair, so no family of words ("unter", "hinter", "drunter" -> "nt" to
+    "tn") fills a list with one pattern the child could learn to spot. Reading profile, M4: a child
+    reading by the word's shape takes Gleich for real more often than Anders.
 
 Usage: uv run python WaveSplit/GenerateLeseTurboWords.py
 """
@@ -38,6 +46,17 @@ WORDMETA_ENTRY = re.compile(r'\["([^"]+)"\] = new WordInfo\("([^"]+)", "[^"]*", 
 ODD_SPELLING = re.compile(r"(.)\1\1|x|y|q|(?<!s)c(?!h)|(?<![aeiouäöü])ß|[^a-zäöüß]")
 VOWEL_PAIR = re.compile(r"[aeiouäöü]{2,}")
 GERMAN_VOWEL_PAIRS = {"ei", "ie", "au", "eu", "äu", "aa", "ee", "oo"}
+VOWELS = "aeiouäöüy"
+ONSETS = {"", "b", "bl", "br", "ch", "d", "dr", "f", "fl", "fr", "g", "gl", "gn", "gr", "h", "j", "k", "kl", "kn",
+          "kr", "l", "m", "n", "p", "pf", "pfl", "pfr", "pl", "pr", "qu", "r", "s", "sch", "schl", "schm", "schn",
+          "schr", "schw", "sk", "sp", "spl", "spr", "st", "str", "t", "tr", "v", "w", "wr", "z", "zw"}
+CODAS = {"", "b", "ch", "chs", "cht", "chts", "ck", "cks", "d", "f", "ff", "ft", "g", "k", "l", "lb", "lch", "ld",
+         "lf", "lk", "ll", "lm", "ls", "lt", "lz", "m", "mm", "mp", "ms", "mt", "n", "nch", "nd", "ng", "ngs", "nk",
+         "nks", "nn", "ns", "nst", "nt", "nz", "p", "pf", "pp", "r", "rb", "rch", "rcht", "rd", "rf", "rg", "rk", "rl",
+         "rm", "rn", "rr", "rs", "rst", "rt", "rz", "s", "sch", "ss", "st", "t", "tt", "tz", "x", "z", "ß"}
+PAIR_LIMIT = 3
+ASCENDERS = set("bdfhkltß")
+DESCENDERS = set("gjpqy")
 
 
 def load_known() -> set[str]:
@@ -76,6 +95,55 @@ def looks_real(word: str, known: set[str]) -> bool:
                if (i, j) != (0, len(word)))
 
 
+def coda_ok(cluster: str) -> bool:
+    # A lengthening h ("Fahrrad", "Lehrer") goes in front of any coda.
+    return cluster in CODAS or (cluster.startswith("h") and cluster[1:] in CODAS)
+
+
+def pronounceable(word: str) -> bool:
+    runs = re.findall(f"[{VOWELS}]+|[^{VOWELS}]+", word)
+    for i, run in enumerate(runs):
+        if run[0] in VOWELS:
+            continue
+        if i == 0:
+            if run not in ONSETS:
+                return False
+        elif i == len(runs) - 1:
+            if not coda_ok(run):
+                return False
+        elif not any(coda_ok(run[:k]) and run[k:] in ONSETS for k in range(len(run) + 1)):
+            return False
+    return True
+
+
+def outline(c: str) -> str:
+    return "ascender" if c in ASCENDERS else "descender" if c in DESCENDERS else "x-height"
+
+
+def transposed(echt: list[str], known: set[str], blocklist: set[str], rng: random.Random):
+    chosen: dict[bool, list[str]] = {True: [], False: []}
+    pairs: dict[bool, dict[str, int]] = {True: {}, False: {}}
+    for word in rng.sample(echt, len(echt)):
+        lower = word.lower()
+        by_kind: dict[bool, list[tuple[str, str]]] = {True: [], False: []}
+        for i in range(1, len(lower) - 2):
+            a, b = lower[i], lower[i + 1]
+            if a == b or (a in VOWELS and b in VOWELS):
+                continue
+            t = lower[:i] + b + a + lower[i + 2:]
+            if (len(t) >= MIN_LENGTH and t not in known and t not in blocklist and not ODD_SPELLING.search(t)
+                    and not looks_real(t, known)
+                    and all(v in GERMAN_VOWEL_PAIRS for v in VOWEL_PAIR.findall(t)) and pronounceable(t)):
+                by_kind[outline(a) == outline(b)].append((word[0] + t[1:], a + b))
+        for kind, candidates in by_kind.items():
+            candidates = [c for c in candidates if pairs[kind].get(c[1], 0) < PAIR_LIMIT]
+            if candidates:
+                text, pair = rng.choice(candidates)
+                chosen[kind].append(text)
+                pairs[kind][pair] = pairs[kind].get(pair, 0) + 1
+    return sorted(chosen[True]), sorted(chosen[False])
+
+
 def main() -> None:
     known = load_known()
     blocklist = load_blocklist()
@@ -100,6 +168,8 @@ def main() -> None:
                 and all(v in GERMAN_VOWEL_PAIRS for v in VOWEL_PAIR.findall(word))):
             quatsch.add(word)
 
+    gleich, anders = transposed(echt, known, blocklist, random.Random(SEED + 1))
+
     def literal(words) -> str:
         return ",\n".join(f'        "{w}"' for w in words)
 
@@ -114,10 +184,18 @@ def main() -> None:
         "    /// <summary>Real words the child knows, in their own spelling (nouns capitalized).</summary>\n"
         f"    public static readonly IReadOnlyList<string> Echt =\n    [\n{literal(echt)}\n    ];\n\n"
         "    /// <summary>German-looking nonsense words, lower case; the round capitalizes some at random.</summary>\n"
-        f"    public static readonly IReadOnlyList<string> Quatsch =\n    [\n{literal(sorted(quatsch))}\n    ];\n"
+        f"    public static readonly IReadOnlyList<string> Quatsch =\n    [\n{literal(sorted(quatsch))}\n    ];\n\n"
+        "    /// <summary>\n"
+        "    ///     Real words with two neighboring letters inside swapped, both of the same height, so the\n"
+        "    ///     outline stays (Birne -> Binre); in the real word's case.\n"
+        "    /// </summary>\n"
+        f"    public static readonly IReadOnlyList<string> VertauschtGleich =\n    [\n{literal(gleich)}\n    ];\n\n"
+        "    /// <summary>Like <see cref=\"VertauschtGleich\" />, but the two letters differ in height (Bild -> Blid).</summary>\n"
+        f"    public static readonly IReadOnlyList<string> VertauschtAnders =\n    [\n{literal(anders)}\n    ];\n"
         "}\n",
         encoding="utf-8")
-    print(f"{len(echt)} echte Wörter, {len(quatsch)} Quatschwörter -> {OUTPUT_FILE}")
+    print(f"{len(echt)} echte Wörter, {len(quatsch)} Quatschwörter, {len(gleich)}/{len(anders)} vertauschte "
+          f"(gleicher/anderer Umriss) -> {OUTPUT_FILE}")
 
 
 if __name__ == "__main__":

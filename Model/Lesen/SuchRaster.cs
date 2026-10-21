@@ -8,12 +8,17 @@ public sealed record RasterFeld(string Text, bool Treffer);
 ///     <see cref="Ziel" /> an!"). <see cref="LogKey" /> names the task's <c>SilbenLog</c> entry,
 ///     one per kind and level, since the grids themselves never repeat.
 /// </summary>
+/// <param name="Eng">
+///     Letter grids only: the letters packed close together (true) or on spaced-out tiles (false),
+///     same size either way - the reading profile compares the two (M1, crowding). Null for word grids.
+/// </param>
 public sealed record SuchRaster(
     string Ziel,
     int Spalten,
     IReadOnlyList<RasterFeld> Felder,
     int BasisPunkte,
-    string LogKey)
+    string LogKey,
+    bool? Eng = null)
 {
     public int AnzahlTreffer => Felder.Count(f => f.Treffer);
 }

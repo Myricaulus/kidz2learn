@@ -3,7 +3,8 @@ namespace Kidz2Learn.Model.Lesen;
 /// <summary>
 ///     "Spiegelbuchstaben": a <see cref="SuchRaster" /> of only b, d, p and q - the letters that are
 ///     mirror images of each other - in which one of them is to be found. The target fills
-///     roughly a quarter to a third of the grid, so counting doesn't help.
+///     roughly a quarter to a third of the grid, so counting doesn't help. Every other grid on
+///     average is packed tight (<see cref="SuchRaster.Eng" />).
 /// </summary>
 public static class Spiegelbuchstaben
 {
@@ -37,6 +38,6 @@ public static class Spiegelbuchstaben
                 : new RasterFeld(andere[rng.Next(andere.Count)], false))
             .OrderBy(_ => rng.Next())
             .ToList();
-        return new SuchRaster(ziel, seite, felder, punkte, $"bdpq{seite}");
+        return new SuchRaster(ziel, seite, felder, punkte, $"bdpq{seite}", Eng: rng.Next(2) == 0);
     }
 }

@@ -60,8 +60,8 @@ public static class MerkmalRechner
 
     private static readonly Definition[] Definitionen =
     [
-        new("M1", "Crowding", "Buchstaben im Gedränge schwerer erkennbar als einzeln",
-            _ => [], "Braucht die Kurz-Einblendung mit engem/weitem Abstand (noch nicht gebaut)."),
+        new("M1", "Crowding", "Buchstaben im Gedränge schwerer erkennbar als einzeln", Crowding,
+            "Grob: das Gitter hat keinen Zeitdruck. Genauer misst es erst die Kurz-Einblendung (noch nicht gebaut)."),
         new("M2", "Sehschärfe / Schriftgröße", "Große Schrift hilft deutlich mehr als Abstand",
             _ => [], "Braucht die Kurz-Einblendung klein/groß (noch nicht gebaut)."),
         new("M3", "Spiegelbuchstaben", "b/d und p/q verwechselt", Spiegeln),
@@ -71,8 +71,8 @@ public static class MerkmalRechner
         new("M7", "Vokalfolge (ei/ie/eu)", "Vokalpaare vertauscht oder verwechselt",
             b => [Anziehung(b, "Hören → Schreibweise: ei/ie, eu/ei", Fehlerart.Vokalfolge, Fehlerart.Diphthong)]),
         new("M8", "Reihenfolge & Auslassung", "Buchstaben vertauscht, Buchstaben oder Silben ausgelassen/zugefügt",
-            b => [Anziehung(b, "Hören → Schreibweise: vertauscht/ausgelassen", Fehlerart.Vertauschung,
-                Fehlerart.Auslassung, Fehlerart.Einfuegung)]),
+            b => [Anziehung(b, "Hören → Schreibweise: Buchstaben/Silben vertauscht oder ausgelassen",
+                Fehlerart.Vertauschung, Fehlerart.Silbenfolge, Fehlerart.Auslassung, Fehlerart.Einfuegung)]),
         new("M9", "Laute unterscheiden", "Ähnliche Laute (d/t, g/k) beim Hören verwechselt",
             b => [Anziehung(b, "Hören → Schreibweise: stimmhaft/stimmlos", Fehlerart.Stimmhaft)],
             "Die Nur-Hören-Aufgaben (mi/im, Reime) fehlen noch; d/t am Wortende zählt nicht (Dialekt)."),
@@ -165,15 +165,41 @@ public static class MerkmalRechner
 
     // ---- Features ------------------------------------------------------------------------------
 
+    private static List<Beobachtung> SpiegelGitter(IReadOnlyList<Beobachtung> alle) =>
+        alle.Where(b => b.View == "such-raster" && b.Skills.Contains(Skill.ReadMirrorLetters) && b.Versuch == 1)
+            .ToList();
+
+    /// <summary>Wrongly tapped plus missed tiles, and all tiles, over the given grids.</summary>
+    private static (int Fehler, int Felder) Zaehle(IReadOnlyCollection<Beobachtung> gitter) =>
+        (gitter.Sum(b => b.Items?.Count ?? 0), gitter.Sum(b => int.TryParse(b.Wert("felder"), out var f) ? f : 0));
+
+    private static IEnumerable<QuellenErgebnis> Crowding(IReadOnlyList<Beobachtung> alle)
+    {
+        var gitter = SpiegelGitter(alle).ToLookup(b => b.Wert("abstand"));
+        List<Beobachtung> eng = [.. gitter["eng"]], weit = [.. gitter["weit"]];
+        const string name = "Spiegelbuchstaben-Gitter: eng gegen weit gesetzt";
+        if (eng.Count < 3 || weit.Count < 3)
+        {
+            yield return new QuellenErgebnis(name, null, eng.Count + weit.Count,
+                $"{eng.Count} enge / {weit.Count} weite Gitter, je mindestens 3 nötig");
+            yield break;
+        }
+
+        var (kEng, nEng) = Zaehle(eng);
+        var (kWeit, nWeit) = Zaehle(weit);
+        yield return new QuellenErgebnis(name, Statistik.KontrastEvidenz(kEng, nEng, kWeit, nWeit, 0.08), nEng + nWeit,
+            $"falsche Felder eng {kEng} von {nEng} ({Prozent(kEng, nEng)}), weit {kWeit} von {nWeit} " +
+            $"({Prozent(kWeit, nWeit)}); ab 8 % Unterschied ein Hinweis");
+    }
+
     private static IEnumerable<QuellenErgebnis> Spiegeln(IReadOnlyList<Beobachtung> alle)
     {
         yield return Anziehung(alle, "Hören → Schreibweise: b/d, p/q", Fehlerart.Spiegel);
 
-        var gitter = alle.Where(b => b.View == "such-raster" && b.Skills.Contains(Skill.ReadMirrorLetters) &&
-                                     b.Versuch == 1).ToList();
-        var felder = gitter.Sum(b => int.TryParse(b.Wert("felder"), out var f) ? f : 0);
-        var fehler = gitter.Sum(b => b.Items?.Count ?? 0);
-        const string name = "Spiegelbuchstaben-Gitter (ohne Zeitdruck)";
+        // Tight grids belong to M1: crowding mistakes there aren't mirror mistakes.
+        var gitter = SpiegelGitter(alle).Where(b => b.Wert("abstand") != "eng").ToList();
+        var (fehler, felder) = Zaehle(gitter);
+        const string name = "Spiegelbuchstaben-Gitter, weit gesetzt (ohne Zeitdruck)";
         if (gitter.Count < 3)
             yield return new QuellenErgebnis(name, null, felder, $"{gitter.Count} Gitter, mindestens 3 nötig");
         else
@@ -188,32 +214,43 @@ public static class MerkmalRechner
     private static readonly Lazy<HashSet<string>> EchteWoerter = new(() =>
         LeseTurboWords.Echt.Concat(WordMeta.Data.Keys).Select(w => w.ToLowerInvariant()).ToHashSet());
 
+    /// <summary>For a real word with two neighboring letters swapped: whether its outline stayed the same; otherwise null.</summary>
+    private static bool? VertauschterUmriss(string text)
+    {
+        foreach (var echt in EchteWoerter.Value)
+            if (FehlerartRechner.VertauschtBei(echt, text) is { } i)
+                return FehlerartRechner.GleicherUmriss(echt[i], echt[i + 1]);
+        return null;
+    }
+
     private static IEnumerable<QuellenErgebnis> Wortbild(IReadOnlyList<Beobachtung> alle)
     {
+        // Real words with two letters swapped go to the outline comparison, the other nonsense words
+        // to near/far, so no word counts in both.
+        var quatsch = TurboWoerter(alle).Where(w => w.Echt == false)
+            .Select(w => (Wort: w, Umriss: VertauschterUmriss(w.Text))).ToList();
+
         // TODO: mark real-word neighbors in LeseTurboWords.g.cs offline against de_50k.txt instead
         // of the app's own small word lists.
-        var quatsch = TurboWoerter(alle).Where(w => w.Echt == false).ToList();
-        var nah = quatsch.ToLookup(w => EchteWoerter.Value.Any(e => FehlerartRechner.IstNachbar(w.Text, e)));
-        var mitNachbar = nah[true].ToList();
-        var ohne = nah[false].ToList();
-        int kMit = mitNachbar.Count(w => w.Ergebnis == "falsch"), kOhne = ohne.Count(w => w.Ergebnis == "falsch");
-        const string name = "Lese-Turbo: Quatschwort nah an echtem Wort für echt gehalten";
-        if (mitNachbar.Count < MindestGruppe || ohne.Count < MindestGruppe)
-            yield return new QuellenErgebnis(name, null, quatsch.Count,
-                $"{mitNachbar.Count} nahe / {ohne.Count} ferne Quatschwörter, je {MindestGruppe} nötig");
-        else
-            yield return new QuellenErgebnis(name,
-                Statistik.KontrastEvidenz(kMit, mitNachbar.Count, kOhne, ohne.Count, 0.15), quatsch.Count,
-                $"nahe {kMit} von {mitNachbar.Count} ({Prozent(kMit, mitNachbar.Count)}) für echt gehalten, " +
-                $"ferne {kOhne} von {ohne.Count} ({Prozent(kOhne, ohne.Count)})");
+        var andere = quatsch.Where(q => q.Umriss is null).Select(q => q.Wort).ToList();
+        var nah = andere.ToLookup(w => EchteWoerter.Value.Any(e => FehlerartRechner.IstNachbar(w.Text, e)));
+        yield return Kontrast("Lese-Turbo: Quatschwort nah an echtem Wort gegen fernes",
+            nah[true].Count(w => w.Ergebnis == "falsch"), nah[true].Count(),
+            nah[false].Count(w => w.Ergebnis == "falsch"), nah[false].Count(), 0.15, "für echt gehalten");
+
+        var gleich = quatsch.Where(q => q.Umriss == true).Select(q => q.Wort).ToList();
+        var anders = quatsch.Where(q => q.Umriss == false).Select(q => q.Wort).ToList();
+        yield return Kontrast("Lese-Turbo: vertauschtes echtes Wort, gleicher Umriss (Birne → Brine) gegen anderer (Bild → Blid)",
+            gleich.Count(w => w.Ergebnis == "falsch"), gleich.Count, anders.Count(w => w.Ergebnis == "falsch"),
+            anders.Count, 0.15, "für echt gehalten");
     }
 
     private static IEnumerable<QuellenErgebnis> KurzeWoerter(IReadOnlyList<Beobachtung> alle)
     {
         var fragen = alle.Where(b => b.View == "w-frage" && b.Versuch == 1 && b.Wert("frage") is not null &&
                                      !b.Skills.Contains(Skill.ReadStoryMath)).ToList();
-        var kurz = fragen.Where(b => b.Wert("frage")!.Length <= 3).ToList();
-        var lang = fragen.Where(b => b.Wert("frage")!.Length > 3).ToList();
+        var kurz = fragen.Where(b => WFragen.IstKurz(b.Wert("frage")!)).ToList();
+        var lang = fragen.Where(b => !WFragen.IstKurz(b.Wert("frage")!)).ToList();
         yield return Kontrast("W-Frage: kurzes Fragewort (Wo, Wer, Was) gegen langes (Wann, Womit)",
             kurz.Count(b => !b.Richtig), kurz.Count, lang.Count(b => !b.Richtig), lang.Count, 0.15, "falsch");
 

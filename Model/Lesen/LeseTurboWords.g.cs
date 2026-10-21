@@ -418,4 +418,66 @@ public static class LeseTurboWords
         "vultur",
         "zwikal"
     ];
+
+    /// <summary>
+    ///     Real words with two neighboring letters inside swapped, both of the same height, so the
+    ///     outline stays (Birne -> Binre); in the real word's case.
+    /// </summary>
+    public static readonly IReadOnlyList<string> VertauschtGleich =
+    [
+        "Beusch",
+        "Brine",
+        "Drof",
+        "Emier",
+        "Erdberee",
+        "Esien",
+        "Faru",
+        "Fasut",
+        "Gesit",
+        "Matorse",
+        "Pisnel",
+        "Rosnie",
+        "Trum",
+        "Verison",
+        "barun",
+        "daaruf",
+        "daurnter",
+        "drot",
+        "durnter",
+        "dürber",
+        "enie",
+        "hatlen",
+        "hernuter",
+        "hesier",
+        "hinnuter",
+        "usner",
+        "vonre"
+    ];
+
+    /// <summary>Like <see cref="VertauschtGleich" />, but the two letters differ in height (Bild -> Blid).</summary>
+    public static readonly IReadOnlyList<string> VertauschtAnders =
+    [
+        "Arebiter",
+        "Blid",
+        "Bobnon",
+        "Bulmen",
+        "Edre",
+        "Eihnorn",
+        "Fabren",
+        "Kitse",
+        "Lasatuto",
+        "Madnarine",
+        "Sefie",
+        "Totre",
+        "Viedo",
+        "balu",
+        "blelen",
+        "fidnen",
+        "fintser",
+        "hitnerher",
+        "hudnert",
+        "hutsen",
+        "mutner",
+        "utnen"
+    ];
 }

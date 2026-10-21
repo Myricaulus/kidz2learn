@@ -83,6 +83,18 @@ public class QuatschSaetzeTests
 
 public class WFragenTests
 {
+    [Fact]
+    public void ShortAndLongQuestionWords_ComeUpAboutEquallyOften()
+    {
+        var rng = new Random(9);
+        var fragen = Enumerable.Range(0, 400)
+            .SelectMany(i => (i % 2 == 0 ? WFragen.GenerateLeicht(rng) : WFragen.GenerateSchwer(rng)).Fragen)
+            .ToList();
+        var lang = fragen.Count(f => !WFragen.IstKurz(f.Fragewort));
+
+        Assert.InRange((double)lang / fragen.Count, 0.3, 0.6);
+    }
+
     private static readonly Random Rng = new(815);
 
     [Fact]
@@ -472,5 +484,12 @@ public class SpiegelbuchstabenTests
     {
         Assert.Equal(16, Spiegelbuchstaben.GenerateMittel(Rng).Felder.Count);
         Assert.Equal(25, Spiegelbuchstaben.GenerateSchwer(Rng).Felder.Count);
+    }
+
+    [Fact]
+    public void AboutHalfTheGrids_ArePackedTight()
+    {
+        var eng = Enumerable.Range(0, 400).Count(_ => Spiegelbuchstaben.GenerateMittel(Rng).Eng == true);
+        Assert.InRange(eng, 150, 250);
     }
 }

@@ -17,19 +17,26 @@ public static class LeseTurbo
     public const int MindestWoerter = 8;
 
     /// <summary>
-    ///     Half real, half nonsense, never a word twice in a round. Nonsense words are capitalized at
+    ///     Half real, half nonsense, never a word twice in a round. A third of the nonsense words are
+    ///     real words with two letters swapped, half of them keeping the word's outline (reading
+    ///     profile, M4); they keep the real word's case. The other nonsense words are capitalized at
     ///     random, so a capital letter doesn't give a real noun away.
     /// </summary>
     public static LeseTurboWort Naechstes(Random rng, ISet<string> gezeigt)
     {
         var echt = rng.Next(2) == 0;
-        var pool = (echt ? LeseTurboWords.Echt : LeseTurboWords.Quatsch).Where(w => !gezeigt.Contains(w)).ToList();
+        var vertauscht = !echt && rng.Next(3) == 0;
+        var liste = echt ? LeseTurboWords.Echt
+            : !vertauscht ? LeseTurboWords.Quatsch
+            : rng.Next(2) == 0 ? LeseTurboWords.VertauschtGleich
+            : LeseTurboWords.VertauschtAnders;
+        var pool = liste.Where(w => !gezeigt.Contains(w)).ToList();
         if (pool.Count == 0)
-            pool = [.. echt ? LeseTurboWords.Echt : LeseTurboWords.Quatsch];
+            pool = [.. liste];
 
         var wort = pool[rng.Next(pool.Count)];
         gezeigt.Add(wort);
-        if (!echt && rng.Next(2) == 0)
+        if (!echt && !vertauscht && rng.Next(2) == 0)
             wort = char.ToUpperInvariant(wort[0]) + wort[1..];
         return new LeseTurboWort(wort, echt);
     }

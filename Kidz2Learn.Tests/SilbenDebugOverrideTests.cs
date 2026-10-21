@@ -1,3 +1,4 @@
+using Kidz2Learn.Model;
 using Kidz2Learn.Model.Tasks;
 using Kidz2Learn.Model.Tasks.TaskDefs;
 using Xunit;
@@ -42,5 +43,33 @@ public class SilbenDebugOverrideTests
         var (_, options) = forced.Generator(Random.Shared);
         Assert.Equal(3, options.Length);
         Assert.Contains(options, o => o.Equals("Sonnensystem", StringComparison.OrdinalIgnoreCase));
+    }
+}
+
+public class SkillDebugOverrideTests
+{
+    [Theory]
+    [InlineData("read_mirror_letters", "2", 2)]
+    [InlineData("read_mirror_letters", "3", 3)]
+    [InlineData("read_turbo", null, 3)]
+    public void Build_ForcesTheDefinitionOfThatSkillAndLevel(string skill, string? level, int erwartetesLevel)
+    {
+        var query = new Dictionary<string, string> { ["task"] = "skill", ["skill"] = skill };
+        if (level is not null)
+            query["level"] = level;
+
+        var forced = TaskDebugOverrideRegistry.Build("skill", query)!.TryForce(TaskRegistry.All);
+
+        Assert.NotNull(forced);
+        Assert.Contains(skill, forced.Skills);
+        Assert.Equal(erwartetesLevel, forced.DifficultyLevel);
+    }
+
+    [Fact]
+    public void TryForce_WithoutThatSkillAmongTheCandidates_LeavesThePickAlone()
+    {
+        var forced = new SkillDebugOverride("read_mirror_letters", null).TryForce(SilbenTaskRegistry.All);
+
+        Assert.Null(forced);
     }
 }

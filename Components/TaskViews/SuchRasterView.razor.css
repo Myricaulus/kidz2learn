@@ -65,6 +65,33 @@
     font-size: clamp(2rem, 7vw, 3rem);
 }
 
+/* Packed letters (reading profile, crowding): same letter size, columns 0.9em apart, rows
+   1.05em, no visible tile - only the letters' neighbors crowd them (spaced-out tiles at laptop
+   width: ~2.7em). The grid carries the font
+   size, so the em column width in its style attribute scales with the letters. The tile's
+   colors sit in a one-class rule before the state classes below, so marking still shows. */
+.raster-eng {
+    gap: 0;
+    justify-content: center;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: clamp(2rem, 7vw, 3rem);
+}
+
+.raster-eng .raster-feld {
+    min-height: 0;
+    padding: 0;
+    font-size: 1em;
+    line-height: 1.05;
+    letter-spacing: 0;
+    border-width: 2px;
+    border-radius: 6px;
+}
+
+.raster-feld-eng {
+    border-color: transparent;
+    background: transparent;
+}
+
 .raster-feld:hover:not(:disabled) {
     background: #f0f0f0;
 }

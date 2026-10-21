@@ -55,14 +55,14 @@ sich). Zustände, nach dem auf zwei Stellen gerundeten Wert:
 
 | Id | Merkmal | Quellen | Fehlt noch |
 |---|---|---|---|
-| M1 | Crowding | – | Kurz-Einblendung eng/weit (Schritt 4) |
+| M1 | Crowding | Spiegelgitter eng gegen weit gesetzt (gleiche Schriftgröße, falsche Felder, ab 8 % Unterschied; grob, ohne Zeitdruck) | Kurz-Einblendung eng/weit (Schritt 4) |
 | M2 | Sehschärfe/Schriftgröße | – | Kurz-Einblendung klein/groß (Schritt 4) |
-| M3 | Spiegelbuchstaben | Hören→Schreibweise: Anziehung b/d, p/q; Spiegelgitter ohne Zeitdruck | Bedingung "kurz eingeblendet" |
-| M4 | Lesen am Wortbild | Lese-Turbo: Quatschwort nah an echtem Wort für echt gehalten | Vertauschungen bekannter Wörter mit/ohne erhaltenen Umriss (Schritt 2); Nachbarn gegen de_50k |
+| M3 | Spiegelbuchstaben | Hören→Schreibweise: Anziehung b/d, p/q; Spiegelgitter weit gesetzt, ohne Zeitdruck (eng gehört zu M1) | Bedingung "kurz eingeblendet" |
+| M4 | Lesen am Wortbild | Lese-Turbo: Quatschwort nah an echtem Wort gegen fernes; vertauschtes echtes Wort mit gleichem Umriss (Birne → Brine) gegen anderem (Bild → Blid), je für echt gehalten | Nachbarn gegen de_50k |
 | M5 | Kurze ähnliche Wörter | W-Frage kurzes gegen langes Fragewort; Lese-Turbo ≤4 gegen ≥6 Buchstaben | Nachbarzahl aus de_50k |
 | M6 | Nicht automatisiert | Lese-Turbo: Zeit pro Wort (1,2/1,8 s), Längeneffekt (50/150 ms pro Buchstabe) | – |
-| M7 | Vokalfolge ei/ie/eu | Anziehung Vokalfolge + Diphthong | ei/eu in den Verwechslungstabellen des Generators (Schritt 2) |
-| M8 | Reihenfolge & Auslassung | Anziehung Vertauschung, Auslassung, Einfügung | Silben-Vertauschung/-Auslassung als Distraktor (Schritt 2) |
+| M7 | Vokalfolge ei/ie/eu | Anziehung Vokalfolge + Diphthong (ei→ie/eu/e/i, ie→ei, eu→ei/au, au→eu/a) | – |
+| M8 | Reihenfolge & Auslassung | Anziehung Buchstaben-/Silbenvertauschung, Buchstaben-/Silbenauslassung, Einfügung | – |
 | M9 | Laute unterscheiden | Anziehung stimmhaft/stimmlos (d/t am Wortende zählt nicht: Dialekt) | Nur-Hören-Aufgaben mi/im, Reime, gleich/anders (Schritt 3) |
 | M10 | Erkennen schwächer als Erzeugen | – | "Wort sehen, Aufnahme wählen" (Schritt 3) |
 | M11 | Vorlesen hilft | W-Frage: richtig nach vorgespieltem Fragewort, gegen Zufall | – |
@@ -78,6 +78,21 @@ wie oft eine angebotene Fehlschreibung einer Art gewählt wird, pro Mal, dass si
 gegen alle anderen Einzelbuchstaben-Arten. Die Art bestimmt `FehlerartRechner` aus Ziel und
 Option; b↔p ist zugleich gekippt und stimmhaft/stimmlos und zählt für keins von beiden.
 
+`read_precise` sorgt selbst dafür, dass jede Art oft genug angeboten wird
+(`ErstleserDistraktorGenerator`): Es wählt erst eine `Distraktorart` (Spiegel, Vokalpaar,
+Reihenfolge, Auslassung, Stimmhaft, Sonstige), dann ein Wort, das sie hergibt, und als zweite
+Fehlschreibung eine andere Art. So kommen b/d-Optionen in gut einem Viertel der Aufgaben vor
+statt nur bei zufällig passenden Wörtern. Fehlschreibungen, die genauso klingen wie das Wort
+(d/t am Wortende, f/v, ei/ai, äu/eu), bietet es nicht an - beim Hören wären sie nicht zu
+unterscheiden.
+
+Gleichmäßig verteilt sind auch die anderen Bedingungen: W-Frage fragt in jeder Reihe nach einem
+Satzteil mit langem Fragewort, wenn der Satz einen hat (sonst überwiegen Wer/Was/Wo); jedes
+zweite Spiegelgitter ist eng gesetzt; ein Drittel der Lese-Turbo-Quatschwörter sind vertauschte
+echte Wörter, halb mit gleichem, halb mit anderem Umriss (`LeseTurboWords.VertauschtGleich`/
+`VertauschtAnders`, höchstens 3 pro vertauschtem Buchstabenpaar, damit das Kind kein Muster wie
+"tn" lernt).
+
 ## Bekanntes aus der Zeit vor den Beobachtungen
 
 Nicht in der App, aber als Kontext: mi/im wurde 2025-11 beim Hören/Sprechen verwechselt, beim
@@ -90,7 +105,7 @@ d↔t am Wortende ist Dialekt. Telemetrie 2026-10 (7 Kinder-Sitzungen): "Wo" 7 v
 1. Beobachtungsmodell, Auswertung, Profil mit Verlauf; bestehende Aufgaben protokollieren mehr. ✔
 2. Nur neue Generatoren in bestehenden Views: Lese-Turbo-Vertauschungen (M4), Silben-Vertauschung
    und -Auslassung (M8), ei/eu in `read_precise` (M7), Kachelabstand im Spiegelgitter (M1 grob).
-   Jede Aufgabe verteilt ihre Bedingungen selbst gleichmäßig - der Picker bleibt unberührt.
+   Jede Aufgabe verteilt ihre Bedingungen selbst gleichmäßig - der Picker bleibt unberührt. ✔
 3. Nur-Hören-Aufgaben und Schrift→Hören mit vorhandenen Aufnahmen (mi/im, da/de/di/do,
    die/der/das, Haus/Maus/Haut) für M9, M10.
 4. Kurz-Einblendung (Fixierkreuz, 150-400 ms, Maske, Auswahl; Dauer pro Kind auf ~80 % geregelt)

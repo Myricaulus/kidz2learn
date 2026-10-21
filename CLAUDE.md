@@ -184,9 +184,10 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   ←/→), no speed feedback during the round, a word left 5 s counts as wrong, scored once at the end
   (`Model/Lesen/LeseTurbo.cs`: >= 8 words, >= 80 % right). Words are generated offline into
   `Model/Lesen/LeseTurboWords.g.cs` by `uv run python WaveSplit/GenerateLeseTurboWords.py`: real
-  words from WordMeta, nonsense words from their syllables, checked against `de_50k.txt`, the
-  Silbenhammer catalog and WordMeta; anything wrong either way goes in
-  `WaveSplit/data/lese-turbo-blocklist.txt`.
+  words from WordMeta, nonsense words from their syllables and real words with two inner letters
+  swapped (`VertauschtGleich`/`VertauschtAnders`: same or changed outline, a third of the nonsense
+  words, pronounceable), checked against `de_50k.txt`, the Silbenhammer catalog and WordMeta;
+  anything wrong either way goes in `WaveSplit/data/lese-turbo-blocklist.txt`.
 
 ### Reading profile (Model/Merkmale/, LESE_MERKMALE.md)
 
@@ -195,7 +196,12 @@ every answer as a `Beobachtung` in IndexedDB store `Beobachtungen` (unlimited). 
 task-specific part as `BeobachtungsDaten` (target, answer, options, `MindestLeseMs` via `Lesezeit`,
 `Werte` like `frage`/`a`/`b`/`op`, `Items` for Lese-Turbo words and search-grid mistakes); the
 controller adds attempt, duration, audio replays (`NoteVorgespielt`) and words tapped in `LeseSatz`
-(`NoteAngetippt`). The telemetry carries the same object. `MerkmalRechner.Berechne` (pure, tested)
+(`NoteAngetippt`). The telemetry carries the same object. Generators spread the compared
+conditions evenly themselves: `read_precise` picks a `Distraktorart` first, then a word that has it
+(`Model/Tasks/ErstleserDistraktorGenerator.cs`, classified by `FehlerartRechner`, no homophone
+distractors), W-Frage always asks one long question word when the sentence has one, every other
+mirror-letter grid is packed tight (`SuchRaster.Eng`, crowding), and a third of the Lese-Turbo
+nonsense words are transposed real words with kept/changed outline. `MerkmalRechner.Berechne` (pure, tested)
 turns them into 17 features M1-M17, each -1..+1 with a state (keine Daten / unklar / dafür /
 dagegen / widersprüchlich), from per-source likelihood ratios in `Statistik` that add up per
 feature; `FehlerartRechner` classifies
@@ -214,7 +220,11 @@ word breaking a layout) can be reproduced directly by URL — in particular for 
 Chrome extension — instead of reloading the real page repeatedly until the adaptive picker happens
 to serve it.
 
-- `task=silben` (the only registered kind so far; `SilbenDebugOverrideFactory` in
+- `task=skill&skill=<id>[&level=<n>]` (`SkillDebugOverride`, any domain) forces the definition
+  that trains that skill, each task freshly generated - e.g.
+  `/debug/Lesedetektiv?task=skill&skill=read_mirror_letters&level=2&skipSplash=true&telemetrie=off`
+  (`telemetrie=off` keeps a test run out of the telemetry).
+- `task=silben` (`SilbenDebugOverrideFactory` in
   `Model/Tasks/SilbenDebugOverride.cs`) forces a Silben task: `word=<Word>` (required, matched
   case-insensitively against `WordMeta.Data` keys) picks the target, `skill=<id>` (optional, e.g.
   `read_precise` or `read_syllables`) picks which `SilbenTaskDefinition` to force, `options=a,b,c`

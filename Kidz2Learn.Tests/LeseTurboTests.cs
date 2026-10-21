@@ -1,5 +1,6 @@
 using Kidz2Learn.Model;
 using Kidz2Learn.Model.Lesen;
+using Kidz2Learn.Model.Merkmale;
 using Kidz2Learn.Model.Tasks;
 using Kidz2Learn.Model.Tasks.TaskDefs;
 using Xunit;
@@ -18,6 +19,36 @@ public class LeseTurboTests
         Assert.DoesNotContain(LeseTurboWords.Quatsch, echt.Contains);
         Assert.DoesNotContain(LeseTurboWords.Quatsch, q => WordMeta.Data.Keys.Contains(q, StringComparer.OrdinalIgnoreCase));
         Assert.DoesNotContain(LeseTurboWords.Quatsch, q => SilbenHammerWords.Data.Any(w => string.Equals(w.Word, q, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    [Fact]
+    public void TransposedWords_AreRealWordsWithTwoLettersSwapped_SortedByOutline()
+    {
+        Assert.True(LeseTurboWords.VertauschtGleich.Count >= 15);
+        Assert.True(LeseTurboWords.VertauschtAnders.Count >= 15);
+
+        var echt = LeseTurboWords.Echt.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var (liste, gleich) in new[] { (LeseTurboWords.VertauschtGleich, true), (LeseTurboWords.VertauschtAnders, false) })
+        foreach (var wort in liste)
+        {
+            Assert.DoesNotContain(wort, echt);
+            Assert.False(WordMeta.Data.Keys.Contains(wort, StringComparer.OrdinalIgnoreCase), wort);
+            var quelle = LeseTurboWords.Echt.Single(e => FehlerartRechner.VertauschtBei(e, wort) is not null);
+            var i = FehlerartRechner.VertauschtBei(quelle, wort)!.Value;
+            Assert.Equal(gleich, FehlerartRechner.GleicherUmriss(quelle[i], quelle[i + 1]));
+            Assert.Equal(quelle[0], wort[0]);
+        }
+    }
+
+    [Fact]
+    public void Naechstes_ShowsATransposedRealWordInAboutOneOfSix()
+    {
+        var rng = new Random(8);
+        var vertauscht = LeseTurboWords.VertauschtGleich.Concat(LeseTurboWords.VertauschtAnders).ToHashSet();
+        var woerter = Enumerable.Range(0, 600).Select(_ => LeseTurbo.Naechstes(rng, new HashSet<string>())).ToList();
+
+        Assert.InRange(woerter.Count(w => vertauscht.Contains(w.Text)), 60, 140);
+        Assert.All(woerter.Where(w => vertauscht.Contains(w.Text)), w => Assert.False(w.Echt));
     }
 
     [Fact]

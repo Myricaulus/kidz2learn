@@ -180,12 +180,15 @@ public partial class SuchRasterView : ComponentBase, ITaskView, IDisposable
             .Where(x => x.f.Treffer != x.marked)
             .Select(x => new BeobachtungsItem(x.f.Text, null, x.marked ? "falsch-markiert" : "vergessen", 0))
             .ToList();
-        var daten = new BeobachtungsDaten(_raster.Ziel, Werte: new Dictionary<string, string>
+        var werte = new Dictionary<string, string>
         {
             ["felder"] = _raster.Felder.Count.ToString(),
             ["spalten"] = _raster.Spalten.ToString(),
             ["treffer"] = _raster.AnzahlTreffer.ToString()
-        }, Items: fehlerItems);
+        };
+        if (_raster.Eng is { } eng)
+            werte["abstand"] = eng ? "eng" : "weit";
+        var daten = new BeobachtungsDaten(_raster.Ziel, Werte: werte, Items: fehlerItems);
 
         var points = SuchRasterWertung.Punkte(_raster.BasisPunkte, fehler);
         if (SuchRasterWertung.Geschafft(fehler))

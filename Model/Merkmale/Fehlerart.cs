@@ -23,7 +23,7 @@ public enum Fehlerart
     /// <summary>One vowel for another (a↔e, o↔u).</summary>
     Vokal,
 
-    /// <summary>One vowel for another inside ei/ie/eu/au/äu (ei→eu).</summary>
+    /// <summary>One vowel for another inside ei/ie/eu/au/äu (ei→eu), or the pair cut to one of its vowels (ei→i).</summary>
     Diphthong,
 
     /// <summary>Two neighboring vowels swapped (ei↔ie).</summary>
@@ -32,10 +32,13 @@ public enum Fehlerart
     /// <summary>Two neighboring letters swapped, not both vowels.</summary>
     Vertauschung,
 
+    /// <summary>Two neighboring stretches swapped, at least one of them longer than a letter (Ba-na-ne → Na-ba-ne).</summary>
+    Silbenfolge,
+
     /// <summary>A letter group shortened or a consonant doubled (sch→ch, ck→k, m→mm).</summary>
     Gruppe,
 
-    /// <summary>A letter or a short stretch (a syllable) left out.</summary>
+    /// <summary>A letter or a short stretch (a syllable, up to 4 letters) left out.</summary>
     Auslassung,
 
     /// <summary>A letter or a short stretch added.</summary>
@@ -84,6 +87,8 @@ public static class FehlerartRechner
 
         if (IstGruppe(a, b) || IstGruppe(b, a))
             return Fehlerart.Gruppe;
+        if (IstPaarVerkuerzt(a, b) || IstPaarVerkuerzt(b, a))
+            return Fehlerart.Diphthong;
         if (IstAusgelassen(a, b))
             return Fehlerart.Auslassung;
         if (IstAusgelassen(b, a))
@@ -114,6 +119,32 @@ public static class FehlerartRechner
                Enumerable.Range(0, lang.Length).Any(i => lang.Remove(i, 1) == kurz);
     }
 
+    /// <summary>
+    ///     The index i when <paramref name="b" /> is <paramref name="a" /> with letters i and i+1
+    ///     swapped (case insensitive), otherwise null.
+    /// </summary>
+    public static int? VertauschtBei(string a, string b)
+    {
+        a = a.ToLowerInvariant();
+        b = b.ToLowerInvariant();
+        if (a.Length != b.Length)
+            return null;
+        var diffs = Enumerable.Range(0, a.Length).Where(i => a[i] != b[i]).ToList();
+        return diffs.Count == 2 && diffs[1] == diffs[0] + 1 && a[diffs[0]] == b[diffs[1]] && a[diffs[1]] == b[diffs[0]]
+            ? diffs[0]
+            : null;
+    }
+
+    /// <summary>
+    ///     True when both letters have the same height - ascenders (b d f h k l t ß), descenders
+    ///     (g j p q y) or neither - so swapping them keeps the word's outline (Birne → Brine, not Bild → Blid).
+    /// </summary>
+    public static bool GleicherUmriss(char x, char y)
+    {
+        static int Hoehe(char c) => "bdfhkltß".Contains(c) ? 1 : "gjpqy".Contains(c) ? -1 : 0;
+        return Hoehe(char.ToLowerInvariant(x)) == Hoehe(char.ToLowerInvariant(y));
+    }
+
     private static Fehlerart GleicheLaenge(string a, string b)
     {
         var diffs = Enumerable.Range(0, a.Length).Where(i => a[i] != b[i]).ToList();
@@ -121,6 +152,8 @@ public static class FehlerartRechner
             return Vokale.Contains(a[diffs[0]]) && Vokale.Contains(a[diffs[1]])
                 ? Fehlerart.Vokalfolge
                 : Fehlerart.Vertauschung;
+        if (IstSilbenTausch(a, b))
+            return Fehlerart.Silbenfolge;
         if (diffs.Count != 1)
             return Fehlerart.AnderesWort;
 
@@ -167,11 +200,30 @@ public static class FehlerartRechner
         return false;
     }
 
-    /// <summary>True when <paramref name="kurz" /> is <paramref name="lang" /> with 1-3 letters in a row removed.</summary>
+    /// <summary>True when <paramref name="kurz" /> is <paramref name="lang" /> with a vowel pair cut to one of its vowels (Bein → Bin).</summary>
+    private static bool IstPaarVerkuerzt(string lang, string kurz)
+    {
+        return lang.Length == kurz.Length + 1 && Enumerable.Range(0, lang.Length)
+            .Any(i => Vokale.Contains(lang[i]) && InDiphthong(lang, i) && lang.Remove(i, 1) == kurz);
+    }
+
+    /// <summary>True when <paramref name="b" /> is <paramref name="a" /> with two neighboring stretches swapped, together 3+ letters.</summary>
+    private static bool IstSilbenTausch(string a, string b)
+    {
+        for (var i = 0; i < a.Length; i++)
+        for (var j = 1; i + j < a.Length; j++)
+        for (var k = 1; i + j + k <= a.Length; k++)
+            if (j + k >= 3 && a[..i] == b[..i] && a[(i + j + k)..] == b[(i + j + k)..] &&
+                a.Substring(i, j) == b.Substring(i + k, j) && a.Substring(i + j, k) == b.Substring(i, k))
+                return true;
+        return false;
+    }
+
+    /// <summary>True when <paramref name="kurz" /> is <paramref name="lang" /> with 1-4 letters in a row removed.</summary>
     private static bool IstAusgelassen(string lang, string kurz)
     {
         var fehlt = lang.Length - kurz.Length;
-        if (fehlt is < 1 or > 3)
+        if (fehlt is < 1 or > 4)
             return false;
         return Enumerable.Range(0, kurz.Length + 1).Any(i => lang.Remove(i, fehlt) == kurz);
     }
