@@ -250,7 +250,7 @@ eine *statisch* als `IReadOnlyCollection<SilbenTaskDefinition>` typisierte Liste
 `ChooseAnyAsync` mit einem als `BaseTaskDefinition` typisierten, gemischten Pool arbeitet, ist dieser
 Cast immer `false` – auch wenn zur Laufzeit zufällig nur Silben-Instanzen drinstünden, weil eine
 `List<BaseTaskDefinition>` nie `IReadOnlyCollection<SilbenTaskDefinition>` implementiert, unabhängig
-vom Inhalt. Ohne Fix schaltet das `/debug/...` (siehe CLAUDE.md) für jede auf `TaskHost` migrierte
+vom Inhalt. Ohne Fix schaltet das `/debug/...` (siehe docs/debug-mode.md) für jede auf `TaskHost` migrierte
 Page lautlos ab, ohne Fehler. Muss spätestens in Phase 4 mit gelöst werden, z.B. indem der Override
 nicht mehr über den generischen Collection-Typ, sondern explizit über die konkrete
 `BaseTaskDefinition`-Subtype (`candidate.GetType()`) dispatcht wird. Konkretes Interface-Design dafür
