@@ -1,12 +1,20 @@
 @using Kidz2Learn.Model
 @using Kidz2Learn.Model.Tasks
 @using Kidz2Learn.Services
+@using MudBlazor
 @using Tavenem.Blazor.IndexedDB
 @implements IDisposable
 
 @if (_chosen is not null && _viewType is not null)
 {
     <DynamicComponent Type="_viewType" Parameters="_parameters" />
+}
+else if (_wartetAufTon)
+{
+    <MudAlert Severity="Severity.Warning" Icon="@Icons.Material.Filled.VolumeOff" Class="ma-4">
+        Diese Übung braucht Ton, und der kommt gerade nicht – vielleicht ist das Internet weg.
+        Sobald der Ton wieder geht, geht es hier von selbst weiter. Die anderen Übungen gehen auch ohne Ton.
+    </MudAlert>
 }
 
 @code {
@@ -20,7 +28,9 @@
     [Parameter] public double FillerChance { get; set; }
 
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
+    [Inject] private AudioStatusService Audio { get; set; } = null!;
     [Inject] private HudStateService Hud { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private TaskSessionController Session { get; set; } = null!;
 
     private readonly Random _rng = new();
@@ -29,6 +39,9 @@
     private DateTime _shown;
     private Type? _viewType;
     private IDictionary<string, object>? _parameters;
+
+    // Only listening exercises fit this page's pool, and there's no audio: waits for it to come back.
+    private bool _wartetAufTon;
 
     protected override async Task OnInitializedAsync()
     {
@@ -41,33 +54,89 @@
         // Session.ResetStats() (TECH_DEBT.md #9).
         Hud.ResetAll();
         Session.ResetStats();
+        Audio.OnChange += HandleAudioChanged;
+        Audio.OnWordFailed += HandleWordFailed;
         await LoadNext();
     }
 
-    private async Task LoadNext()
+    private async Task LoadNext(bool erledigt = true)
     {
-        if (_chosen is not null)
+        if (_chosen is not null && erledigt)
             _lang.Erledigt(_chosen.Definition, DateTime.Now - _shown);
 
         var store = new SkillMasteryStore(AufgabenDb);
         var generator = new AdaptiveTaskGenerator(store, _rng);
+        Func<BaseTaskDefinition, bool> playable = d => Audio.Available || !d.BrauchtTon;
         var pool = FillerSkills is not null && _rng.NextDouble() < FillerChance ? FillerSkills : Skills;
-        _chosen = await generator.ChooseAnyAsync(pool, _lang.Gesperrt);
+        var chosen = await generator.TryChooseAnyAsync(pool, _lang.Gesperrt, playable);
+        if (chosen is null && pool != Skills)
+            chosen = await generator.TryChooseAnyAsync(Skills, _lang.Gesperrt, playable);
+
+        _chosen = chosen;
+        _wartetAufTon = chosen is null;
+        if (chosen is null)
+        {
+            _viewType = null;
+            _parameters = null;
+            Hud.SetDifficulty(null, 0);
+            return;
+        }
+
         _shown = DateTime.Now;
-        _viewType = TaskPresentationRegistry.Resolve(_chosen.View);
-        Hud.SetDifficulty(_chosen.Difficulty, _chosen.LevelsAboveEasiest);
+        _viewType = TaskPresentationRegistry.Resolve(chosen.View);
+        Hud.SetDifficulty(chosen.Difficulty, chosen.LevelsAboveEasiest);
         Session.BeginTask();
         _parameters = new Dictionary<string, object>
         {
-            [nameof(ITaskView.ChosenTask)] = _chosen,
-            [nameof(ITaskView.OnNext)] = EventCallback.Factory.Create(this, LoadNext)
+            [nameof(ITaskView.ChosenTask)] = chosen,
+            // Bound to this task: a view's delayed OnNext for a task that was already ended
+            // (EndWithoutSound) mustn't skip the one that replaced it.
+            [nameof(ITaskView.OnNext)] = EventCallback.Factory.Create(this,
+                () => ReferenceEquals(_chosen, chosen) ? LoadNext() : Task.CompletedTask)
         };
+    }
+
+    private void HandleAudioChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (!Audio.Available)
+                await EndWithoutSound();
+            else if (_wartetAufTon)
+                await LoadNext();
+            StateHasChanged();
+        });
+    }
+
+    private void HandleWordFailed()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await EndWithoutSound();
+            StateHasChanged();
+        });
+    }
+
+    // Ends an open listening exercise without scoring anything more of it - without its word
+    // there's nothing to answer - and moves on to the next task.
+    private async Task EndWithoutSound()
+    {
+        if (_chosen?.Definition.BrauchtTon != true)
+            return;
+
+        Snackbar.Add(Audio.Available
+                ? "Dieses Wort lässt sich gerade nicht abspielen. Die Aufgabe zählt nicht, weiter geht's mit der nächsten."
+                : "Der Ton kommt gerade nicht – ist das Internet weg? Die Aufgabe zählt nicht, weiter geht's mit einer ohne Ton.",
+            Severity.Warning);
+        await LoadNext(erledigt: false);
     }
 
     // The HUD outlives the page: without this, the last task's difficulty would stay on screen on
     // pages without tasks (Profil).
     public void Dispose()
     {
+        Audio.OnChange -= HandleAudioChanged;
+        Audio.OnWordFailed -= HandleWordFailed;
         Hud.SetDifficulty(null, 0);
     }
 }

@@ -6,7 +6,6 @@ using Kidz2Learn.Model.Tasks;
 using Kidz2Learn.Pages.SilbenChallenge;
 using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
 using Tavenem.Blazor.IndexedDB;
 
 namespace Kidz2Learn.Components.TaskViews;
@@ -48,7 +47,7 @@ public partial class WFrageView : ComponentBase, ITaskView
     [Parameter] public EventCallback OnNext { get; set; }
 
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
-    [Inject] private IJSRuntime Js { get; set; } = null!;
+    [Inject] private AudioStatusService Audio { get; set; } = null!;
     [Inject] private LoggerService Logger { get; set; } = null!;
     [Inject] private TaskSessionController Session { get; set; } = null!;
 
@@ -105,7 +104,7 @@ public partial class WFrageView : ComponentBase, ITaskView
         var richtig = option.Label == aufgabe.Richtig;
         var audio = richtig ? WordAudio.PathFor(option.AudioWort) : WordAudio.PathFor(WFragen.FragewortAudio(aufgabe.Rolle));
         if (audio is not null)
-            await Js.InvokeVoidAsync("k4l_playAudioFile", "audioPlayer", audio);
+            _ = Audio.PlayWordAsync(audio);
 
         var db = AufgabenDb["LeseAufgaben"] ?? throw new InvalidOperationException("LeseAufgaben store missing");
         var id = SilbenLog.GenId($"{aufgabe.Text}|{aufgabe.Frage}", Skill.ReadWhQuestion);

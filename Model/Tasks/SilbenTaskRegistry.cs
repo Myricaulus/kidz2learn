@@ -19,6 +19,7 @@ public static class SilbenTaskRegistry
             Skills = [Skill.ReadSyllables],
             DifficultyLevel = 1,
             View = "silben-multiple-choice",
+            BrauchtTon = true,
             Generator = r =>
             {
                 var targetCandidates = WordMeta.Data.Where(w => w.Value.audio).ToList();
@@ -36,6 +37,7 @@ public static class SilbenTaskRegistry
             Skills = [Skill.ReadPrecise],
             DifficultyLevel = 2,
             View = "silben-multiple-choice",
+            BrauchtTon = true,
             Generator = r =>
             {
                 // A kind of mistake first, then a word that allows it: every kind gets offered about

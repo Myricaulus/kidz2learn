@@ -157,6 +157,7 @@ else
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
     [Inject] private IJSRuntime Js { get; set; } = null!;
     [Inject] private TelemetryService Telemetry { get; set; } = null!;
+    [Inject] private AudioStatusService Audio { get; set; } = null!;
 
     public delegate void UpdatePointsHook(int delta);
 
@@ -165,6 +166,10 @@ else
             @if (PlayMode.Koop)
             {
                 <MudChip T="string" Color="Color.Secondary" Icon="@Icons.Material.Filled.People">Koop</MudChip>
+            }
+            @if (!Audio.Available)
+            {
+                <MudChip T="string" Color="Color.Warning" Icon="@Icons.Material.Filled.VolumeOff">Kein Ton</MudChip>
             }
             <div class="progress-container">
                 <MudProgressLinear Value="@_points" Max="100" Size="Size.Large" Rounded="true"
@@ -258,6 +263,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         Score.OnScoreChanged += HandleScoreChanged;
+        Audio.OnChange += HandleAudioChanged;
 
         _sessionStart = DateTime.UtcNow;
         _attentionCheckTimer = new Timer(_ => CheckAttentionEligibility(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
@@ -293,6 +299,7 @@ else
         if (string.IsNullOrWhiteSpace(telemetrieValue))
             telemetrieValue = Configuration["Telemetrie"];
         await Telemetry.InitAsync(telemetrieValue);
+        await Audio.InitAsync();
 
         // IndexedDB Migration
         var migrationHelper = new SkillMigrationHelper(AufgabenDb);
@@ -301,6 +308,11 @@ else
         // Migration abgeschlossen → Button freigeben
         _migrationRunning = false;
         StateHasChanged(); // UI aktualisieren
+    }
+
+    private void HandleAudioChanged()
+    {
+        InvokeAsync(StateHasChanged);
     }
 
     private void CloseTouchMenu(object? sender, LocationChangedEventArgs e)
@@ -382,6 +394,7 @@ else
     public void Dispose()
     {
         Score.OnScoreChanged -= HandleScoreChanged;
+        Audio.OnChange -= HandleAudioChanged;
         Navigation.LocationChanged -= CloseTouchMenu;
         _attentionCheckTimer?.Dispose();
         _pulseTimer?.Dispose();

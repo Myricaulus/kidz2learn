@@ -13,6 +13,7 @@ builder.Services.AddSingleton<LoggerService>();
 builder.Services.AddSingleton<ScoreService>();
 builder.Services.AddSingleton<SidWidgetService>();
 builder.Services.AddSingleton<HudStateService>();
+builder.Services.AddSingleton<AudioStatusService>();
 builder.Services.AddScoped<AffirmationService>();
 builder.Services.AddScoped<TelemetryService>();
 builder.Services.AddScoped<TaskSessionController>();

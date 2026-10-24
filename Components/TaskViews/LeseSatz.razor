@@ -1,6 +1,5 @@
 @using Kidz2Learn.Model.Lesen
 @using Kidz2Learn.Services
-@using Microsoft.JSInterop
 
 @* A sentence in large reading type. Words from the known word list (WordMeta) can be tapped to
    hear them - a single-word lifeline, not a read-aloud of the whole sentence. Every tap goes into
@@ -17,7 +16,7 @@
 @code {
     [Parameter, EditorRequired] public string Text { get; set; } = string.Empty;
 
-    [Inject] private IJSRuntime Js { get; set; } = null!;
+    [Inject] private AudioStatusService Audio { get; set; } = null!;
     [Inject] private TaskSessionController Session { get; set; } = null!;
 
     private sealed record Token(string Text, string? Audio);
@@ -31,10 +30,10 @@
             .ToList();
     }
 
-    private async Task Play(string wort, string? audio)
+    private void Play(string wort, string? audio)
     {
         Session.NoteAngetippt(wort.Trim(',', '.', '!', '?', ':', ';'));
         if (audio is not null)
-            await Js.InvokeVoidAsync("k4l_playAudioFile", "audioPlayer", audio);
+            _ = Audio.PlayWordAsync(audio);
     }
 }

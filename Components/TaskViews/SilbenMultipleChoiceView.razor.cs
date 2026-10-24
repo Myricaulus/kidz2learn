@@ -4,7 +4,6 @@ using Kidz2Learn.Model.Tasks;
 using Kidz2Learn.Pages.SilbenChallenge;
 using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
 using Tavenem.Blazor.IndexedDB;
 
 namespace Kidz2Learn.Components.TaskViews;
@@ -45,9 +44,9 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
 
     // GraphemPhonem shares this view's payload shape (string correct, string[] options) but is a
     // silent visual-discrimination exercise, not a listening one - unlike ReadSyllables/ReadPrecise,
-    // it never had an audio button, and its Generator's "correct" is the WordMeta dictionary key,
-    // not the .filename used for audio lookup, so playing it could 404 anyway. Kept skill-gated
-    // here rather than as a separate view, same pattern as the ReadPrecise-only popup below.
+    // it has no audio button, and its Generator's "correct" is the WordMeta dictionary key, not the
+    // .filename used for audio lookup, so playing it could 404 anyway. Gated on the definition's
+    // BrauchtTon rather than a separate view, same pattern as the ReadPrecise-only popup below.
     private bool _hasAudio;
 
     private string Title => _hasAudio
@@ -56,7 +55,7 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
 
     [Inject(Key = "AufgabenDB")] private IndexedDb AufgabenDb { get; set; } = null!;
     [Inject] private LoggerService Logger { get; set; } = null!;
-    [Inject] private IJSRuntime Js { get; set; } = null!;
+    [Inject] private AudioStatusService Audio { get; set; } = null!;
     [Inject] private SidWidgetService Player { get; set; } = null!;
     [Inject] private TaskSessionController Session { get; set; } = null!;
 
@@ -82,7 +81,8 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
             return;
         _loadedForTask = ChosenTask;
 
-        _hasAudio = ChosenTask.Skills.Contains(Skill.ReadSyllables) || ChosenTask.Skills.Contains(Skill.ReadPrecise);
+        var task = ChosenTask;
+        _hasAudio = task.Definition.BrauchtTon;
         // Ducked/restored per task, not just once on init: "Deutsch-Mix" (TASK_PRESENTATION_REDESIGN.md
         // Phase 5) can alternate audio (read_syllables/read_precise) and silent (GraphemPhonem) tasks
         // within the same session. Duck()/Restore() (not SetVolume(1.0)) so a silent task restores
@@ -99,10 +99,12 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
 
         _wrongSelectedOption = [];
         _showFeedback = false;
-        _isProcessing = false;
+        // A listening task's options open once its word has started playing: without the word
+        // there's nothing to answer, and TaskHost ends the task (AudioStatusService.OnWordFailed).
+        _isProcessing = _hasAudio;
 
-        if (_hasAudio)
-            await PlayAudio();
+        if (_hasAudio && await PlayAudio() && ReferenceEquals(task, _loadedForTask))
+            _isProcessing = false;
     }
 
     private string GetOptionClass(string option)
@@ -116,9 +118,9 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
         await PlayAudio();
     }
 
-    private async Task PlayAudio()
+    private Task<bool> PlayAudio()
     {
-        await Js.InvokeVoidAsync("k4l_playAudioFile", "audioPlayer", _currentAudio);
+        return Audio.PlayWordAsync(_currentAudio);
     }
 
     private async Task CheckAnswer(string answer)

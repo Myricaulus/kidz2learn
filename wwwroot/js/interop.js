@@ -43,14 +43,45 @@ window.k4l_primeAudioPlayer = function (id) {
     });
 };
 
-// Sets the src on the shared #audioPlayer element and plays it. Used by challenge pages
-// instead of a Blazor src="@_currentAudio" binding, since the element itself now lives in
-// MainLayout.razor, not in the challenge page's own markup.
+// Sets the src on a shared audio element (MainLayout.razor) and plays it; called through
+// AudioStatusService. Resolves to false when the clip can't be loaded or played (no connection,
+// missing file) or hasn't started within K4L_AUDIO_START_MS. A play() the browser blocks for
+// autoplay, or one cut short by the next src, still counts as playable.
+var K4L_AUDIO_START_MS = 8000;
 window.k4l_playAudioFile = function (id, src) {
     var el = document.getElementById(id);
-    if (!el) return;
+    if (!el) return Promise.resolve(true);
     el.src = src;
-    el.play();
+    var started = Promise.resolve(el.play()).then(function () {
+        return true;
+    }, function (e) {
+        return !!e && (e.name === "NotAllowedError" || e.name === "AbortError");
+    });
+    var timeout = new Promise(function (resolve) {
+        setTimeout(function () { resolve(false); }, K4L_AUDIO_START_MS);
+    });
+    return Promise.race([started, timeout]);
+};
+
+// Whether the app's own server answers: a HEAD request for a file it always has, past the cache.
+window.k4l_probeServer = async function (url, timeoutMs) {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, timeoutMs);
+    try {
+        var response = await fetch(url, { method: "HEAD", cache: "no-store", signal: ctrl.signal });
+        return response.ok;
+    } catch (e) {
+        return false;
+    } finally {
+        clearTimeout(timer);
+    }
+};
+
+// Forwards the browser's offline/online events to AudioStatusService; returns navigator.onLine.
+window.k4l_watchConnection = function (dotnetRef) {
+    window.addEventListener("offline", function () { dotnetRef.invokeMethodAsync("OnOffline"); });
+    window.addEventListener("online", function () { dotnetRef.invokeMethodAsync("OnOnline"); });
+    return navigator.onLine;
 };
 
 // Shared AudioContext for synthesized sound effects (currently just the Silbenhammer clang -

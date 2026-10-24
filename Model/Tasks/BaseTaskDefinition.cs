@@ -41,4 +41,11 @@ public abstract class BaseTaskDefinition
     ///     <see cref="LangeAufgaben" />; every other task's length is measured.
     /// </summary>
     public bool FesteDauer { get; init; }
+
+    /// <summary>
+    ///     Can't be answered without hearing its word clip (the listening exercises). While
+    ///     <c>AudioStatusService</c> reports no audio, <c>TaskHost</c> doesn't pick it and ends it
+    ///     without scoring if it's open; other tasks play their clips only as an extra.
+    /// </summary>
+    public bool BrauchtTon { get; init; }
 }

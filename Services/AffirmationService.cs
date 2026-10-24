@@ -1,6 +1,5 @@
 using Kidz2Learn.Shared;
 using System.Net.Http.Json;
-using Microsoft.JSInterop;
 
 namespace Kidz2Learn.Services;
 
@@ -11,7 +10,7 @@ namespace Kidz2Learn.Services;
 /// from the "erfolg"/"misserfolg" folders by tools/generate_manifests.py); until sound files actually exist
 /// there, every category is empty and PlayAsync silently does nothing.
 /// </summary>
-public class AffirmationService(HttpClient http, IJSRuntime js)
+public class AffirmationService(HttpClient http, AudioStatusService audio)
 {
     private const string ElementId = "affirmationPlayer";
 
@@ -58,6 +57,7 @@ public class AffirmationService(HttpClient http, IJSRuntime js)
             return;
 
         var file = files[_rng.Next(files.Count)];
-        await js.InvokeVoidAsync("k4l_playAudioFile", ElementId, $"audio/affirmations/{category}/{file}");
+        // Not awaited: the answer is scored right away, not once the sound has started.
+        _ = audio.PlayAsync(ElementId, $"audio/affirmations/{category}/{file}");
     }
 }

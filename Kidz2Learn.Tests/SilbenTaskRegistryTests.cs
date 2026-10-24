@@ -1,3 +1,4 @@
+using Kidz2Learn.Model;
 using Kidz2Learn.Model.Tasks;
 using Xunit;
 
@@ -21,6 +22,14 @@ public class SilbenTaskRegistryTests
 
             Assert.Contains(options, o => o.Equals(correctAnswer, StringComparison.OrdinalIgnoreCase));
         }
+    }
+
+    [Fact]
+    public void OnlyTheListeningExercises_NeedSound()
+    {
+        Assert.Equal([Skill.ReadSyllables, Skill.ReadPrecise],
+            SilbenTaskRegistry.All.Where(d => d.BrauchtTon).Select(d => d.Skills[0]));
+        Assert.DoesNotContain(TaskRegistry.All, d => d.BrauchtTon && d.View != "silben-multiple-choice");
     }
 
     [Fact]

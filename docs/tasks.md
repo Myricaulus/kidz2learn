@@ -66,8 +66,10 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   `read_syllables`/`read_precise`/`GraphemPhonem`: audio playback + options grid, and - only for
   `read_precise` - an interactive "mark your mistake" popup (`MarkierPopup`, computed by
   `Model/WordDiff.cs`'s Wagner-Fischer alignment) that the child must resolve before continuing.
-  Audio/title are gated on the skill list (`GraphemPhonem` is a silent visual-discrimination
-  exercise, never had a listen button).
+  Audio/title are gated on the definition's `BrauchtTon` (`GraphemPhonem` is a silent
+  visual-discrimination exercise without a listen button). A listening task's options stay locked
+  until its word has started playing; without audio, `TaskHost` ends it unscored and only picks
+  tasks without `BrauchtTon` (see `AudioStatusService` in `docs/services.md`).
 - `ArithNumpadView` (`"arith-numpad"`) drives the written-addition/subtraction digit grid + virtual
   numpad shared by all non-Turbo arithmetic skills (`ArithTaskRegistry.SimpleSkills`).
 - `QuatschDetektorView` (`"quatsch-detektor"`, skill `read_sentence_truth`) and `WFrageView`

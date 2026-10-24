@@ -51,8 +51,10 @@ uv sync                          # Python tooling (WaveSplit/, tools/), needs Py
   stores `ArithmetikAufgaben`, `LeseAufgaben`, `SkillMeta`, `SkillStates`, `SilbenHammerRatings`,
   `Beobachtungen`, `MerkmalVerlauf`; inject with `[Inject(Key = "AufgabenDB")] IndexedDb`.
 - **Audio**: `#audioPlayer` and `#affirmationPlayer` are mounted once in `MainLayout.razor` and
-  primed by the "Starte App" click; play with `k4l_playAudioFile(id, src)`. Keep them two separate
-  elements - one `<audio>` plays one source at a time.
+  primed by the "Starte App" click; play through `AudioStatusService` (`PlayWordAsync` for word
+  clips), never `k4l_playAudioFile` directly, so a missing connection is noticed. A task that can't
+  be answered without its clip sets `BrauchtTon`. Keep the two elements separate - one `<audio>`
+  plays one source at a time.
 - **Words**: `WordMeta.Data` is the word catalog. Keep the `// ###Endmarker for replacement###` in
   `Model/WordMeta.g.cs`; a duplicate key crashes its static initializer. A word a task needs that
   has no recording yet goes into `WaveSplit/names.txt` (local, gitignored).

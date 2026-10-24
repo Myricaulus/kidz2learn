@@ -229,6 +229,33 @@ public class ChooseAnyAsyncTests
     }
 
     [Fact]
+    public async Task TryChooseAnyAsync_WithoutSound_NeverPicksAListeningExercise()
+    {
+        var generator = new AdaptiveTaskGenerator(new FakeSkillMasteryStore(), new Random(29));
+        var seenSkills = new HashSet<string>();
+
+        for (var i = 0; i < 300; i++)
+        {
+            var chosen = await generator.TryChooseAnyAsync([Skill.ReadSyllables, Skill.ReadPrecise, Skill.GraphemPhonem],
+                playable: d => !d.BrauchtTon);
+            Assert.NotNull(chosen);
+            Assert.False(chosen.Definition.BrauchtTon);
+            seenSkills.UnionWith(chosen.Skills);
+        }
+
+        Assert.Equal([Skill.GraphemPhonem], seenSkills);
+    }
+
+    [Fact]
+    public async Task TryChooseAnyAsync_ReturnsNull_WhenNothingOfThePoolIsPlayable()
+    {
+        var generator = new AdaptiveTaskGenerator(new FakeSkillMasteryStore(), new Random(1));
+
+        Assert.Null(await generator.TryChooseAnyAsync([Skill.ReadSyllables, Skill.ReadPrecise],
+            exclude: _ => true, playable: d => !d.BrauchtTon));
+    }
+
+    [Fact]
     public async Task ChooseAnyAsync_UnknownSkillFilter_Throws()
     {
         var generator = new AdaptiveTaskGenerator(new FakeSkillMasteryStore(), new Random(1));

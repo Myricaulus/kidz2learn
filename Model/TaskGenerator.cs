@@ -196,6 +196,19 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
     public async Task<IChosenTask> ChooseAnyAsync(IReadOnlyCollection<string>? skills = null,
         Func<BaseTaskDefinition, bool>? exclude = null)
     {
+        return await TryChooseAnyAsync(skills, exclude)
+               ?? throw new InvalidOperationException("Every candidate was left out.");
+    }
+
+    /// <inheritdoc cref="ChooseAnyAsync" />
+    /// <param name="playable">
+    ///     Candidates that can be played right now (no listening exercise while there's no audio);
+    ///     unlike <paramref name="exclude" /> a hard filter. <c>null</c> means every candidate.
+    /// </param>
+    /// <returns><c>null</c> when <paramref name="playable" /> leaves nothing of the pool.</returns>
+    public async Task<IChosenTask?> TryChooseAnyAsync(IReadOnlyCollection<string>? skills = null,
+        Func<BaseTaskDefinition, bool>? exclude = null, Func<BaseTaskDefinition, bool>? playable = null)
+    {
         var candidates = TaskRegistry.All;
         if (skills is not null)
             candidates = candidates.Where(c => c.Skills.Any(skills.Contains)).ToList();
@@ -224,6 +237,10 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
             .SelectMany(g => g.Where(d => IsUnlocked(d.DifficultyLevel - g.Min(x => x.DifficultyLevel),
                 masteryBySkill.GetValueOrDefault(g.Key, 0f))))
             .ToList();
+        if (playable is not null)
+            unlocked = unlocked.Where(playable).ToList();
+        if (unlocked.Count == 0)
+            return null;
         if (exclude is not null && unlocked.Any(d => !exclude(d)))
             unlocked = unlocked.Where(d => !exclude(d)).ToList();
 
