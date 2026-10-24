@@ -156,7 +156,8 @@ public partial class TurboRundeView : ComponentBase, ITaskView, IDisposable
             await Session.RecordFailure(ChosenTask, log.Kompetenz, _richtig, 0, detail);
         }
 
-        await db.StoreItemAsync(log);
+        if (!PlayMode.Koop)
+            await db.StoreItemAsync(log);
     }
 
     private async Task Weiter()

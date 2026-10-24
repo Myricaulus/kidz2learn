@@ -186,7 +186,8 @@ public partial class LeseTurboView : ComponentBase, ITaskView, IDisposable
             await Session.RecordFailure(ChosenTask, log.Kompetenz, _richtig / 2, 0, detail, daten);
         }
 
-        await db.StoreItemAsync(log);
+        if (!PlayMode.Koop)
+            await db.StoreItemAsync(log);
     }
 
     private async Task Weiter()

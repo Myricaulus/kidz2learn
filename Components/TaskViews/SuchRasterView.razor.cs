@@ -192,7 +192,8 @@ public partial class SuchRasterView : ComponentBase, ITaskView, IDisposable
             await Session.RecordFailure(ChosenTask, log.Kompetenz, points, 0, detail, daten);
         }
 
-        await db.StoreItemAsync(log);
+        if (!PlayMode.Koop)
+            await db.StoreItemAsync(log);
         Logger.Log(log.ToRenderFragment());
     }
 

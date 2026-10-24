@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
+using Kidz2Learn.Model;
 using Microsoft.JSInterop;
 
 namespace Kidz2Learn.Services;
@@ -100,6 +101,7 @@ public sealed class TelemetryService(IJSRuntime js, ScoreService score, Navigati
             Started = _started,
             Sent = DateTime.Now,
             TotalScore = score.TotalScore,
+            Koop = PlayMode.Koop,
             Entries = _entries
         };
         return JsonSerializer.Serialize(payload, JsonOptions);

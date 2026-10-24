@@ -148,7 +148,7 @@ window.k4l_telemetryLog = function (entryJson, sessionJson) {
     try {
         var e = JSON.parse(entryJson);
         window.k4l_telemetrySession = JSON.parse(sessionJson);
-        console.info("[telemetry] " + (e.correct ? "richtig" : "falsch") + " " + e.view + " L" + e.level + " " +
+        console.info("[telemetry] " + (window.k4l_telemetrySession.koop ? "[KOOP] " : "") + (e.correct ? "richtig" : "falsch") + " " + e.view + " L" + e.level + " " +
             e.difficulty + " #" + e.attempt + " " + e.durationMs + " ms " + e.points + " P" +
             (e.detail ? " - " + e.detail : ""), e);
     } catch (err) {

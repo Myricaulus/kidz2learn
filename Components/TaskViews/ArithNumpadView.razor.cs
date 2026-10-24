@@ -1,4 +1,5 @@
 using Kidz2Learn.Entities;
+using Kidz2Learn.Model;
 using Kidz2Learn.Model.Tasks;
 using Kidz2Learn.Services;
 using Microsoft.AspNetCore.Components;
@@ -195,10 +196,12 @@ public partial class ArithNumpadView : ComponentBase, ITaskView
             });
         }
 
-        await ArithDb.StoreItemAsync(log);
+        if (!PlayMode.Koop)
+            await ArithDb.StoreItemAsync(log);
         Logger.Log(log.ToRenderFragment());
 
-        await ArithDb.StoreItemAsync(stats);
+        if (!PlayMode.Koop)
+            await ArithDb.StoreItemAsync(stats);
 
         if (log.Richtig)
             await OnNext.InvokeAsync();

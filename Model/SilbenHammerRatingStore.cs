@@ -50,7 +50,8 @@ public sealed class SilbenHammerRatingStore(IndexedDb aufgabenDb) : ISilbenHamme
         var r = await _store.GetItemAsync<SilbenHammerSyllableRating>(normalizedSyllable)
             ?? new SilbenHammerSyllableRating { Id = normalizedSyllable };
         r.CleanStreak += delta;
-        await _store.StoreItemAsync(r);
+        if (!PlayMode.Koop)
+            await _store.StoreItemAsync(r);
         return r.CleanStreak;
     }
 }

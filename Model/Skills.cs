@@ -350,6 +350,8 @@ public sealed class SkillMasteryStore(IndexedDb skillDb) : ISkillMasteryStore
         s.LastAttempt = DateTime.Now;
         s.Mastery = Math.Clamp(s.Mastery + finaldelta, 0, 1);
         Console.WriteLine($"{skillId}|A:{s.Attempts}|S:{s.Success}|M:{s.Mastery}|Δ:{delta}");
+        if (PlayMode.Koop)
+            return new MasteryChange(before, before);
         await _store.StoreItemAsync(s);
         return new MasteryChange(before, s.Mastery);
     }

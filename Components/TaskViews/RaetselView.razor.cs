@@ -101,7 +101,8 @@ public partial class RaetselView : ComponentBase, ITaskView
             _isProcessing = false;
         }
 
-        await db.StoreItemAsync(log);
+        if (!PlayMode.Koop)
+            await db.StoreItemAsync(log);
         Logger.Log(log.ToRenderFragment());
     }
 }

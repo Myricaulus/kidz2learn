@@ -142,7 +142,8 @@ public sealed class TaskSessionController(
             Optionen = daten?.Optionen?.ToList(),
             MindestLeseMs = daten?.MindestLeseMs,
             Werte = daten?.Werte?.ToDictionary(),
-            Items = daten?.Items?.ToList()
+            Items = daten?.Items?.ToList(),
+            Koop = PlayMode.Koop
         };
         _vorgespielt = 0;
         _angetippt.Clear();

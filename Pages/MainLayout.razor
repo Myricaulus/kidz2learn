@@ -51,21 +51,30 @@
                 <li>Extra Button zum starten ohne Musik.</li>
                 <li>Mehr lieder</li>
             </ul>
-            <MudButton Color="Color.Primary"
-                       Variant="Variant.Filled"
-                       Disabled="_migrationRunning"
-                       OnClick="StartApp">
-                @if (_migrationRunning)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
-                    <MudText>&nbsp;Bitte warten...</MudText>
-                }
-                else
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.RocketLaunch"/>
-                    <MudText>&nbsp;Starte App</MudText>
-                }
-            </MudButton>
+            @* Same button twice, told apart only by the icon: one person plays alone, two play Koop. *@
+            @foreach (var (icon, start, label) in new[]
+                      {
+                          (Icons.Material.Filled.Person, (Action)StartApp, "Allein spielen"),
+                          (Icons.Material.Filled.People, StartKoop, "Zusammen spielen (Koop)")
+                      })
+            {
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           Size="Size.Large"
+                           Disabled="_migrationRunning"
+                           Style="margin: 0 0.5em; min-width: 6em; min-height: 4em;"
+                           aria-label="@label"
+                           OnClick="start">
+                    @if (_migrationRunning)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@icon" Size="Size.Large"/>
+                    }
+                </MudButton>
+            }
             <p style="margin-top: 1.5em; font-size: 0.85em; opacity: 0.6;">@AppVersion.Text</p>
         </div>
     </div>
@@ -76,6 +85,10 @@ else
         <MudAppBar Elevation="4" Class="appbar-with-biber">
             <MudIconButton Icon="@BrainIcon" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer"/>
 
+            @if (PlayMode.Koop)
+            {
+                <MudChip T="string" Color="Color.Secondary" Icon="@Icons.Material.Filled.People">Koop</MudChip>
+            }
             <div class="progress-container">
                 <MudProgressLinear Value="@_points" Max="100" Size="Size.Large" Rounded="true"
                                    style="height: 20px; background-color: #5d3e33;"/>
@@ -166,6 +179,13 @@ else
         ((IJSInProcessRuntime)Js).InvokeVoid("k4l_primeAudioPlayer", "affirmationPlayer");
         ((IJSInProcessRuntime)Js).InvokeVoid("k4l_primeAudioContext");
         _showWelcome = false;
+    }
+
+    // Koop mode stays on until the app is reloaded, like the splash screen itself.
+    private void StartKoop()
+    {
+        PlayMode.Koop = true;
+        StartApp();
     }
 
     private float _points;

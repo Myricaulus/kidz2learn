@@ -154,7 +154,8 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
             // OnParametersSetAsync oben räumt dann in einem Rutsch auf (Optionen, Feedback, Audio).
             _ = Task.Delay(900).ContinueWith(async _ => await OnNext.InvokeAsync());
 
-            await ReadingDb.StoreItemAsync(log);
+            if (!PlayMode.Koop)
+                await ReadingDb.StoreItemAsync(log);
             Logger.Log(log.ToRenderFragment());
 
             _wrongCount = 0;
@@ -176,7 +177,8 @@ public partial class SilbenMultipleChoiceView : ComponentBase, ITaskView, IAsync
             log.Kompetenz.AddFalsch();
             await Session.RecordFailure(ChosenTask, log.Kompetenz, -10 * _wrongCount, -10 * _wrongCount,
                 $"{correctAnswer} → {answer}", daten);
-            await ReadingDb.StoreItemAsync(log);
+            if (!PlayMode.Koop)
+                await ReadingDb.StoreItemAsync(log);
 
             if (ChosenTask.Skills.Contains(Skill.ReadPrecise))
             {

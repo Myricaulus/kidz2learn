@@ -96,7 +96,8 @@ public partial class QuatschDetektorView : ComponentBase, ITaskView
         }
 
         StateHasChanged();
-        await db.StoreItemAsync(log);
+        if (!PlayMode.Koop)
+            await db.StoreItemAsync(log);
         Logger.Log(log.ToRenderFragment());
 
         _ = Task.Delay(_lastCorrect ? CorrectDelayMs : WrongDelayMs)
