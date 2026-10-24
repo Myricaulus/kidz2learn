@@ -3,6 +3,7 @@
 @using Kidz2Learn.Model
 @using Kidz2Learn.Pages.HUD
 @using Kidz2Learn.Services
+@using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.WebUtilities
 @using MudBlazor
 @using Tavenem.Blazor.IndexedDB
@@ -79,55 +80,51 @@
         </div>
     </div>
 }
+else if (_touch)
+{
+    @* Touch devices: the task gets the whole screen; menu and log are drawers that slide over it. *@
+    <MudLayout Class="touch-layout">
+        <MudAppBar Elevation="4" Dense="true" Class="appbar-with-biber touch-bar">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                           OnClick="() => _touchMenuOpen = !_touchMenuOpen"/>
+            @AppBarContent
+            <MudIconButton Icon="@Icons.Material.Filled.ListAlt" Color="Color.Inherit" Edge="Edge.End"
+                           OnClick="() => _touchLogOpen = !_touchLogOpen"/>
+        </MudAppBar>
+
+        <MudDrawer @bind-Open="@_touchMenuOpen" Variant="DrawerVariant.Temporary" Anchor="Anchor.Left">
+            @NavMenu
+            <SidPlayerWidget/>
+        </MudDrawer>
+
+        <MudDrawer @bind-Open="@_touchLogOpen" Variant="DrawerVariant.Temporary" Anchor="Anchor.Right" Width="320px">
+            <MudStack Breakpoint="Breakpoint.None" Class="pa-2">
+                <LiveLogger/>
+            </MudStack>
+        </MudDrawer>
+
+        <MudMainContent>
+            <div class="touch-root">
+                <div class="page-content">
+                    @Body
+                </div>
+                <div class="touch-hud">
+                    <HUDContainer ShowGithub="false"/>
+                </div>
+            </div>
+        </MudMainContent>
+    </MudLayout>
+}
 else
 {
     <MudLayout>
         <MudAppBar Elevation="4" Class="appbar-with-biber">
             <MudIconButton Icon="@BrainIcon" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer"/>
-
-            @if (PlayMode.Koop)
-            {
-                <MudChip T="string" Color="Color.Secondary" Icon="@Icons.Material.Filled.People">Koop</MudChip>
-            }
-            <div class="progress-container">
-                <MudProgressLinear Value="@_points" Max="100" Size="Size.Large" Rounded="true"
-                                   style="height: 20px; background-color: #5d3e33;"/>
-
-                <!-- Biber-Overlay -->
-                <div class="beaver @_biberState @(_useTransition ? "smooth-decay" : "")"
-                     style="left:@_points.ToString("F1", CultureInfo.InvariantCulture)%;"></div>
-            </div>
-            <div class="youtube-wrap @(_youtubeUnlocked ? "unlocked" : "") @(_youtubePulseActive ? "attention-pulse" : "")"
-                 @onclick="OnYoutubeClick">
-                <MudImage Src="youtube.png" Alt="Youtube" Class="youtube-img"/>
-                <svg class="youtube-lock" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <g class="lock-shackle" fill="none" stroke-linecap="round">
-                        <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#5a3d00" stroke-width="3.4"/>
-                        <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#ffd34d" stroke-width="1.8"/>
-                    </g>
-                    <rect x="4.5" y="10.5" width="15" height="11" rx="2.5" fill="#f5b301" stroke="#5a3d00" stroke-width="1.2"/>
-                    <circle cx="12" cy="15" r="1.6" fill="#5a3d00"/>
-                    <rect x="11.3" y="15.5" width="1.4" height="3.2" rx="0.6" fill="#5a3d00"/>
-                </svg>
-            </div>
+            @AppBarContent
         </MudAppBar>
 
         <MudDrawer @bind-Open="@_toggleMenuDrawer" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Mini">
-            <MudNavMenu>
-                <MudNavLink Href="ArithmeticChallenge" Disabled Icon="@Icons.Material.Filled.Add">Addition</MudNavLink>
-                <MudNavLink Href="ArithmeticTurbo" Disabled Icon="@Icons.Material.Filled.Rocket">Turbo Rechnen</MudNavLink>
-                <MudNavLink Href="mathe-mix" Disabled Icon="@Icons.Material.Filled.Calculate">Mathe-Mix</MudNavLink>
-                <!--MudNavLink Href="page1" Icon="@Icons.Material.Filled.Star">Page 1</MudNavLink-->
-                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.ManageSearch">Lesedetektiv</MudNavLink>
-                <MudNavLink Href="textaufgaben" Icon="@Icons.Material.Filled.AutoStories">Textaufgaben</MudNavLink>
-                <MudNavLink Href="/silben" Match="NavLinkMatch.All" Disabled Icon="@Icons.Material.Filled.Abc">Mi Im Ma</MudNavLink>
-                <MudNavLink Href="/graphem" Match="NavLinkMatch.All" Disabled Icon="@Icons.Material.Filled.SwitchAccessShortcut">W oder F</MudNavLink>
-                <MudNavLink Href="deutsch-mix" Disabled Icon="@Icons.Material.Filled.MenuBook">Deutsch-Mix</MudNavLink>
-                <MudNavLink Href="Silbentrainer" Disabled Icon="@Icons.Material.Filled.MicExternalOn">Trainer</MudNavLink>
-                <MudNavLink Href="silben-hammer" Icon="@Icons.Material.Filled.Construction">Silbenhammer</MudNavLink>
-                <MudNavLink Href="bestenmix" Disabled Icon="@Icons.Material.Filled.Shuffle">Bestenmix</MudNavLink>
-                <MudNavLink Href="Profile" Icon="@Icons.Material.Filled.Person">Profil</MudNavLink>
-            </MudNavMenu>
+            @NavMenu
             <SidPlayerWidget/>
         </MudDrawer>
         <MudMainContent>
@@ -163,6 +160,57 @@ else
 
     public delegate void UpdatePointsHook(int delta);
 
+    // Shared by the desktop and the touch layout.
+    private RenderFragment AppBarContent => @<text>
+            @if (PlayMode.Koop)
+            {
+                <MudChip T="string" Color="Color.Secondary" Icon="@Icons.Material.Filled.People">Koop</MudChip>
+            }
+            <div class="progress-container">
+                <MudProgressLinear Value="@_points" Max="100" Size="Size.Large" Rounded="true"
+                                   style="height: 20px; background-color: #5d3e33;"/>
+
+                <!-- Biber-Overlay -->
+                <div class="beaver @_biberState @(_useTransition ? "smooth-decay" : "")"
+                     style="left:@_points.ToString("F1", CultureInfo.InvariantCulture)%;"></div>
+            </div>
+            <div class="youtube-wrap @(_youtubeUnlocked ? "unlocked" : "") @(_youtubePulseActive ? "attention-pulse" : "")"
+                 @onclick="OnYoutubeClick">
+                <MudImage Src="youtube.png" Alt="Youtube" Class="youtube-img"/>
+                <svg class="youtube-lock" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <g class="lock-shackle" fill="none" stroke-linecap="round">
+                        <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#5a3d00" stroke-width="3.4"/>
+                        <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#ffd34d" stroke-width="1.8"/>
+                    </g>
+                    <rect x="4.5" y="10.5" width="15" height="11" rx="2.5" fill="#f5b301" stroke="#5a3d00" stroke-width="1.2"/>
+                    <circle cx="12" cy="15" r="1.6" fill="#5a3d00"/>
+                    <rect x="11.3" y="15.5" width="1.4" height="3.2" rx="0.6" fill="#5a3d00"/>
+                </svg>
+            </div>
+    </text>;
+
+    private RenderFragment NavMenu => @<text>
+            <MudNavMenu>
+                <MudNavLink Href="ArithmeticChallenge" Disabled Icon="@Icons.Material.Filled.Add">Addition</MudNavLink>
+                <MudNavLink Href="ArithmeticTurbo" Disabled Icon="@Icons.Material.Filled.Rocket">Turbo Rechnen</MudNavLink>
+                <MudNavLink Href="mathe-mix" Disabled Icon="@Icons.Material.Filled.Calculate">Mathe-Mix</MudNavLink>
+                <!--MudNavLink Href="page1" Icon="@Icons.Material.Filled.Star">Page 1</MudNavLink-->
+                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.ManageSearch">Lesedetektiv</MudNavLink>
+                <MudNavLink Href="textaufgaben" Icon="@Icons.Material.Filled.AutoStories">Textaufgaben</MudNavLink>
+                <MudNavLink Href="/silben" Match="NavLinkMatch.All" Disabled Icon="@Icons.Material.Filled.Abc">Mi Im Ma</MudNavLink>
+                <MudNavLink Href="/graphem" Match="NavLinkMatch.All" Disabled Icon="@Icons.Material.Filled.SwitchAccessShortcut">W oder F</MudNavLink>
+                <MudNavLink Href="deutsch-mix" Disabled Icon="@Icons.Material.Filled.MenuBook">Deutsch-Mix</MudNavLink>
+                <MudNavLink Href="Silbentrainer" Disabled Icon="@Icons.Material.Filled.MicExternalOn">Trainer</MudNavLink>
+                <MudNavLink Href="silben-hammer" Icon="@Icons.Material.Filled.Construction">Silbenhammer</MudNavLink>
+                <MudNavLink Href="bestenmix" Disabled Icon="@Icons.Material.Filled.Shuffle">Bestenmix</MudNavLink>
+                <MudNavLink Href="Profile" Icon="@Icons.Material.Filled.Person">Profil</MudNavLink>
+                @if (_touch)
+                {
+                    <MudNavLink Href="https://github.com/Myricaulus/kidz2learn" Target="_blank" Icon="@Icons.Custom.Brands.GitHub">GitHub</MudNavLink>
+                }
+            </MudNavMenu>
+    </text>;
+
     bool _showWelcome = true;
     bool _toggleMenuDrawer = true;
     bool _toggleLogDrawer = true;
@@ -191,6 +239,11 @@ else
     private float _points;
 
     private bool _skipSplash;
+
+    // Touch layout: chosen once at startup from the device's primary pointer, ?layout=touch|desktop overrides it.
+    private bool _touch;
+    private bool _touchMenuOpen;
+    private bool _touchLogOpen;
     private bool _migrationRunning;
 
     // Once true, stays true for the rest of the session - the YouTube reward doesn't
@@ -223,6 +276,16 @@ else
             _skipSplash = value.ToString().ToLower() == "true";
         }
 
+        // Synchronous, so the very first render already uses the right layout.
+        query.TryGetValue("layout", out var layout);
+        _touch = layout.ToString() switch
+        {
+            "touch" => true,
+            "desktop" => false,
+            _ => ((IJSInProcessRuntime)Js).Invoke<bool>("k4l_isTouchDevice")
+        };
+        Navigation.LocationChanged += CloseTouchMenu;
+
         // Local dev runs (dotnet run/Rider, environment "Development") take their endpoint from the
         // gitignored wwwroot/appsettings.Development.json, so they always log without ?telemetrie=.
         query.TryGetValue("telemetrie", out var telemetrie);
@@ -238,6 +301,14 @@ else
         // Migration abgeschlossen → Button freigeben
         _migrationRunning = false;
         StateHasChanged(); // UI aktualisieren
+    }
+
+    private void CloseTouchMenu(object? sender, LocationChangedEventArgs e)
+    {
+        if (!_touchMenuOpen)
+            return;
+        _touchMenuOpen = false;
+        InvokeAsync(StateHasChanged);
     }
 
     private void ToggleDrawer()
@@ -311,6 +382,7 @@ else
     public void Dispose()
     {
         Score.OnScoreChanged -= HandleScoreChanged;
+        Navigation.LocationChanged -= CloseTouchMenu;
         _attentionCheckTimer?.Dispose();
         _pulseTimer?.Dispose();
     }

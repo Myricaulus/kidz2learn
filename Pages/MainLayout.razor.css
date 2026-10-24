@@ -93,6 +93,39 @@ main {
     box-sizing: border-box;
 }
 
+/* Touch layout: dense app bar (48px), HUD as a slim column in landscape and a strip at the bottom
+   in portrait. dvh leaves out a mobile browser's address bar. */
+.touch-root {
+    display: grid;
+    grid-template-columns: 1fr 110px;
+    height: calc(100dvh - 48px);
+}
+
+.touch-hud {
+    background: rgba(0,0,0,0.1);
+    padding: 6px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+@media (orientation: portrait) {
+    .touch-root {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr auto;
+    }
+
+    .touch-hud ::deep .hud-container {
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+    }
+}
+
+/* Keeps the beaver (centered on the bar's start at 0 points) off the menu button. */
+.touch-bar .progress-container {
+    margin-left: 44px;
+}
+
 /* Bieber Area */
 
 .appbar-with-biber .progress-container {

@@ -7,6 +7,12 @@
     z-index: 1000;
 }
 
+/* Touch layout: the player sits in the menu drawer instead of floating over the task. */
+.touch-layout .sid-player-widget {
+    position: static;
+    margin: 12px;
+}
+
 ul .log {
     list-style: none;
     padding: 0;
@@ -89,6 +95,8 @@ ul .log {
 
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    /* Quick taps (Lese-Turbo, search grid) stay taps instead of a double-tap zoom on touch screens. */
+    touch-action: manipulation;
 }
 
 h1:focus {

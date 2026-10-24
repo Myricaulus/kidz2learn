@@ -14,6 +14,10 @@ to serve it.
   that trains that skill, each task freshly generated - e.g.
   `/debug/Lesedetektiv?task=skill&skill=read_mirror_letters&level=2&skipSplash=true&telemetrie=off`
   (`telemetrie=off` keeps a test run out of the telemetry).
+- `layout=touch` / `layout=desktop` (any page) forces `MainLayout`'s touch or desktop layout,
+  which otherwise follows the device's primary pointer (`pointer: coarse` = tablet/phone). The
+  touch layout keeps menu (with SID player and GitHub) and Live Logger in drawers that slide over
+  the task, and puts the HUD in a slim column (landscape) or a bottom strip (portrait).
 - `task=silben` (`SilbenDebugOverrideFactory` in
   `Model/Tasks/SilbenDebugOverride.cs`) forces a Silben task: `word=<Word>` (required, matched
   case-insensitively against `WordMeta.Data` keys) picks the target, `skill=<id>` (optional, e.g.

@@ -26,6 +26,11 @@ window.k4l_sidOnEnd = function (dotnetRef, seconds) {
     }, seconds);
 };
 
+// Tablets and phones: the primary pointer is a finger. Laptops with a touch screen still report a mouse.
+window.k4l_isTouchDevice = function () {
+    return window.matchMedia("(pointer: coarse)").matches;
+};
+
 window.k4l_primeAudioPlayer = function (id) {
     var el = document.getElementById(id);
     if (!el) return;
