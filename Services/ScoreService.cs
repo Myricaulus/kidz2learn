@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Kidz2Learn.Model;
 
 namespace Kidz2Learn.Services;
 
@@ -68,8 +69,10 @@ public class ScoreService : IDisposable
         }
         _sessionStart = DateTime.Now;
         
-        _baseScore = Math.Clamp(_baseScore + delta, 0, 100);
-        _bonusScore = Math.Max(0, _bonusScore + bonus);
+        // Playing together, the two need twice the points to reach YouTube.
+        var factor = PlayMode.Koop ? 0.5f : 1f;
+        _baseScore = Math.Clamp(_baseScore + delta * factor, 0, 100);
+        _bonusScore = Math.Max(0, _bonusScore + bonus * factor);
         NotifyChanged();
     }
 
