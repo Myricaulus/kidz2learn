@@ -34,6 +34,7 @@ public partial class SidPlayerWidget : ComponentBase, IDisposable
     protected override async Task OnInitializedAsync()
     {
         Player.OnVolumeChanged += ApplyVolume;
+        Player.OnPauseRequested += PauseIfPlaying;
         await Player.SetVolume(0.4); // seeds SidWidgetService's base volume, cascades via ApplyVolume below
         _sidFiles = await Http.GetFromJsonAsync<List<SidFile>>(AssetManifests.SidFiles);
         await TogglePlay();
@@ -83,6 +84,13 @@ public partial class SidPlayerWidget : ComponentBase, IDisposable
         }
     }
 
+    private async Task PauseIfPlaying()
+    {
+        if (_isStarted && !_isPaused)
+            await InvokeAsync(TogglePlay);
+        await InvokeAsync(StateHasChanged);
+    }
+
     // Reacts to SidWidgetService.OnVolumeChanged (manual slider moves *and* a challenge page's
     // Duck()/Restore()) by pushing the effective volume into the actual JS SID player + this
     // widget's own slider position. Manual slider drags themselves go through Player.SetVolume
@@ -97,6 +105,7 @@ public partial class SidPlayerWidget : ComponentBase, IDisposable
     public void Dispose()
     {
         Player.OnVolumeChanged -= ApplyVolume;
+        Player.OnPauseRequested -= PauseIfPlaying;
         _selfRef?.Dispose();
     }
 }

@@ -160,6 +160,7 @@ else
     [Inject] private AudioStatusService Audio { get; set; } = null!;
     [Inject] private SpielzeitService Spielzeit { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private SidWidgetService SidWidget { get; set; } = null!;
 
     public delegate void UpdatePointsHook(int delta);
 
@@ -222,13 +223,18 @@ else
     private float Balken => Spielzeit.Aktiv ? Math.Min(100f, 100f * Spielzeit.Punkte / Spielzeit.Ziel) : _points;
 
     // The games themselves start from the pinned launchers; this hands over the minutes, and
-    // thaws a frozen game.
+    // thaws a frozen game (the guard then minimizes Firefox). The music stops either way.
     private async Task OnSpielzeitClick()
     {
         var weiter = Spielzeit.SpielEingefroren;
         if (!await Spielzeit.AuszahlenAsync())
+        {
             Snackbar.Add("Der Spielzeit-Wächter antwortet nicht - deine Minuten bleiben hier.", Severity.Warning);
-        else if (!weiter)
+            return;
+        }
+
+        await SidWidget.Pause();
+        if (!weiter)
             Snackbar.Add("Die Zeit ist da - starte dein Spiel unten in der Leiste!", Severity.Success);
     }
 

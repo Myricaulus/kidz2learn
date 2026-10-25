@@ -5,6 +5,7 @@ namespace Kidz2Learn.Services;
 public class SidWidgetService
 {
     public event Func<double, Task>? OnVolumeChanged;
+    public event Func<Task>? OnPauseRequested;
 
     // The user's own choice (SidPlayerWidget's slider). Kept separate from _duckedVolume so a
     // challenge page temporarily lowering the volume can restore *this* afterwards instead of
@@ -37,6 +38,13 @@ public class SidWidgetService
     {
         _duckedVolume = null;
         await Notify();
+    }
+
+    /// <summary>Pauses the music if it plays (the child leaves for a game); the widget's button resumes it.</summary>
+    public async Task Pause()
+    {
+        if (OnPauseRequested != null)
+            await OnPauseRequested.Invoke();
     }
 
     private async Task Notify()
