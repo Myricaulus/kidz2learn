@@ -246,3 +246,43 @@ window.k4l_telemetrySend = async function (sessionId, body, timeoutMs) {
     k4l_telemetrySavePending(pending);
     return await window.k4l_telemetrySendPending(timeoutMs);
 };
+
+// Game time (see Services/SpielzeitService.cs): the day's fill count and the unpaid minutes stay in
+// localStorage, as do the game buttons a device opted into with ?spiele=steam,heroic,prism
+// (?spiele=off removes them). Nothing here is guarded on purpose - see SpielzeitService.
+var K4L_SPIELZEIT_KEY = "k4l_spielzeit";
+var K4L_SPIELE_KEY = "k4l_spiele";
+
+window.k4l_spielzeitLaden = function () {
+    try { return localStorage.getItem(K4L_SPIELZEIT_KEY); } catch (e) { return null; }
+};
+
+window.k4l_spielzeitSpeichern = function (json) {
+    try { localStorage.setItem(K4L_SPIELZEIT_KEY, json); } catch (e) { }
+};
+
+window.k4l_spiele = function (value) {
+    try {
+        if (value === "off") localStorage.removeItem(K4L_SPIELE_KEY);
+        else if (value) localStorage.setItem(K4L_SPIELE_KEY, value);
+        return localStorage.getItem(K4L_SPIELE_KEY) || "";
+    } catch (e) {
+        return value && value !== "off" ? value : "";
+    }
+};
+
+// Hands the minutes to the k4l-spiel:// handler on the laptop; the page itself stays.
+window.k4l_oeffneSpiel = function (url) {
+    window.location.href = url;
+};
+
+// For whoever opens the console.
+window.k4l_spielzeitKonsole = function (dotnetRef) {
+    window.k4l = window.k4l || {};
+    window.k4l.zeit = function (minuten) {
+        dotnetRef.invokeMethodAsync("KonsoleZeit", Math.round(Number(minuten) || 0));
+        return "🎮 " + minuten + " Minuten. Psst!";
+    };
+    console.log("%cHallo Hacker 👋", "font-size:20px;font-weight:bold;color:#2e7d32");
+    console.log("Versuch mal: k4l.zeit(30)");
+};

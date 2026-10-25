@@ -16,6 +16,7 @@ builder.Services.AddSingleton<HudStateService>();
 builder.Services.AddSingleton<AudioStatusService>();
 builder.Services.AddScoped<AffirmationService>();
 builder.Services.AddScoped<TelemetryService>();
+builder.Services.AddScoped<SpielzeitService>();
 builder.Services.AddScoped<TaskSessionController>();
 
 builder.Services.AddIndexedDbService();

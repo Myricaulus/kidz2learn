@@ -327,3 +327,36 @@ public class ArithTaskRegistrySkillGroupTests
         Assert.Equal(expected, ArithTaskRegistry.SimpleSkills);
     }
 }
+
+public class ForcedBombTests
+{
+    [Fact]
+    public async Task TryChooseAnyAsync_Bombe_PicksOnlyBombs_FromTheWholeMix()
+    {
+        // Fully mastered, so every level is unlocked and real 💣 tasks exist in the mix.
+        var mastery = SkillRegistry.All.Keys.ToDictionary(id => id, _ => 1f);
+        var generator = new AdaptiveTaskGenerator(new FakeSkillMasteryStore(mastery), new Random(5));
+        var easiest = TaskRegistry.All.Where(d => TaskPresentationRegistry.IsRegistered(d.View)).Min(d => d.DifficultyLevel);
+
+        for (var i = 0; i < 200; i++)
+        {
+            var chosen = await generator.TryChooseAnyAsync(bombe: true);
+            Assert.NotNull(chosen);
+            Assert.Equal(Difficulty.Extreme, chosen.Difficulty);
+            Assert.True(chosen.Level >= easiest + 2);
+        }
+    }
+
+    [Fact]
+    public async Task TryChooseAnyAsync_Bombe_WithNothingThatHard_TakesTheHardestAsABomb()
+    {
+        // Untrained, one group: only its easiest level is open, and it still has to serve as the 💣.
+        var generator = new AdaptiveTaskGenerator(new FakeSkillMasteryStore(), new Random(9));
+
+        var chosen = await generator.TryChooseAnyAsync([Skill.ReadRiddle], bombe: true);
+
+        Assert.NotNull(chosen);
+        Assert.Equal(Difficulty.Extreme, chosen.Difficulty);
+        Assert.Equal(1, chosen.Level);
+    }
+}

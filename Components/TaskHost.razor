@@ -32,6 +32,7 @@ else if (_wartetAufTon)
     [Inject] private HudStateService Hud { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private TaskSessionController Session { get; set; } = null!;
+    [Inject] private SpielzeitService Spielzeit { get; set; } = null!;
 
     private readonly Random _rng = new();
     private readonly LangeAufgaben _lang = new();
@@ -42,6 +43,10 @@ else if (_wartetAufTon)
 
     // Only listening exercises fit this page's pool, and there's no audio: waits for it to come back.
     private bool _wartetAufTon;
+
+    // The last task was a forced 💣: the next one is a normal task again, so a missed bomb isn't
+    // followed by bomb after bomb.
+    private bool _bombeErzwungen;
 
     protected override async Task OnInitializedAsync()
     {
@@ -68,7 +73,11 @@ else if (_wartetAufTon)
         var generator = new AdaptiveTaskGenerator(store, _rng);
         Func<BaseTaskDefinition, bool> playable = d => Audio.Available || !d.BrauchtTon;
         var pool = FillerSkills is not null && _rng.NextDouble() < FillerChance ? FillerSkills : Skills;
-        var chosen = await generator.TryChooseAnyAsync(pool, _lang.Gesperrt, playable);
+        var bombe = Spielzeit.BrauchtBombe && !_bombeErzwungen;
+        _bombeErzwungen = bombe;
+        if (bombe)
+            pool = Skills;
+        var chosen = await generator.TryChooseAnyAsync(pool, _lang.Gesperrt, playable, bombe);
         if (chosen is null && pool != Skills)
             chosen = await generator.TryChooseAnyAsync(Skills, _lang.Gesperrt, playable);
 

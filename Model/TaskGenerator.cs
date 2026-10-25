@@ -205,9 +205,15 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
     ///     Candidates that can be played right now (no listening exercise while there's no audio);
     ///     unlike <paramref name="exclude" /> a hard filter. <c>null</c> means every candidate.
     /// </param>
+    /// <param name="bombe">
+    ///     Forces a 💣 (the playtime bar waits for one): only the hardest candidates left - at
+    ///     least two levels above the pool's easiest where there are such - and the pick counts as
+    ///     <see cref="Difficulty.Extreme" /> even when the pool has nothing that hard yet.
+    /// </param>
     /// <returns><c>null</c> when <paramref name="playable" /> leaves nothing of the pool.</returns>
     public async Task<IChosenTask?> TryChooseAnyAsync(IReadOnlyCollection<string>? skills = null,
-        Func<BaseTaskDefinition, bool>? exclude = null, Func<BaseTaskDefinition, bool>? playable = null)
+        Func<BaseTaskDefinition, bool>? exclude = null, Func<BaseTaskDefinition, bool>? playable = null,
+        bool bombe = false)
     {
         var candidates = TaskRegistry.All;
         if (skills is not null)
@@ -243,6 +249,11 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
             return null;
         if (exclude is not null && unlocked.Any(d => !exclude(d)))
             unlocked = unlocked.Where(d => !exclude(d)).ToList();
+        if (bombe)
+        {
+            var bombenLevel = Math.Min(unlocked.Max(d => d.DifficultyLevel), easiestDifficulty + 2);
+            unlocked = unlocked.Where(d => d.DifficultyLevel >= bombenLevel).ToList();
+        }
 
         var groups = unlocked
             .GroupBy(d => d.Skills[0])
@@ -259,6 +270,7 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
         // Relative to the whole pool, not the group: a level-3 word problem stays a 💣 on the Lesedetektiv.
         var difficulty = chosen.DifficultyLevel switch
         {
+            _ when bombe => Difficulty.Extreme,
             var x when x == easiestDifficulty => Difficulty.Normal,
             var x when x == easiestDifficulty + 1 => Difficulty.Hard,
             _ => Difficulty.Extreme

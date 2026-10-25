@@ -9,6 +9,9 @@ public class ScoreService : IDisposable
 {
     public event Action<float, float>? OnScoreChanged;
 
+    /// <summary>Every point change as handed out, after the Koop factor and before the bar's 0..100 clamp.</summary>
+    public event Action<float>? OnPunkte;
+
     private float _baseScore;
     private float _bonusScore;
 
@@ -73,6 +76,7 @@ public class ScoreService : IDisposable
         var factor = PlayMode.Koop ? 0.5f : 1f;
         _baseScore = Math.Clamp(_baseScore + delta * factor, 0, 100);
         _bonusScore = Math.Max(0, _bonusScore + bonus * factor);
+        OnPunkte?.Invoke((delta + bonus) * factor);
         NotifyChanged();
     }
 

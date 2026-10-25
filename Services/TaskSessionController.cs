@@ -37,6 +37,7 @@ public sealed class TaskSessionController(
     AffirmationService affirmation,
     HudStateService hud,
     TelemetryService telemetry,
+    SpielzeitService spielzeit,
     [FromKeyedServices("AufgabenDB")] IndexedDb aufgabenDb)
 {
     private readonly BeobachtungsStore _beobachtungen = new(aufgabenDb);
@@ -94,6 +95,8 @@ public sealed class TaskSessionController(
         var attempt = ++_taskAttempts;
         basePoints = DifficultyInfo.Scale(basePoints, task.Difficulty);
         bonusPoints = DifficultyInfo.Scale(bonusPoints, task.Difficulty);
+        if (task.Difficulty == Difficulty.Extreme)
+            spielzeit.BombeGeloest();
         score.AddPoints(basePoints, bonusPoints);
         hud.IncrementCombo();
         TotalAttempts++;

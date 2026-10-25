@@ -54,6 +54,7 @@ public sealed class TelemetryService(IJSRuntime js, ScoreService score, Navigati
     private readonly string _sessionId = $"{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..6]}";
     private readonly DateTime _started = DateTime.Now;
     private readonly List<TelemetryEntry> _entries = [];
+    private readonly List<SpielzeitEintrag> _spielzeit = [];
     private bool? _enabled;
 
     /// <summary>Applies the <c>telemetrie</c> query parameter, if present, and retries pending sessions.</summary>
@@ -83,6 +84,14 @@ public sealed class TelemetryService(IJSRuntime js, ScoreService score, Navigati
             _ = SendAsync(TaskSendTimeoutMs);
     }
 
+    public void RecordSpielzeit(SpielzeitEintrag eintrag)
+    {
+        _spielzeit.Add(eintrag);
+        Console.WriteLine($"[spielzeit] {eintrag}");
+        if (IsEnabled)
+            _ = SendAsync(TaskSendTimeoutMs);
+    }
+
     /// <summary>
     ///     Sends the session and reports whether it arrived. Always true on devices that aren't opted
     ///     in, so callers can gate on the result without knowing about opt-in.
@@ -102,7 +111,8 @@ public sealed class TelemetryService(IJSRuntime js, ScoreService score, Navigati
             Sent = DateTime.Now,
             TotalScore = score.TotalScore,
             Koop = PlayMode.Koop,
-            Entries = _entries
+            Entries = _entries,
+            Spielzeit = _spielzeit
         };
         return JsonSerializer.Serialize(payload, JsonOptions);
     }

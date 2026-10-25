@@ -158,6 +158,7 @@ else
     [Inject] private IJSRuntime Js { get; set; } = null!;
     [Inject] private TelemetryService Telemetry { get; set; } = null!;
     [Inject] private AudioStatusService Audio { get; set; } = null!;
+    [Inject] private SpielzeitService Spielzeit { get; set; } = null!;
 
     public delegate void UpdatePointsHook(int delta);
 
@@ -192,7 +193,47 @@ else
                     <rect x="11.3" y="15.5" width="1.4" height="3.2" rx="0.6" fill="#5a3d00"/>
                 </svg>
             </div>
+            @if (Spielzeit.Spiele.Count > 0)
+            {
+                <div class="spielzeit" title="Voller Balken + eine 💣 = 10 Minuten Spielzeit">
+                    <div class="spielzeit-balken">
+                        <div class="spielzeit-fuellung"
+                             style="width:@((100f * Spielzeit.Punkte / Spielzeit.Ziel).ToString("F1", CultureInfo.InvariantCulture))%"></div>
+                        <span class="spielzeit-mauer @(Spielzeit.MauerWeg ? "weg" : "") @(Spielzeit.BrauchtBombe ? "wartet" : "")">
+                            @(Spielzeit.MauerWeg ? "💥" : "🧱")
+                        </span>
+                    </div>
+                    <span class="spielzeit-minuten">
+                        🎮<input class="minuten-feld" inputmode="numeric" value="@Spielzeit.Minuten"
+                                 style="width:@((Spielzeit.Minuten.ToString().Length + 0.5).ToString(CultureInfo.InvariantCulture))ch"
+                                 @onchange="OnMinutenGeaendert" aria-label="Spielminuten"/>min
+                    </span>
+                    @foreach (var spiel in Spielzeit.Spiele)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                                   Disabled="@(Spielzeit.Minuten <= 0)" OnClick="@(() => Spielzeit.AuszahlenAsync(spiel))">
+                            @SpielName(spiel)
+                        </MudButton>
+                    }
+                </div>
+            }
     </text>;
+
+    private static string SpielName(string spiel) => spiel switch
+    {
+        "steam" => "Steam",
+        "heroic" => "Heroic",
+        "prism" => "Minecraft",
+        _ => spiel
+    };
+
+    // Typing a number into the minutes field just takes it - see SpielzeitService.
+    private void OnMinutenGeaendert(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var minuten))
+            Spielzeit.Minuten = minuten;
+        StateHasChanged();
+    }
 
     private RenderFragment NavMenu => @<text>
             <MudNavMenu>
@@ -299,6 +340,9 @@ else
         if (string.IsNullOrWhiteSpace(telemetrieValue))
             telemetrieValue = Configuration["Telemetrie"];
         await Telemetry.InitAsync(telemetrieValue);
+        query.TryGetValue("spiele", out var spiele);
+        Spielzeit.Init(spiele.ToString());
+        Spielzeit.OnChange += HandleSpielzeitChanged;
         await Audio.InitAsync();
 
         // IndexedDB Migration
@@ -308,6 +352,11 @@ else
         // Migration abgeschlossen → Button freigeben
         _migrationRunning = false;
         StateHasChanged(); // UI aktualisieren
+    }
+
+    private void HandleSpielzeitChanged()
+    {
+        InvokeAsync(StateHasChanged);
     }
 
     private void HandleAudioChanged()
@@ -395,6 +444,7 @@ else
     {
         Score.OnScoreChanged -= HandleScoreChanged;
         Audio.OnChange -= HandleAudioChanged;
+        Spielzeit.OnChange -= HandleSpielzeitChanged;
         Navigation.LocationChanged -= CloseTouchMenu;
         _attentionCheckTimer?.Dispose();
         _pulseTimer?.Dispose();
