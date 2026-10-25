@@ -48,8 +48,8 @@ uv sync                          # Python tooling (WaveSplit/, tools/), needs Py
   mastery per answer; its mastery-model TODOs are intentionally unimplemented. Changing the skill
   schema means bumping `SkillMigrationHelper.CurrentSchemaVersion` and extending `MigrateAsync`.
 - **IndexedDB** (`AufgabenDB`, versioned in `Program.cs`; a new store needs a higher version):
-  stores `ArithmetikAufgaben`, `LeseAufgaben`, `SkillMeta`, `SkillStates`, `SilbenHammerRatings`,
-  `Beobachtungen`, `MerkmalVerlauf`; inject with `[Inject(Key = "AufgabenDB")] IndexedDb`.
+  stores `ArithmetikAufgaben`, `LeseAufgaben`, `SkillMeta`, `SkillStates`, `SkillStatesKoop` (Koop
+  mastery profile), `SilbenHammerRatings`, `Beobachtungen`, `MerkmalVerlauf`; inject with `[Inject(Key = "AufgabenDB")] IndexedDb`.
 - **Audio**: `#audioPlayer` and `#affirmationPlayer` are mounted once in `MainLayout.razor` and
   primed by the "Starte App" click; play through `AudioStatusService` (`PlayWordAsync` for word
   clips), never `k4l_playAudioFile` directly, so a missing connection is noticed. A task that can't

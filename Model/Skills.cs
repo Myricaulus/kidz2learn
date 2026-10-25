@@ -244,13 +244,41 @@ public interface ISkillMasteryStore
     Task<IEnumerable<SkillView>> GetSkillViewEnumerableAsync();
 }
 
+/// <summary>
+///     Two mastery profiles: solo (<c>SkillStates</c>) and Koop (<c>SkillStatesKoop</c>, two kids
+///     playing together). A solo answer adjusts both, a Koop answer only the Koop one, and the
+///     picker reads the profile of the current <see cref="PlayMode" />. A skill Koop hasn't seen yet
+///     starts as a copy of its solo state.
+/// </summary>
 public sealed class SkillMasteryStore(IndexedDb skillDb) : ISkillMasteryStore
 {
-    private readonly IndexedDbStore _store = skillDb["SkillStates"]
-                                             ?? throw new InvalidOperationException("SkillStates DB failed to init");
+    private readonly IndexedDbStore _solo = skillDb["SkillStates"]
+                                            ?? throw new InvalidOperationException("SkillStates DB failed to init");
+
+    private readonly IndexedDbStore _koop = skillDb["SkillStatesKoop"]
+                                            ?? throw new InvalidOperationException("SkillStatesKoop DB failed to init");
 
     public async Task<MasteryChange> Adjust(string skillId, Difficulty difficulty, int timeMs,
         Kompetenzniveau specificTaskHistory, bool success, float weight)
+    {
+        var solo = await _solo.GetItemAsync<SkillState>(skillId);
+        var koop = await _koop.GetItemAsync<SkillState>(skillId);
+        if (PlayMode.Koop)
+            return await AdjustIn(_koop, koop ?? solo ?? NewState(skillId), difficulty, timeMs, specificTaskHistory,
+                success, weight);
+
+        var change = await AdjustIn(_solo, solo ?? NewState(skillId), difficulty, timeMs, specificTaskHistory, success,
+            weight);
+        if (koop is not null)
+            await AdjustIn(_koop, koop, difficulty, timeMs, specificTaskHistory, success, weight);
+        return change;
+    }
+
+    private static SkillState NewState(string skillId) => new()
+        { Id = skillId, EffectiveDifficulty = SkillRegistry.All[skillId].Difficulty };
+
+    private static async Task<MasteryChange> AdjustIn(IndexedDbStore store, SkillState s, Difficulty difficulty,
+        int timeMs, Kompetenzniveau specificTaskHistory, bool success, float weight)
     {
         float delta;
         if (success)
@@ -269,8 +297,6 @@ public sealed class SkillMasteryStore(IndexedDb skillDb) : ISkillMasteryStore
                 Difficulty.Extreme => -0.01f,
                 _ => -0.05f
             };
-        var s = await _store.GetItemAsync<SkillState>(skillId) ?? new SkillState
-            { Id = skillId, EffectiveDifficulty = SkillRegistry.All[skillId].Difficulty };
         s.Attempts++;
         if (success)
         {
@@ -349,16 +375,18 @@ public sealed class SkillMasteryStore(IndexedDb skillDb) : ISkillMasteryStore
         var before = s.Mastery;
         s.LastAttempt = DateTime.Now;
         s.Mastery = Math.Clamp(s.Mastery + finaldelta, 0, 1);
-        Console.WriteLine($"{skillId}|A:{s.Attempts}|S:{s.Success}|M:{s.Mastery}|Δ:{delta}");
-        if (PlayMode.Koop)
-            return new MasteryChange(before, before);
-        await _store.StoreItemAsync(s);
+        Console.WriteLine($"{store.StoreName}|{s.Id}|A:{s.Attempts}|S:{s.Success}|M:{s.Mastery}|Δ:{delta}");
+        await store.StoreItemAsync(s);
         return new MasteryChange(before, s.Mastery);
     }
 
     private async Task<IReadOnlyDictionary<string, SkillState>> Snapshot()
     {
-        return await _store.ToDictionaryAsync<SkillState>();
+        var solo = await _solo.ToDictionaryAsync<SkillState>();
+        if (!PlayMode.Koop)
+            return solo;
+        var koop = await _koop.ToDictionaryAsync<SkillState>();
+        return solo.Keys.Union(koop.Keys).ToDictionary(id => id, id => koop.GetValueOrDefault(id) ?? solo[id]);
     }
 
     public async Task<IEnumerable<SkillView>> GetSkillViewEnumerableAsync()

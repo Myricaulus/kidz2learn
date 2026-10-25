@@ -69,7 +69,7 @@ public sealed class Beobachtung : IIdItem
     public Dictionary<string, string>? Werte { get; set; }
     public List<BeobachtungsItem>? Items { get; set; }
 
-    /// <summary>Answered in <c>PlayMode.Koop</c> (a parent played along); not the child's own answer.</summary>
+    /// <summary>Answered in <c>PlayMode.Koop</c> (two kids together); not the child's own answer, so only sent with telemetry, never stored.</summary>
     public bool Koop { get; set; }
 
     public string? Wert(string key) => Werte?.GetValueOrDefault(key);

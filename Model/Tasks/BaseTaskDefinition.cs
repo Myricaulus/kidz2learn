@@ -48,4 +48,10 @@ public abstract class BaseTaskDefinition
     ///     without scoring if it's open; other tasks play their clips only as an extra.
     /// </summary>
     public bool BrauchtTon { get; init; }
+
+    /// <summary>
+    ///     Mainly there to observe the child's reading for the reading profile (p/q search grid). In
+    ///     Koop mode, where nothing is observed, <c>TaskHost</c> rarely picks it.
+    /// </summary>
+    public bool FuerLeseprofil { get; init; }
 }

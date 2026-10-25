@@ -72,7 +72,7 @@ public class ScoreService : IDisposable
         }
         _sessionStart = DateTime.Now;
         
-        // Playing together, the two need twice the points to reach YouTube.
+        // Playing together, the two need twice the points for YouTube and game time.
         var factor = PlayMode.Koop ? 0.5f : 1f;
         _baseScore = Math.Clamp(_baseScore + delta * factor, 0, 100);
         _bonusScore = Math.Max(0, _bonusScore + bonus * factor);

@@ -107,7 +107,7 @@
     protected override async Task OnInitializedAsync()
     {
         var store = new BeobachtungsStore(AufgabenDb);
-        // Koop answers had a parent's help, so they say nothing about the child's own reading.
+        // Koop answers are two kids' together, so they say nothing about the child's own reading.
         var alle = (await store.GetAllAsync()).Where(b => !b.Koop).ToList();
         var heute = DateTime.Now;
         var grenze = heute.AddDays(-Fenster);

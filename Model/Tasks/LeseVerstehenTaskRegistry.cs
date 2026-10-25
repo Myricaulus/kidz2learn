@@ -110,6 +110,7 @@ public static class LeseVerstehenTaskRegistry
         {
             Skills = [Skill.ReadMirrorLetters],
             DifficultyLevel = 2,
+            FuerLeseprofil = true,
             View = "such-raster",
             Generator = Spiegelbuchstaben.GenerateMittel
         },
@@ -117,6 +118,7 @@ public static class LeseVerstehenTaskRegistry
         {
             Skills = [Skill.ReadMirrorLetters],
             DifficultyLevel = 3,
+            FuerLeseprofil = true,
             View = "such-raster",
             Generator = Spiegelbuchstaben.GenerateSchwer
         }

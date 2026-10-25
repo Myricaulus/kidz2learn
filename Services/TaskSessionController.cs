@@ -150,7 +150,8 @@ public sealed class TaskSessionController(
         };
         _vorgespielt = 0;
         _angetippt.Clear();
-        await _beobachtungen.AddAsync(beobachtung);
+        if (!PlayMode.Koop)
+            await _beobachtungen.AddAsync(beobachtung);
         return beobachtung;
     }
 

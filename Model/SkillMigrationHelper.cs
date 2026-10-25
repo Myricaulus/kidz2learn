@@ -10,6 +10,7 @@ namespace Kidz2Learn.Model;
 public sealed class SkillMigrationHelper
 {
     // BUMP THIS WHENEVER YOU CHANGE SKILL SCHEMA OR MIGRATION LOGIC
+    // A migration of SkillState covers SkillStatesKoop (same shape, the Koop profile) as well.
     private const int CurrentSchemaVersion = 2;
     private readonly IndexedDb _db;
     private readonly IndexedDbStore _metaStore;

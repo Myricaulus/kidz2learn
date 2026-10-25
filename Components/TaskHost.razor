@@ -48,6 +48,9 @@ else if (_wartetAufTon)
     // followed by bomb after bomb.
     private bool _bombeErzwungen;
 
+    // Share of picks in Koop mode that leave out the reading-profile tasks (FuerLeseprofil).
+    private const double KoopOhneLeseprofil = 0.8;
+
     protected override async Task OnInitializedAsync()
     {
         // Belongs here, not in a view's OnInitializedAsync: TaskHost is the one component that
@@ -77,9 +80,11 @@ else if (_wartetAufTon)
         _bombeErzwungen = bombe;
         if (bombe)
             pool = Skills;
-        var chosen = await generator.TryChooseAnyAsync(pool, _lang.Gesperrt, playable, bombe);
+        var ohneLeseprofil = PlayMode.Koop && _rng.NextDouble() < KoopOhneLeseprofil;
+        Func<BaseTaskDefinition, bool> gesperrt = d => _lang.Gesperrt(d) || (ohneLeseprofil && d.FuerLeseprofil);
+        var chosen = await generator.TryChooseAnyAsync(pool, gesperrt, playable, bombe);
         if (chosen is null && pool != Skills)
-            chosen = await generator.TryChooseAnyAsync(Skills, _lang.Gesperrt, playable);
+            chosen = await generator.TryChooseAnyAsync(Skills, gesperrt, playable);
 
         _chosen = chosen;
         _wartetAufTon = chosen is null;
