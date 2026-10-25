@@ -104,7 +104,7 @@ public sealed class SpielzeitService : IDisposable
 
     /// <summary>
     ///     Hands every unpaid minute to the guard, which thaws frozen games with them; the games
-    ///     themselves start from the pinned launchers. The minutes stay here when the guard doesn't answer.
+    ///     themselves start as usual. The minutes stay here when the guard doesn't answer.
     /// </summary>
     public async Task<bool> AuszahlenAsync()
     {
