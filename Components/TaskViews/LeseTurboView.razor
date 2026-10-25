@@ -8,6 +8,24 @@
             <div class="leseturbo-text">
                 @_sekunden Sekunden: Ist das ein echtes Wort oder ein Quatschwort? So schnell du kannst!
             </div>
+            @* Keyboard only (hidden in MainLayout's touch layout): the arrow block with the two keys
+               that count, and a looping demo - a real word answered with ←, a nonsense word with →. *@
+            <div class="leseturbo-tastatur" aria-hidden="true">
+                <div class="leseturbo-demo-wort">
+                    <span class="leseturbo-demo-echt">Nase</span>
+                    <span class="leseturbo-demo-quatsch">Pisnel</span>
+                </div>
+                <div class="leseturbo-pfeile">
+                    <span class="leseturbo-kappe leseturbo-kappe-aus leseturbo-kappe-oben">↑</span>
+                    <span class="leseturbo-kappe leseturbo-kappe-echt">←</span>
+                    <span class="leseturbo-kappe leseturbo-kappe-aus leseturbo-kappe-unten">↓</span>
+                    <span class="leseturbo-kappe leseturbo-kappe-quatsch">→</span>
+                </div>
+                <div class="leseturbo-legende">
+                    <span class="leseturbo-legende-echt"><span class="leseturbo-taste">←</span> ✔ Echtes Wort</span>
+                    <span class="leseturbo-legende-quatsch">✘ Quatschwort <span class="leseturbo-taste">→</span></span>
+                </div>
+            </div>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
                        StartIcon="@Icons.Material.Filled.RocketLaunch" OnClick="Start">Los!</MudButton>
             break;
@@ -19,7 +37,7 @@
                 <div @key="_wortCount" class="leseturbo-wort @_blitz">@_wort.Text</div>
                 <div class="leseturbo-knoepfe">
                     <button class="leseturbo-knopf leseturbo-echt" @onclick="() => Antwort(true)">
-                        ✔ Echtes Wort <span class="leseturbo-taste">←</span>
+<span class="leseturbo-taste">←</span> ✔ Echtes Wort
                     </button>
                     <button class="leseturbo-knopf leseturbo-quatsch" @onclick="() => Antwort(false)">
                         ✘ Quatschwort <span class="leseturbo-taste">→</span>
