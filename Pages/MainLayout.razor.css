@@ -258,34 +258,19 @@ main {
 
 
 
-/* Spielzeit: own bar with a wall at its end, minutes and game buttons */
+/* Spielzeit: the wall at the bar's end, minutes and the start button */
 .spielzeit {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-left: 12px;
+    margin-left: 20px;
     flex: none;
-}
-
-.spielzeit-balken {
-    position: relative;
-    width: 110px;
-    height: 14px;
-    border-radius: 7px;
-    background: #5d3e33;
-    overflow: visible;
-}
-
-.spielzeit-fuellung {
-    height: 100%;
-    border-radius: 7px;
-    background: #66bb6a;
-    transition: width 0.4s ease-out;
 }
 
 .spielzeit-mauer {
     position: absolute;
-    right: -10px;
+    right: -12px;
+    z-index: 1;
     top: 50%;
     transform: translateY(-50%);
     font-size: 18px;
@@ -305,7 +290,6 @@ main {
 .spielzeit-minuten {
     display: inline-flex;
     align-items: center;
-    margin-left: 16px;
     white-space: nowrap;
     font-weight: bold;
 }

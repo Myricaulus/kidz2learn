@@ -7,13 +7,14 @@ namespace Kidz2Learn.Services;
 /// <summary>
 ///     Earns game time (<see cref="Spielzeit" />) from every point the <see cref="ScoreService" />
 ///     hands out and from solved 💣 tasks, keeps it in localStorage and hands it to the game-time
-///     guard on the laptop (<c>k4l-waechter</c> on 127.0.0.1:8768, outside this repo), which starts,
+///     guard on the laptop (<c>k4l-waechter</c> on 127.0.0.1:8768, outside this repo), which
 ///     freezes and ends the games and hears from a heartbeat whether Kidz4Learn is open. Only
-///     devices opened once with <c>?spiele=steam,heroic,prism</c> show game buttons and send it.
+///     devices opened once with <c>?spiele=...</c> use it; their bar is the game-time bar instead
+///     of the YouTube one.
 /// </summary>
 /// <remarks>
 ///     Deliberately easy to cheat - the minutes field is editable, the console offers
-///     <c>k4l.zeit(n)</c>, the link can be typed by hand, localStorage can be edited - and nothing
+///     <c>k4l.zeit(n)</c>, the guard's address can be typed by hand, localStorage can be edited - and nothing
 ///     here guards against it. Every way leaves a mismatch instead: telemetry records each credited
 ///     fill and each payout with the minutes it carried, the handler logs what it received, and the
 ///     games count their own playtime.
@@ -38,8 +39,11 @@ public sealed class SpielzeitService : IDisposable
 
     public event Action? OnChange;
 
-    /// <summary>Games this device has buttons for (<c>steam</c>, <c>heroic</c>, <c>prism</c>).</summary>
-    public IReadOnlyList<string> Spiele { get; private set; } = [];
+    /// <summary>This device has games (opened once with <c>?spiele=...</c>): the bar is the game-time bar.</summary>
+    public bool Aktiv { get; private set; }
+
+    /// <summary>The guard has frozen the games and waits for minutes (from its answer to the heartbeat).</summary>
+    public bool SpielEingefroren { get; private set; }
 
     public float Punkte => _spielzeit.Punkte;
     public int Ziel => _spielzeit.Ziel;
@@ -73,9 +77,8 @@ public sealed class SpielzeitService : IDisposable
             Console.WriteLine($"[spielzeit] stored state unreadable, starting over: {e.Message}");
         }
 
-        Spiele = _js.Invoke<string>("k4l_spiele", spieleQuery ?? "")
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (Spiele.Count > 0)
+        Aktiv = _js.Invoke<string>("k4l_spiele", spieleQuery ?? "") != "";
+        if (Aktiv)
         {
             _ref = DotNetObjectReference.Create(this);
             _js.InvokeVoid("k4l_spielzeitStart", _ref);
@@ -93,15 +96,16 @@ public sealed class SpielzeitService : IDisposable
     }
 
     /// <summary>
-    ///     Hands every unpaid minute to the guard and has it start <paramref name="spiel" />. The
-    ///     minutes stay here when the guard doesn't answer.
+    ///     Hands every unpaid minute to the guard, which thaws frozen games with them; the games
+    ///     themselves start from the pinned launchers. The minutes stay here when the guard doesn't answer.
     /// </summary>
-    public async Task<bool> AuszahlenAsync(string spiel)
+    public async Task<bool> AuszahlenAsync()
     {
         var minuten = Minuten;
-        if (!await ((IJSRuntime)_js).InvokeAsync<bool>("k4l_spielStarten", spiel, minuten))
+        if (!await ((IJSRuntime)_js).InvokeAsync<bool>("k4l_zeitGeben", minuten))
             return false;
-        _telemetry.RecordSpielzeit(new SpielzeitEintrag(DateTime.Now, "Auszahlung", minuten, Spiel: spiel));
+        SpielEingefroren = false;
+        _telemetry.RecordSpielzeit(new SpielzeitEintrag(DateTime.Now, "Auszahlung", minuten));
         Minuten = 0;
         await _telemetry.FlushAsync();
         return true;
@@ -111,6 +115,15 @@ public sealed class SpielzeitService : IDisposable
     public void KonsoleZeit(int minuten)
     {
         Minuten = minuten;
+    }
+
+    [JSInvokable]
+    public void WaechterStatus(bool eingefroren)
+    {
+        if (SpielEingefroren == eingefroren)
+            return;
+        SpielEingefroren = eingefroren;
+        OnChange?.Invoke();
     }
 
     private void HandlePunkte(float punkte)
@@ -148,4 +161,4 @@ public sealed class SpielzeitService : IDisposable
 
 /// <summary>A game-time event in the telemetry session: a credited fill, a solved 💣 or a payout.</summary>
 /// <param name="Fuellung">The day's fill the event belongs to (1 = first).</param>
-public sealed record SpielzeitEintrag(DateTime Time, string Art, int Minuten = 0, int Fuellung = 0, string? Spiel = null);
+public sealed record SpielzeitEintrag(DateTime Time, string Art, int Minuten = 0, int Fuellung = 0);

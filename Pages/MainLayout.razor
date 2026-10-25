@@ -174,65 +174,62 @@ else
                 <MudChip T="string" Color="Color.Warning" Icon="@Icons.Material.Filled.VolumeOff">Kein Ton</MudChip>
             }
             <div class="progress-container">
-                <MudProgressLinear Value="@_points" Max="100" Size="Size.Large" Rounded="true"
+                <MudProgressLinear Value="@Balken" Max="100" Size="Size.Large" Rounded="true"
                                    style="height: 20px; background-color: #5d3e33;"/>
+                @if (Spielzeit.Aktiv)
+                {
+                    <span class="spielzeit-mauer @(Spielzeit.BrauchtBombe ? "wartet" : "")"
+                          title="Voller Balken + eine 💣 = 10 Minuten Spielzeit">@(Spielzeit.MauerWeg ? "💥" : "🧱")</span>
+                }
 
                 <!-- Biber-Overlay -->
                 <div class="beaver @_biberState @(_useTransition ? "smooth-decay" : "")"
-                     style="left:@_points.ToString("F1", CultureInfo.InvariantCulture)%;"></div>
+                     style="left:@Balken.ToString("F1", CultureInfo.InvariantCulture)%;"></div>
             </div>
-            <div class="youtube-wrap @(_youtubeUnlocked ? "unlocked" : "") @(_youtubePulseActive ? "attention-pulse" : "")"
-                 @onclick="OnYoutubeClick">
-                <MudImage Src="youtube.png" Alt="Youtube" Class="youtube-img"/>
-                <svg class="youtube-lock" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <g class="lock-shackle" fill="none" stroke-linecap="round">
-                        <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#5a3d00" stroke-width="3.4"/>
-                        <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#ffd34d" stroke-width="1.8"/>
-                    </g>
-                    <rect x="4.5" y="10.5" width="15" height="11" rx="2.5" fill="#f5b301" stroke="#5a3d00" stroke-width="1.2"/>
-                    <circle cx="12" cy="15" r="1.6" fill="#5a3d00"/>
-                    <rect x="11.3" y="15.5" width="1.4" height="3.2" rx="0.6" fill="#5a3d00"/>
-                </svg>
-            </div>
-            @if (Spielzeit.Spiele.Count > 0)
+            @if (Spielzeit.Aktiv)
             {
-                <div class="spielzeit" title="Voller Balken + eine 💣 = 10 Minuten Spielzeit">
-                    <div class="spielzeit-balken">
-                        <div class="spielzeit-fuellung"
-                             style="width:@((100f * Spielzeit.Punkte / Spielzeit.Ziel).ToString("F1", CultureInfo.InvariantCulture))%"></div>
-                        <span class="spielzeit-mauer @(Spielzeit.MauerWeg ? "weg" : "") @(Spielzeit.BrauchtBombe ? "wartet" : "")">
-                            @(Spielzeit.MauerWeg ? "💥" : "🧱")
-                        </span>
-                    </div>
+                <div class="spielzeit">
                     <span class="spielzeit-minuten">
                         🎮<input class="minuten-feld" inputmode="numeric" value="@Spielzeit.Minuten"
                                  style="width:@((Spielzeit.Minuten.ToString().Length + 0.5).ToString(CultureInfo.InvariantCulture))ch"
                                  @onchange="OnMinutenGeaendert" aria-label="Spielminuten"/>min
                     </span>
-                    @foreach (var spiel in Spielzeit.Spiele)
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                                   OnClick="@(() => OnSpielClick(spiel))">
-                            @SpielName(spiel)
-                        </MudButton>
-                    }
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                               Disabled="@(Spielzeit.Minuten <= 0)" OnClick="OnSpielzeitClick">
+                        @(Spielzeit.SpielEingefroren ? "Weiter spielen" : "Starten")
+                    </MudButton>
+                </div>
+            }
+            else
+            {
+                <div class="youtube-wrap @(_youtubeUnlocked ? "unlocked" : "") @(_youtubePulseActive ? "attention-pulse" : "")"
+                     @onclick="OnYoutubeClick">
+                    <MudImage Src="youtube.png" Alt="Youtube" Class="youtube-img"/>
+                    <svg class="youtube-lock" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <g class="lock-shackle" fill="none" stroke-linecap="round">
+                            <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#5a3d00" stroke-width="3.4"/>
+                            <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#ffd34d" stroke-width="1.8"/>
+                        </g>
+                        <rect x="4.5" y="10.5" width="15" height="11" rx="2.5" fill="#f5b301" stroke="#5a3d00" stroke-width="1.2"/>
+                        <circle cx="12" cy="15" r="1.6" fill="#5a3d00"/>
+                        <rect x="11.3" y="15.5" width="1.4" height="3.2" rx="0.6" fill="#5a3d00"/>
+                    </svg>
                 </div>
             }
     </text>;
 
-    private static string SpielName(string spiel) => spiel switch
-    {
-        "steam" => "Steam",
-        "heroic" => "Heroic",
-        "prism" => "Minecraft",
-        _ => spiel
-    };
+    // On game devices the beaver's bar is the game-time bar (YouTube is hidden there), elsewhere the YouTube bar.
+    private float Balken => Spielzeit.Aktiv ? Math.Min(100f, 100f * Spielzeit.Punkte / Spielzeit.Ziel) : _points;
 
-    // Also with 0 minutes: the guard then uses what's left of earlier minutes, or opens Kidz4Learn.
-    private async Task OnSpielClick(string spiel)
+    // The games themselves start from the pinned launchers; this hands over the minutes, and
+    // thaws a frozen game.
+    private async Task OnSpielzeitClick()
     {
-        if (!await Spielzeit.AuszahlenAsync(spiel))
+        var weiter = Spielzeit.SpielEingefroren;
+        if (!await Spielzeit.AuszahlenAsync())
             Snackbar.Add("Der Spielzeit-Wächter antwortet nicht - deine Minuten bleiben hier.", Severity.Warning);
+        else if (!weiter)
+            Snackbar.Add("Die Zeit ist da - starte dein Spiel unten in der Leiste!", Severity.Success);
     }
 
     // Typing a number into the minutes field just takes it - see SpielzeitService.
