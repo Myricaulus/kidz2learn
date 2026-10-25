@@ -95,10 +95,9 @@ public sealed class SpielzeitService : IDisposable
     /// </summary>
     public void BombeGeloest()
     {
-        var mauerWarDa = !_spielzeit.MauerWeg;
-        Gutgeschrieben(_spielzeit.BombeGeloest(Heute));
-        if (mauerWarDa)
+        if (!_spielzeit.MauerWeg)
             _telemetry.RecordSpielzeit(new SpielzeitEintrag(DateTime.Now, "Bombe", Fuellung: _spielzeit.Fuellungen + 1));
+        Gutgeschrieben(_spielzeit.BombeGeloest(Heute));
         Speichern();
     }
 

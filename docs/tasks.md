@@ -126,7 +126,7 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
 - `LeseTurboView` (`"lese-turbo"`, `EventTaskRegistry`, skill `read_turbo`, level 3, on the
   Lesedetektiv) is the reading counterpart: 20-30 s of "echtes Wort oder Quatschwort?" (buttons or
   ←/→), no speed feedback during the round, a word left 5 s counts as wrong, scored once at the end
-  (`Model/Lesen/LeseTurbo.cs`: >= 8 words, >= 80 % right). Words are generated offline into
+  (`Model/Lesen/LeseTurbo.cs`: >= 8 words, at most a quarter wrong). Words are generated offline into
   `Model/Lesen/LeseTurboWords.g.cs` by `uv run python WaveSplit/GenerateLeseTurboWords.py`: real
   words from WordMeta, nonsense words from their syllables and real words with two inner letters
   swapped (`VertauschtGleich`/`VertauschtAnders`: same or changed outline, a third of the nonsense

@@ -41,7 +41,7 @@ public static class LeseTurbo
         return new LeseTurboWort(wort, echt);
     }
 
-    /// <summary>At least <see cref="MindestWoerter" /> answered and at least 80 % of them right.</summary>
+    /// <summary>At least <see cref="MindestWoerter" /> answered and at most a quarter of them wrong.</summary>
     public static bool Geschafft(int richtig, int falsch) =>
-        richtig + falsch >= MindestWoerter && 5 * richtig >= 4 * (richtig + falsch);
+        richtig + falsch >= MindestWoerter && 3 * falsch <= richtig;
 }

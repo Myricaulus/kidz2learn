@@ -174,12 +174,12 @@ else
             {
                 <MudChip T="string" Color="Color.Warning" Icon="@Icons.Material.Filled.VolumeOff">Kein Ton</MudChip>
             }
-            <div class="progress-container @(_gutschrift ? "gutschrift" : "")">
+            <div class="progress-container @(_gutschrift == GutschriftPhase.Abfluss ? "gutschrift" : "")">
                 <MudProgressLinear Value="@Balken" Max="100" Size="Size.Large" Rounded="true"
                                    style="height: 20px; background-color: #5d3e33;"/>
                 @if (Spielzeit.Aktiv)
                 {
-                    @if (_gutschrift)
+                    @if (_gutschrift != GutschriftPhase.Keine)
                     {
                         <span class="spielzeit-mauer platzt">💥</span>
                     }
@@ -187,6 +187,10 @@ else
                     {
                         <span class="spielzeit-mauer @(Spielzeit.BrauchtBombe ? "wartet" : "")"
                               title="Voller Balken + eine 💣 = 10 Minuten Spielzeit">@(Spielzeit.MauerWeg ? "💥" : "🧱")</span>
+                    }
+                    @if (_gutschrift == GutschriftPhase.Abfluss)
+                    {
+                        <span class="plus-minuten">+@Kidz2Learn.Model.Spielzeit.MinutenProFuellung Minuten 🎮</span>
                     }
                 }
 
@@ -197,14 +201,10 @@ else
             @if (Spielzeit.Aktiv)
             {
                 <div class="spielzeit">
-                    <span class="spielzeit-minuten">
-                        🎮<input class="minuten-feld" inputmode="numeric" value="@Spielzeit.Minuten"
-                                 style="width:@((Spielzeit.Minuten.ToString().Length + 0.5).ToString(CultureInfo.InvariantCulture))ch"
+                    <span class="spielzeit-minuten @(_gutschrift == GutschriftPhase.Abfluss ? "leuchtet" : "")">
+                        🎮<input class="minuten-feld" inputmode="numeric" value="@MinutenAnzeige"
+                                 style="width:@((MinutenAnzeige.ToString().Length + 0.5).ToString(CultureInfo.InvariantCulture))ch"
                                  @onchange="OnMinutenGeaendert" aria-label="Spielminuten"/>min
-                        @if (_gutschrift)
-                        {
-                            <span class="plus-minuten">+@Kidz2Learn.Model.Spielzeit.MinutenProFuellung min</span>
-                        }
                     </span>
                     <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
                                Disabled="@(Spielzeit.Minuten <= 0)" OnClick="OnSpielzeitClick">
@@ -231,20 +231,51 @@ else
     </text>;
 
     // On game devices the beaver's bar is the game-time bar (YouTube is hidden there), elsewhere the YouTube bar.
-    private float Balken => Spielzeit.Aktiv ? Math.Min(100f, 100f * Spielzeit.Punkte / Spielzeit.Ziel) : _points;
+    // While a payout bursts the wall, the bar still shows full.
+    private float Balken => !Spielzeit.Aktiv ? _points
+        : _gutschrift == GutschriftPhase.Mauer ? 100f
+        : Math.Min(100f, 100f * Spielzeit.Punkte / Spielzeit.Ziel);
 
-    // A payout shows as the wall bursting, "+10 min" rising and the bar draining to empty.
-    private bool _gutschrift;
-    private const int GutschriftMs = 900;
+    // A payout: the wall bursts on the full bar, then the bar drains into the minutes, which count
+    // up while "+10 Minuten" stands over the bar - so the empty bar reads as minutes won.
+    private enum GutschriftPhase { Keine, Mauer, Abfluss }
+
+    private GutschriftPhase _gutschrift;
+    private int? _minutenAnzeige;
+    private int _gutschriftLauf;
+    private const int MauerMs = 700;
+    private const int AbflussMs = 1500;
+    private const int NachlaufMs = 600;
+
+    private int MinutenAnzeige => _minutenAnzeige ?? Spielzeit.Minuten;
 
     private void HandleGutschrift()
     {
+        var lauf = ++_gutschriftLauf;
+        var bis = Spielzeit.Minuten;
+        var von = Math.Max(0, bis - Kidz2Learn.Model.Spielzeit.MinutenProFuellung);
         _ = InvokeAsync(async () =>
         {
-            _gutschrift = true;
+            _gutschrift = GutschriftPhase.Mauer;
+            _minutenAnzeige = von;
             StateHasChanged();
-            await Task.Delay(GutschriftMs);
-            _gutschrift = false;
+            await Task.Delay(MauerMs);
+
+            _gutschrift = GutschriftPhase.Abfluss;
+            var schritte = bis - von;
+            for (var i = 1; i <= schritte && lauf == _gutschriftLauf; i++)
+            {
+                await Task.Delay(AbflussMs / Math.Max(1, schritte));
+                if (lauf == _gutschriftLauf)
+                    _minutenAnzeige = von + i;
+                StateHasChanged();
+            }
+
+            await Task.Delay(NachlaufMs);
+            if (lauf != _gutschriftLauf)
+                return;
+            _gutschrift = GutschriftPhase.Keine;
+            _minutenAnzeige = null;
             StateHasChanged();
         });
     }

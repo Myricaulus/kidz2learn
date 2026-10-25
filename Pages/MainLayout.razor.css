@@ -306,13 +306,14 @@ main {
     caret-color: transparent;
 }
 
-/* Payout: the bar drains slowly enough to be seen, the wall bursts, "+10 min" rises. */
+/* Payout: the wall bursts, the bar drains slowly enough to be seen, "+10 Minuten" stands over
+   the bar and the minutes glow while they count up. */
 .progress-container.gutschrift ::deep .mud-progress-linear-bar {
-    transition: transform 0.85s ease-in-out;
+    transition: transform 1.5s ease-in-out;
 }
 
 .progress-container.gutschrift .beaver {
-    transition: left 0.85s ease-in-out;
+    transition: left 1.5s ease-in-out;
 }
 
 .spielzeit-mauer.platzt {
@@ -324,21 +325,33 @@ main {
     100% { transform: translateY(-50%) scale(2.2); opacity: 0; }
 }
 
-.spielzeit-minuten {
-    position: relative;
-}
-
 .plus-minuten {
     position: absolute;
     left: 50%;
-    top: 0;
+    top: 50%;
+    z-index: 2;
+    font-size: 28px;
+    font-weight: bold;
     color: #b9f6ca;
+    text-shadow: 0 0 6px #1b5e20, 0 2px 4px #000;
     white-space: nowrap;
     pointer-events: none;
-    animation: plus-minuten 0.9s ease-out forwards;
+    animation: plus-minuten 2.1s ease-out forwards;
 }
 
 @keyframes plus-minuten {
-    0% { transform: translate(-50%, 0); opacity: 1; }
-    100% { transform: translate(-50%, -26px); opacity: 0; }
+    0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+    15% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+    25% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -110%) scale(1); opacity: 0; }
+}
+
+.spielzeit-minuten.leuchtet {
+    animation: minuten-leuchten 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes minuten-leuchten {
+    from { color: inherit; text-shadow: none; transform: scale(1); }
+    to { color: #b9f6ca; text-shadow: 0 0 8px #69f0ae; transform: scale(1.15); }
 }

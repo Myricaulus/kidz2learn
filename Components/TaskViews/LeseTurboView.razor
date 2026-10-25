@@ -47,8 +47,21 @@
             break;
 
         case Phase.Ende:
-            <div class="leseturbo-titel">Geschafft!</div>
-            <div class="leseturbo-text">@_richtig richtig, @_falsch falsch</div>
+            @if (LeseTurbo.Geschafft(_richtig, _falsch))
+            {
+                <div class="leseturbo-titel">Geschafft!</div>
+                <div class="leseturbo-text">@_richtig richtig, @_falsch falsch</div>
+            }
+            else
+            {
+                <div class="leseturbo-titel">Knapp daneben!</div>
+                <div class="leseturbo-text">@_richtig richtig, @_falsch falsch</div>
+                <div class="leseturbo-text">
+                    @(_richtig + _falsch < LeseTurbo.MindestWoerter
+                        ? $"Schaffst du {LeseTurbo.MindestWoerter} Wörter? Dann zählt es."
+                        : "3 von 4 richtig, dann zählt es.")
+                </div>
+            }
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="Weiter">Weiter</MudButton>
             break;
     }

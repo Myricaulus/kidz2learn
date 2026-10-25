@@ -32,9 +32,22 @@
             break;
 
         case Phase.Ende:
-            <div class="turbo-titel">Geschafft!</div>
-            <div class="turbo-text">@_richtig richtig, @_falsch falsch</div>
-            <div class="turbo-sterne">@TurboRunde.Sterne(_richtig, _falsch)</div>
+            @if (TurboRunde.Geschafft(_richtig, _falsch))
+            {
+                <div class="turbo-titel">Geschafft!</div>
+                <div class="turbo-text">@_richtig richtig, @_falsch falsch</div>
+                <div class="turbo-sterne">@TurboRunde.Sterne(_richtig, _falsch)</div>
+            }
+            else
+            {
+                <div class="turbo-titel">Knapp daneben!</div>
+                <div class="turbo-text">@_richtig richtig, @_falsch falsch</div>
+                <div class="turbo-text">
+                    @(_richtig < TurboRunde.MindestRichtig
+                        ? $"Schaffst du {TurboRunde.MindestRichtig} richtige? Dann zählt es."
+                        : "3 von 4 richtig, dann zählt es.")
+                </div>
+            }
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="Weiter">Weiter</MudButton>
             break;
     }
