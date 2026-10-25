@@ -6,10 +6,10 @@ namespace Kidz2Learn.Services;
 
 /// <summary>
 ///     Earns game time (<see cref="Spielzeit" />) from every point the <see cref="ScoreService" />
-///     hands out and from solved 💣 tasks, keeps it in localStorage and hands it to a game on the
-///     laptop through a <c>k4l-spiel://&lt;spiel&gt;?min=&lt;minuten&gt;</c> link (the handler there
-///     starts, freezes and ends the game). Only devices opened once with
-///     <c>?spiele=steam,heroic,prism</c> show game buttons.
+///     hands out and from solved 💣 tasks, keeps it in localStorage and hands it to the game-time
+///     guard on the laptop (<c>k4l-waechter</c> on 127.0.0.1:8768, outside this repo), which starts,
+///     freezes and ends the games and hears from a heartbeat whether Kidz4Learn is open. Only
+///     devices opened once with <c>?spiele=steam,heroic,prism</c> show game buttons and send it.
 /// </summary>
 /// <remarks>
 ///     Deliberately easy to cheat - the minutes field is editable, the console offers
@@ -78,7 +78,7 @@ public sealed class SpielzeitService : IDisposable
         if (Spiele.Count > 0)
         {
             _ref = DotNetObjectReference.Create(this);
-            _js.InvokeVoid("k4l_spielzeitKonsole", _ref);
+            _js.InvokeVoid("k4l_spielzeitStart", _ref);
         }
     }
 
@@ -92,14 +92,19 @@ public sealed class SpielzeitService : IDisposable
         Speichern();
     }
 
-    /// <summary>Hands every unpaid minute to <paramref name="spiel" />'s handler on this laptop.</summary>
-    public async Task AuszahlenAsync(string spiel)
+    /// <summary>
+    ///     Hands every unpaid minute to the guard and has it start <paramref name="spiel" />. The
+    ///     minutes stay here when the guard doesn't answer.
+    /// </summary>
+    public async Task<bool> AuszahlenAsync(string spiel)
     {
         var minuten = Minuten;
+        if (!await ((IJSRuntime)_js).InvokeAsync<bool>("k4l_spielStarten", spiel, minuten))
+            return false;
         _telemetry.RecordSpielzeit(new SpielzeitEintrag(DateTime.Now, "Auszahlung", minuten, Spiel: spiel));
         Minuten = 0;
         await _telemetry.FlushAsync();
-        _js.InvokeVoid("k4l_oeffneSpiel", $"k4l-spiel://{Uri.EscapeDataString(spiel)}?min={minuten}");
+        return true;
     }
 
     [JSInvokable]

@@ -159,6 +159,7 @@ else
     [Inject] private TelemetryService Telemetry { get; set; } = null!;
     [Inject] private AudioStatusService Audio { get; set; } = null!;
     [Inject] private SpielzeitService Spielzeit { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
     public delegate void UpdatePointsHook(int delta);
 
@@ -211,7 +212,7 @@ else
                     @foreach (var spiel in Spielzeit.Spiele)
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                                   Disabled="@(Spielzeit.Minuten <= 0)" OnClick="@(() => Spielzeit.AuszahlenAsync(spiel))">
+                                   OnClick="@(() => OnSpielClick(spiel))">
                             @SpielName(spiel)
                         </MudButton>
                     }
@@ -226,6 +227,13 @@ else
         "prism" => "Minecraft",
         _ => spiel
     };
+
+    // Also with 0 minutes: the guard then uses what's left of earlier minutes, or opens Kidz4Learn.
+    private async Task OnSpielClick(string spiel)
+    {
+        if (!await Spielzeit.AuszahlenAsync(spiel))
+            Snackbar.Add("Der Spielzeit-Wächter antwortet nicht - deine Minuten bleiben hier.", Severity.Warning);
+    }
 
     // Typing a number into the minutes field just takes it - see SpielzeitService.
     private void OnMinutenGeaendert(ChangeEventArgs e)

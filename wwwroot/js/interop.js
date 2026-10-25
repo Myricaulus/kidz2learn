@@ -271,13 +271,30 @@ window.k4l_spiele = function (value) {
     }
 };
 
-// Hands the minutes to the k4l-spiel:// handler on the laptop; the page itself stays.
-window.k4l_oeffneSpiel = function (url) {
-    window.location.href = url;
+// The game-time guard on the laptop (k4l-waechter, user service, loopback only). It learns that
+// Kidz4Learn is open from a heartbeat and gets the earned minutes through /spiel - an address that
+// works just as well typed into the address bar.
+var K4L_WAECHTER = "http://127.0.0.1:8768";
+
+window.k4l_spielStarten = async function (spiel, minuten) {
+    try {
+        var r = await fetch(K4L_WAECHTER + "/spiel?name=" + encodeURIComponent(spiel) + "&min=" + minuten,
+            { signal: AbortSignal.timeout(4000) });
+        return r.ok;
+    } catch (e) {
+        console.warn("[spielzeit] Wächter nicht erreichbar", e);
+        return false;
+    }
 };
 
-// For whoever opens the console.
-window.k4l_spielzeitKonsole = function (dotnetRef) {
+// Starts the heartbeat and, for whoever opens the console, k4l.zeit(n).
+window.k4l_spielzeitStart = function (dotnetRef) {
+    var herzschlag = function () {
+        fetch(K4L_WAECHTER + "/da", { signal: AbortSignal.timeout(3000) }).catch(function () { });
+    };
+    herzschlag();
+    setInterval(herzschlag, 10000);
+
     window.k4l = window.k4l || {};
     window.k4l.zeit = function (minuten) {
         dotnetRef.invokeMethodAsync("KonsoleZeit", Math.round(Number(minuten) || 0));
