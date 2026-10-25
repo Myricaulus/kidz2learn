@@ -34,14 +34,14 @@ public class SpielzeitTests
     }
 
     [Fact]
-    public void BombBeforeTheBarIsFull_LetsTheOverflowCarryOver()
+    public void BombBeforeTheBarIsFull_PaysOutOnceFull_AndTheOverflowIsLost()
     {
         var zeit = new Spielzeit(Tag);
         zeit.BombeGeloest(Tag);
 
-        Assert.Equal(1, zeit.AddPunkte(42, Tag));
+        Assert.Equal(1, zeit.AddPunkte(80, Tag));
 
-        Assert.Equal(12, zeit.Punkte);
+        Assert.Equal(0, zeit.Punkte);
         Assert.Equal(10, zeit.Minuten);
         Assert.True(zeit.Punkte < zeit.Ziel);
     }
@@ -76,5 +76,20 @@ public class SpielzeitTests
         var stand = new SpielzeitStand(Tag, 3, 10, 7.5f, true);
 
         Assert.Equal(stand, new Spielzeit(Tag, stand).Stand);
+    }
+
+    [Fact]
+    public void ABombOnAFullBar_PaysOut_AndLeavesTheBarEmpty()
+    {
+        // TaskSessionController adds the bomb's points first, then reports the bomb.
+        var zeit = new Spielzeit(Tag);
+        zeit.AddPunkte(30, Tag);
+
+        zeit.AddPunkte(112, Tag);
+        Assert.Equal(1, zeit.BombeGeloest(Tag));
+
+        Assert.Equal(0, zeit.Punkte);
+        Assert.Equal(35, zeit.Ziel);
+        Assert.Equal(10, zeit.Minuten);
     }
 }

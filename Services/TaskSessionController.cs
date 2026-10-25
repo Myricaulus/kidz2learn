@@ -95,9 +95,9 @@ public sealed class TaskSessionController(
         var attempt = ++_taskAttempts;
         basePoints = DifficultyInfo.Scale(basePoints, task.Difficulty);
         bonusPoints = DifficultyInfo.Scale(bonusPoints, task.Difficulty);
+        score.AddPoints(basePoints, bonusPoints);
         if (task.Difficulty == Difficulty.Extreme)
             spielzeit.BombeGeloest();
-        score.AddPoints(basePoints, bonusPoints);
         hud.IncrementCombo();
         TotalAttempts++;
         SuccessfulAttempts++;

@@ -263,17 +263,17 @@ main {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-left: 20px;
+    margin-left: 32px;
     flex: none;
 }
 
 .spielzeit-mauer {
     position: absolute;
-    right: -12px;
+    right: -22px;
     z-index: 1;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 18px;
+    font-size: 36px;
     line-height: 1;
 }
 
@@ -304,4 +304,41 @@ main {
     padding: 0;
     outline: none;
     caret-color: transparent;
+}
+
+/* Payout: the bar drains slowly enough to be seen, the wall bursts, "+10 min" rises. */
+.progress-container.gutschrift ::deep .mud-progress-linear-bar {
+    transition: transform 0.85s ease-in-out;
+}
+
+.progress-container.gutschrift .beaver {
+    transition: left 0.85s ease-in-out;
+}
+
+.spielzeit-mauer.platzt {
+    animation: mauer-platzt 0.9s ease-out forwards;
+}
+
+@keyframes mauer-platzt {
+    0% { transform: translateY(-50%) scale(1); opacity: 1; }
+    100% { transform: translateY(-50%) scale(2.2); opacity: 0; }
+}
+
+.spielzeit-minuten {
+    position: relative;
+}
+
+.plus-minuten {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    color: #b9f6ca;
+    white-space: nowrap;
+    pointer-events: none;
+    animation: plus-minuten 0.9s ease-out forwards;
+}
+
+@keyframes plus-minuten {
+    0% { transform: translate(-50%, 0); opacity: 1; }
+    100% { transform: translate(-50%, -26px); opacity: 0; }
 }

@@ -39,6 +39,9 @@ public sealed class SpielzeitService : IDisposable
 
     public event Action? OnChange;
 
+    /// <summary>Minutes were just credited (a full bar paid out) - for the bar's animation.</summary>
+    public event Action? OnGutschrift;
+
     /// <summary>This device has games (opened once with <c>?spiele=...</c>): the bar is the game-time bar.</summary>
     public bool Aktiv { get; private set; }
 
@@ -69,8 +72,9 @@ public sealed class SpielzeitService : IDisposable
         try
         {
             var json = _js.Invoke<string?>("k4l_spielzeitLaden");
-            if (json is not null)
-                _spielzeit = new Spielzeit(Heute, JsonSerializer.Deserialize<SpielzeitStand>(json, JsonOptions));
+            // Each app start begins with an empty bar; only the day's count and credited minutes carry over.
+            if (json is not null && JsonSerializer.Deserialize<SpielzeitStand>(json, JsonOptions) is { } stand)
+                _spielzeit = new Spielzeit(Heute, stand with { Punkte = 0, MauerWeg = false });
         }
         catch (Exception e) when (e is JsonException or JSException or NotSupportedException)
         {
@@ -85,7 +89,10 @@ public sealed class SpielzeitService : IDisposable
         }
     }
 
-    /// <summary>A 💣 task was solved - called before its points are added, so they carry over.</summary>
+    /// <summary>
+    ///     A 💣 task was solved - called after its points were added, so they fill the current bar
+    ///     at most; a payout always leaves the bar empty.
+    /// </summary>
     public void BombeGeloest()
     {
         var mauerWarDa = !_spielzeit.MauerWeg;
@@ -134,6 +141,8 @@ public sealed class SpielzeitService : IDisposable
 
     private void Gutgeschrieben(int fuellungen)
     {
+        if (fuellungen > 0)
+            OnGutschrift?.Invoke();
         for (var i = fuellungen - 1; i >= 0; i--)
             _telemetry.RecordSpielzeit(new SpielzeitEintrag(DateTime.Now, "Gutschrift", Spielzeit.MinutenProFuellung,
                 Fuellung: _spielzeit.Fuellungen - i));

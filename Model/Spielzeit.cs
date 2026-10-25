@@ -6,7 +6,7 @@ namespace Kidz2Learn.Model;
 ///     <see cref="Grundziel" /> + (n-1) * <see cref="Steigerung" /> points, so the day's count
 ///     (<see cref="Fuellungen" />) outlives reloads and Koop/solo alike. A full bar only pays out
 ///     once a 💣 task was solved during that fill: until then it stays full (the "wall") and further
-///     points are lost; after it, points past the target carry into the next fill.
+///     points are lost. After a payout the bar is empty - points past the target never carry over.
 /// </summary>
 /// <remarks>Pure state, no I/O - <c>SpielzeitService</c> persists and displays it.</remarks>
 public sealed class Spielzeit
@@ -48,7 +48,7 @@ public sealed class Spielzeit
     /// <summary>The bar is full and waits for a 💣 - the picker forces one.</summary>
     public bool BrauchtBombe => Punkte >= Ziel && !MauerWeg;
 
-    /// <summary>Adds (or, for a penalty, removes) points; returns how many fills got credited.</summary>
+    /// <summary>Adds (or, for a penalty, removes) points; returns 1 when that paid out a fill.</summary>
     public int AddPunkte(float punkte, DateOnly heute)
     {
         NeuerTag(heute);
@@ -56,7 +56,7 @@ public sealed class Spielzeit
         return Gutschreiben();
     }
 
-    /// <summary>A 💣 task was solved; returns how many fills got credited (the bar may already be full).</summary>
+    /// <summary>A 💣 task was solved; returns 1 when that paid out a fill (the bar was already full).</summary>
     public int BombeGeloest(DateOnly heute)
     {
         NeuerTag(heute);
@@ -66,23 +66,19 @@ public sealed class Spielzeit
 
     private int Gutschreiben()
     {
-        var gutgeschrieben = 0;
-        while (Punkte >= Ziel)
+        if (Punkte < Ziel)
+            return 0;
+        if (!MauerWeg)
         {
-            if (!MauerWeg)
-            {
-                Punkte = Ziel;
-                break;
-            }
-
-            Punkte -= Ziel;
-            Fuellungen++;
-            Minuten += MinutenProFuellung;
-            MauerWeg = false;
-            gutgeschrieben++;
+            Punkte = Ziel;
+            return 0;
         }
 
-        return gutgeschrieben;
+        Punkte = 0;
+        Fuellungen++;
+        Minuten += MinutenProFuellung;
+        MauerWeg = false;
+        return 1;
     }
 
     private void NeuerTag(DateOnly heute)
