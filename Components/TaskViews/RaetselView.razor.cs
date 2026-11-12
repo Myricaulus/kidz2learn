@@ -37,6 +37,10 @@ public partial class RaetselView : ComponentBase, ITaskView
     private int _correctCount;
     private int _wrongCount;
 
+    // This riddle's history as it stood when the child first picked, so wrong picks in this very
+    // round don't count toward it.
+    private double? _anteilRichtig;
+
     protected override void OnParametersSet()
     {
         if (ReferenceEquals(ChosenTask, _loadedForTask))
@@ -48,6 +52,7 @@ public partial class RaetselView : ComponentBase, ITaskView
         _solved = false;
         _feedbackText = null;
         _isProcessing = false;
+        _anteilRichtig = null;
     }
 
     private string OptionClass(string option)
@@ -69,6 +74,7 @@ public partial class RaetselView : ComponentBase, ITaskView
         var db = AufgabenDb["LeseAufgaben"] ?? throw new InvalidOperationException("LeseAufgaben store missing");
         var id = SilbenLog.GenId(_aufgabe.Richtig, Skill.ReadRiddle);
         var log = await db.GetItemAsync<SilbenLog>(id) ?? new SilbenLog { Id = id };
+        _anteilRichtig ??= RaetselPunkte.AnteilRichtig(log.Kompetenz);
         log.Wort = $"Rätsel: {_aufgabe.Richtig}";
         var detail = $"{string.Join(" ", _aufgabe.Hinweise)} | [{string.Join(", ", _aufgabe.Optionen)}] → {option}";
         var daten = new BeobachtungsDaten(_aufgabe.Richtig, option, _aufgabe.Optionen,
@@ -81,8 +87,8 @@ public partial class RaetselView : ComponentBase, ITaskView
             _feedbackText = "Richtig!";
             log.Falsch = _wrongPicks.Count;
             log.Kompetenz.AddRichtig();
-            // Half points after a wrong pick.
-            var points = LesePunkte.ForText([.. _aufgabe.Hinweise]) / (_wrongPicks.Count > 0 ? 2 : 1);
+            var points = RaetselPunkte.Berechne(ChosenTask.Level, _aufgabe.Hinweise, _anteilRichtig.Value,
+                _wrongPicks.Count > 0);
             await Session.RecordSuccess(ChosenTask, log.Kompetenz, points, points, detail, daten);
             StateHasChanged();
 

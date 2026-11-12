@@ -508,3 +508,51 @@ public class SpiegelbuchstabenTests
         Assert.InRange(eng, 150, 250);
     }
 }
+
+public class RaetselPunkteTests
+{
+    private static readonly string[] Brot =
+        ["Man kann mich essen.", "Der Bäcker backt mich.", "Man schmiert Butter auf mich."];
+
+    [Fact]
+    public void Level1_PaysOnlyTheFirstClue()
+    {
+        Assert.Equal(LesePunkte.ForText(Brot[0]), RaetselPunkte.Berechne(1, Brot, 0, false));
+    }
+
+    [Fact]
+    public void Level2_PaysAllCluesAtSchwerFaktor()
+    {
+        var erwartet = (int)Math.Round(LesePunkte.ForText(Brot) * RaetselPunkte.SchwerFaktor,
+            MidpointRounding.AwayFromZero);
+        Assert.Equal(erwartet, RaetselPunkte.Berechne(2, Brot, 0, false));
+    }
+
+    [Theory]
+    [InlineData(0.0, 6)]
+    [InlineData(0.5, 4)] // 6 * 0.75 = 4.5
+    [InlineData(1.0, 3)]
+    public void KnownRiddle_PaysLinearlyLess_DownToHalf(double anteil, int erwartet)
+    {
+        string[] lang = [string.Join(" ", Enumerable.Repeat("wort", 15))]; // 15 words -> 8, * 0.7 -> 6
+        Assert.Equal(erwartet, RaetselPunkte.Berechne(2, lang, anteil, false));
+    }
+
+    [Fact]
+    public void WrongPick_Halves_ButNeverBelowMin()
+    {
+        Assert.Equal(RaetselPunkte.Min, RaetselPunkte.Berechne(1, Brot, 1, true));
+    }
+
+    [Fact]
+    public void AnteilRichtig_IsShareOfTheWindow()
+    {
+        var k = new Kompetenzniveau();
+        Assert.Equal(0, RaetselPunkte.AnteilRichtig(k));
+        k.AddRichtig();
+        k.AddRichtig();
+        k.AddRichtig();
+        k.AddFalsch();
+        Assert.Equal(0.75, RaetselPunkte.AnteilRichtig(k));
+    }
+}

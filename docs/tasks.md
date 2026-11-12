@@ -92,7 +92,7 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   from general to specific (`Model/Lesen/Raetsel.cs`, hand-written). Level 1 takes its wrong options
   from other `RaetselBereich`s, so the first clue already decides (`Unpassend` lists cross-kind
   pairs a clue would still fit). Level 2 uses each riddle's hand-picked `Aehnliche`, which the first
-  clue fits too, so only the last clue decides. A wrong pick in W-Frage or Rätsel only greys that
+  clue fits too, so only the last clue decides. Points come from `RaetselPunkte`: level 1 pays only the first clue's words, level 2 all clues ×0.7; the riddle's share of correct answers in its last 20 attempts (`SilbenLog` per solution) lowers them linearly to 50 % at 100 %, a wrong pick halves them. A wrong pick in W-Frage or Rätsel only greys that
   option out - nothing in the text gets marked, so the answer still has to be read. In W-Frage it
   also costs points (`DifficultyInfo.Penalty`: -10 per wrong pick so far as in Silben, weighted ×1.5
   / ×0.5 / ×0.2 for 🎈 / 💪 / 💣) and makes the question word blink and play (once `wer`/`wo`/...
