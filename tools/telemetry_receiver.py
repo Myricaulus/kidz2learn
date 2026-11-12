@@ -28,6 +28,7 @@ import json
 import re
 import socket
 import ssl
+import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -37,6 +38,13 @@ SESSION_ID = re.compile(r"^[0-9A-Za-z-]{1,64}$")
 
 
 def make_handler(out_dir: Path, allowed: list, read_token_sha256: str | None):
+    # Session ids being written right now. A second send of the same session while the first is
+    # still being written is refused (409), so a session file only ever has one writer. Nothing
+    # gets lost: the app keeps the latest state of each session until it arrived and sends it
+    # again with the next answer.
+    writing: set[str] = set()
+    writing_lock = threading.Lock()
+
     class Handler(BaseHTTPRequestHandler):
         def _allowed(self) -> bool:
             if not allowed:
@@ -137,10 +145,19 @@ def make_handler(out_dir: Path, allowed: list, read_token_sha256: str | None):
                 return self._reply(400, "bad session id")
 
             session["receivedFrom"] = {"ip": self.client_address[0], "userAgent": self.headers.get("User-Agent")}
-            target = out_dir / f"{session_id}.json"
-            tmp = out_dir / f".{session_id}.tmp"
-            tmp.write_text(json.dumps(session, ensure_ascii=False, indent=2), encoding="utf-8")
-            tmp.replace(target)
+            with writing_lock:
+                if session_id in writing:
+                    print(f"{session_id}: already being written, send from {self.client_address[0]} refused", flush=True)
+                    return self._reply(409, "busy")
+                writing.add(session_id)
+            try:
+                target = out_dir / f"{session_id}.json"
+                tmp = out_dir / f".{session_id}.tmp"
+                tmp.write_text(json.dumps(session, ensure_ascii=False, indent=2), encoding="utf-8")
+                tmp.replace(target)
+            finally:
+                with writing_lock:
+                    writing.discard(session_id)
             print(f"{session_id}: {len(session.get('entries', []))} entries from {self.client_address[0]}", flush=True)
             self._reply(200, "ok")
 

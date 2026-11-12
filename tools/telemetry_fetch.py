@@ -70,10 +70,15 @@ def main() -> int:
 
     args.out.mkdir(parents=True, exist_ok=True)
     sessions = json.loads(call("GET", "/sessions"))
-    fetched = deleted = 0
+    fetched = deleted = broken = 0
     for s in sessions:
         body = call("GET", f"/sessions/{s['id']}")
-        json.loads(body)  # refuse to store (and later delete) anything that isn't valid JSON
+        try:
+            json.loads(body)  # refuse to store (and later delete) anything that isn't valid JSON
+        except ValueError as e:
+            broken += 1
+            print(f"{s['id']}: not valid JSON ({e}), skipped and kept on server", file=sys.stderr)
+            continue
         target = args.out / f"{s['id']}.json"
         tmp = target.with_suffix(".tmp")
         tmp.write_bytes(body)
@@ -88,8 +93,8 @@ def main() -> int:
         call("DELETE", f"/sessions/{s['id']}")
         deleted += 1
         print(f"{s['id']}: fetched, deleted on server")
-    print(f"{fetched} fetched, {deleted} deleted, saved in {args.out}")
-    return 0
+    print(f"{fetched} fetched, {deleted} deleted, {broken} broken, saved in {args.out}")
+    return 1 if broken else 0
 
 
 if __name__ == "__main__":

@@ -111,7 +111,7 @@ public sealed class SpielzeitService : IDisposable
         if (!await ((IJSRuntime)_js).InvokeAsync<bool>("k4l_zeitGeben", minuten))
             return false;
         SpielEingefroren = false;
-        _telemetry.RecordSpielzeit(new SpielzeitEintrag(DateTime.Now, "Auszahlung", minuten));
+        _telemetry.RecordSpielzeit(new SpielzeitEintrag(DateTime.Now, "Auszahlung", minuten), senden: false);
         Minuten = 0;
         await _telemetry.FlushAsync();
         return true;

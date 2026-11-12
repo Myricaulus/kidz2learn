@@ -84,11 +84,15 @@ public sealed class TelemetryService(IJSRuntime js, ScoreService score, Navigati
             _ = SendAsync(TaskSendTimeoutMs);
     }
 
-    public void RecordSpielzeit(SpielzeitEintrag eintrag)
+    /// <param name="senden">
+    ///     False when the caller sends the session itself right after (<see cref="FlushAsync" />), so
+    ///     the same session isn't posted twice at once.
+    /// </param>
+    public void RecordSpielzeit(SpielzeitEintrag eintrag, bool senden = true)
     {
         _spielzeit.Add(eintrag);
         Console.WriteLine($"[spielzeit] {eintrag}");
-        if (IsEnabled)
+        if (senden && IsEnabled)
             _ = SendAsync(TaskSendTimeoutMs);
     }
 
