@@ -10,10 +10,17 @@ word breaking a layout) can be reproduced directly by URL — in particular for 
 Chrome extension — instead of reloading the real page repeatedly until the adaptive picker happens
 to serve it.
 
-- `task=skill&skill=<id>[&level=<n>]` (`SkillDebugOverride`, any domain) forces the definition
-  that trains that skill, each task freshly generated - e.g.
-  `/debug/Lesedetektiv?task=skill&skill=read_mirror_letters&level=2&skipSplash=true&telemetrie=off`
-  (`telemetrie=off` keeps a test run out of the telemetry).
+- `task=skill&skill=<id>` (`SkillDebugOverride`, any domain) forces a definition that trains that
+  skill, each task freshly generated - e.g.
+  `/debug/Lesedetektiv?task=skill&skill=read_abc_sort&skipSplash=true&telemetrie=off`
+  (`telemetrie=off` keeps a test run out of the telemetry). While an override is active, answers
+  don't change mastery (`NurLesenderMasteryStore.FuerAufgaben` in `TaskHost` and
+  `TurboArithChallenge`); points and reading-profile observations still count. The debug bar then offers buttons for the skill's
+  levels ("Mix" = a random one each task, the default) and a mastery slider in 10 % steps whose
+  far right is "echt" (the device's real mastery, the default); a change re-creates the page for
+  a fresh task and writes `level=<n>` / `mastery=<percent>` into the URL, so a reload keeps it.
+  The forced task gets 🎈/💪/💣 relative to the page's pool like a normal pick, and the page's
+  filler tasks (`FillerSkills`) pause while an override is active.
 - `layout=touch` / `layout=desktop` (any page) forces `MainLayout`'s touch or desktop layout,
   which otherwise follows the device's primary pointer (`pointer: coarse` = tablet/phone). The
   touch layout keeps menu (with SID player and GitHub) and Live Logger in drawers that slide over

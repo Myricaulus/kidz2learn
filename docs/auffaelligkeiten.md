@@ -52,7 +52,9 @@ Erledigtes löschen statt abhaken.
   `Choose` einen Parameter `mastery` (die der ersten Skill-Gruppe) bekommen, den alle anderen
   Definitionen ignorieren. Ein Kontextobjekt (`AuswahlKontext` mit rng, Schwierigkeit, Mastery,
   Stufen über der leichtesten) wäre beim nächsten Parameter die sauberere Form.
-- **Debug-Pfad immer `Difficulty.Normal`.** Ein erzwungenes Level 3 zeigt 🎈 und zahlt
-  Normal-Punkte; Smoke-Tests sehen dadurch nicht, wie die Aufgabe im echten Mix aussieht.
+- **Wortqualität im Silbenhammer-Katalog.** Er kommt aus Untertiteln: Namen und Tippfehler rutschen
+  durch ("pete"; "Lhrer" und "Karen" stehen schon auf der Sperrliste). ABC-Sortieren zieht aus der
+  Stufe `Grundschule` und zeigt sie dem Kind. Eine Prüfung gegen ein Wörterbuch (z. B. hunspell
+  de_DE) im Generator würde das systematisch fangen.
 - **Strafen uneinheitlich.** Suchraster zieht Punkte ab, W-Frage über `DifficultyInfo.Penalty`,
   Quatsch/Rätsel/ABC kosten nichts. `docs/tasks.md` beschreibt es, eine Regel dahinter fehlt.

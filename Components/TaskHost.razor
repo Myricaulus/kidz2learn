@@ -72,10 +72,13 @@ else if (_wartetAufTon)
         if (_chosen is not null && erledigt)
             _lang.Erledigt(_chosen.Definition, DateTime.Now - _shown);
 
-        var store = new SkillMasteryStore(AufgabenDb);
+        var store = NurLesenderMasteryStore.FuerAufgaben(AufgabenDb);
         var generator = new AdaptiveTaskGenerator(store, _rng);
         Func<BaseTaskDefinition, bool> playable = d => Audio.Available || !d.BrauchtTon;
-        var pool = FillerSkills is not null && _rng.NextDouble() < FillerChance ? FillerSkills : Skills;
+        // A forced debug task shouldn't be interrupted by fillers it can't force.
+        var pool = FillerSkills is not null && AdaptiveTaskGenerator.DebugOverride is null && _rng.NextDouble() < FillerChance
+            ? FillerSkills
+            : Skills;
         var bombe = Spielzeit.BrauchtBombe && !_bombeErzwungen;
         _bombeErzwungen = bombe;
         if (bombe)

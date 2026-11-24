@@ -408,3 +408,28 @@ public sealed class SkillMasteryStore(IndexedDb skillDb) : ISkillMasteryStore
             .Select(def => new SkillView(def, statesById.GetValueOrDefault(def.Id) ?? new SkillState { Id = def.Id }));
     }
 }
+
+/// <summary>
+///     Reads mastery like the store it wraps but never changes it: answers given while a debug
+///     override forces tasks (<see cref="AdaptiveTaskGenerator.DebugOverride" />) leave the
+///     learner's mastery alone.
+/// </summary>
+public sealed class NurLesenderMasteryStore(ISkillMasteryStore inner) : ISkillMasteryStore
+{
+    /// <summary>The store to pick and score tasks with: read-only while a debug override is active.</summary>
+    public static ISkillMasteryStore FuerAufgaben(IndexedDb db)
+    {
+        var store = new SkillMasteryStore(db);
+        return AdaptiveTaskGenerator.DebugOverride is null ? store : new NurLesenderMasteryStore(store);
+    }
+
+    public async Task<MasteryChange> Adjust(string skillId, Difficulty difficulty, int timeMs,
+        Kompetenzniveau specificTaskHistory, bool success, float weight)
+    {
+        var mastery = (await inner.GetSkillViewEnumerableAsync())
+            .FirstOrDefault(v => v.State.Id == skillId)?.State.Mastery ?? 0f;
+        return new MasteryChange(mastery, mastery);
+    }
+
+    public Task<IEnumerable<SkillView>> GetSkillViewEnumerableAsync() => inner.GetSkillViewEnumerableAsync();
+}

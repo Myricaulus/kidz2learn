@@ -231,11 +231,13 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
         var masteryBySkill = (await store.GetSkillViewEnumerableAsync())
             .ToDictionary(sv => sv.State.Id, sv => sv.State.Mastery);
 
-        if (DebugOverride?.TryForce(candidates) is { } forced)
-            return forced.Choose(rng, Difficulty.Normal, store, 0, masteryBySkill.GetValueOrDefault(forced.Skills[0], 0f));
-
         // 🎈/💪/💣 stay relative to the whole pool, before anything is left out for now.
         var easiestDifficulty = candidates.Min(c => c.DifficultyLevel);
+
+        if (DebugOverride?.TryForce(candidates) is { } forced)
+            return forced.Choose(rng, PoolDifficulty(forced.DifficultyLevel, easiestDifficulty, bombe), store,
+                forced.DifficultyLevel - easiestDifficulty,
+                DebugOverride.Mastery ?? masteryBySkill.GetValueOrDefault(forced.Skills[0], 0f));
 
         // A harder variant only once its group's skill is far enough along.
         var unlocked = candidates
@@ -267,16 +269,8 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
             .ToList();
 
         var chosen = InvertedWeightedPick(weighted);
-        // Relative to the whole pool, not the group: a level-3 word problem stays a 💣 on the Lesedetektiv.
-        var difficulty = chosen.DifficultyLevel switch
-        {
-            _ when bombe => Difficulty.Extreme,
-            var x when x == easiestDifficulty => Difficulty.Normal,
-            var x when x == easiestDifficulty + 1 => Difficulty.Hard,
-            _ => Difficulty.Extreme
-        };
-
-        return chosen.Choose(rng, difficulty, store, chosen.DifficultyLevel - easiestDifficulty,
+        return chosen.Choose(rng, PoolDifficulty(chosen.DifficultyLevel, easiestDifficulty, bombe), store,
+            chosen.DifficultyLevel - easiestDifficulty,
             masteryBySkill.GetValueOrDefault(chosen.Skills[0], 0f));
     }
 
@@ -284,6 +278,15 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
     ///     A task is exactly as "needed" as the least-mastered skill it trains, so we key the
     ///     weighting off the minimum, not the average.
     /// </summary>
+    /// <summary>Relative to the whole pool, not the group: a level-3 word problem stays a 💣 on the Lesedetektiv.</summary>
+    private static Difficulty PoolDifficulty(int level, int easiestLevel, bool bombe) => level switch
+    {
+        _ when bombe => Difficulty.Extreme,
+        var x when x == easiestLevel => Difficulty.Normal,
+        var x when x == easiestLevel + 1 => Difficulty.Hard,
+        _ => Difficulty.Extreme
+    };
+
     private static float WeakestSkillMastery(BaseTaskDefinition def, IReadOnlyDictionary<string, float> masteryBySkill)
     {
         return def.Skills

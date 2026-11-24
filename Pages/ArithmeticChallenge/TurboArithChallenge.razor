@@ -208,7 +208,7 @@
         _blockTotal = 0;
         _blockCorrect = 0;
 
-        var store = new SkillMasteryStore(AufgabenDb);
+        var store = NurLesenderMasteryStore.FuerAufgaben(AufgabenDb);
         var adaptiveTask = new AdaptiveTaskGenerator(store, _rng);
 
         _currentTaskDef =

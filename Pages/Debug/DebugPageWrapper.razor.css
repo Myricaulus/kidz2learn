@@ -1,0 +1,48 @@
+.k4l-debug-banner {
+    background: #ffcc00;
+    color: #000;
+    font-family: monospace;
+    font-size: 0.85rem;
+    padding: 4px 10px;
+    text-align: center;
+    word-break: break-all;
+}
+
+.k4l-debug-error {
+    background: #ff4d4d;
+    color: #fff;
+}
+
+.k4l-debug-steuerung {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 4px;
+    word-break: normal;
+}
+
+.k4l-debug-steuerung button {
+    font-family: monospace;
+    min-width: 2.4em;
+    padding: 2px 8px;
+    border: 1px solid #000;
+    border-radius: 4px;
+    background: #fff3b0;
+    cursor: pointer;
+}
+
+.k4l-debug-steuerung button.k4l-debug-aktiv {
+    background: #000;
+    color: #ffcc00;
+}
+
+.k4l-debug-abstand {
+    margin-left: 12px;
+}
+
+.k4l-debug-wert {
+    min-width: 3.5em;
+    text-align: left;
+}

@@ -66,6 +66,29 @@ public class SkillDebugOverrideTests
     }
 
     [Fact]
+    public void WithoutLevel_MixesAllLevelsOfThatSkill()
+    {
+        var mix = new SkillDebugOverride("read_abc_sort", null);
+
+        var levels = Enumerable.Range(0, 200).Select(_ => mix.TryForce(TaskRegistry.All)!.DifficultyLevel).ToHashSet();
+
+        Assert.Equal([1, 2, 3], levels.Order());
+    }
+
+    [Theory]
+    [InlineData("40", 0.4f)]
+    [InlineData("250", 1f)]
+    [InlineData(null, null)]
+    public void Build_TakesMasteryInPercent_NullMeansTheRealOne(string? prozent, float? erwartet)
+    {
+        var query = new Dictionary<string, string> { ["task"] = "skill", ["skill"] = "read_abc_sort" };
+        if (prozent is not null)
+            query["mastery"] = prozent;
+
+        Assert.Equal(erwartet, TaskDebugOverrideRegistry.Build("skill", query)!.Mastery);
+    }
+
+    [Fact]
     public void TryForce_WithoutThatSkillAmongTheCandidates_LeavesThePickAlone()
     {
         var forced = new SkillDebugOverride("read_mirror_letters", null).TryForce(SilbenTaskRegistry.All);

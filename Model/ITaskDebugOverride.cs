@@ -15,4 +15,7 @@ public interface ITaskDebugOverride
     ///     given <paramref name="candidates" />, or <c>null</c> to fall back to the normal pick.
     /// </summary>
     T? TryForce<T>(IReadOnlyCollection<T> candidates) where T : BaseTaskDefinition;
+
+    /// <summary>Mastery (0..1) the forced task is generated with instead of the device's real one; null = real.</summary>
+    float? Mastery => null;
 }

@@ -1,0 +1,153 @@
+@page "/debug/{PageName}"
+@using Kidz2Learn.Model
+@using Kidz2Learn.Model.Tasks
+@using Microsoft.AspNetCore.WebUtilities
+@implements IDisposable
+@inject NavigationManager Navigation
+
+@* Generic debug wrapper: embeds any existing page/component by name (route segment) and,
+   if a "task" query param names a registered domain (see TaskDebugOverrideRegistry), forces
+   that domain's task chooser onto the values from the rest of the query string instead of the
+   normal adaptive pick. The wrapped page's own code is never touched.
+
+   Example: /debug/SilbenChallenge?task=silben&word=Sonnensystem&skill=read_precise&skipSplash=true *@
+
+@if (_error is not null)
+{
+    <div class="k4l-debug-banner k4l-debug-error">@_error</div>
+}
+else
+{
+    @if (_debugParams.Count > 0)
+    {
+        <div class="k4l-debug-banner">
+            DEBUG page=@PageName @string.Join(" ", _debugParams.Select(kv => $"{kv.Key}={kv.Value}"))
+            @if (SkillLevels is { Count: > 0 } levels)
+            {
+                @* Level and mastery are picked here; the URL follows so a reload keeps them. *@
+                <div class="k4l-debug-steuerung">
+                    <span>Stufe:</span>
+                    <button class="@(_level is null ? "k4l-debug-aktiv" : "")" @onclick="() => SetLevel(null)">Mix</button>
+                    @foreach (var level in levels)
+                    {
+                        <button class="@(_level == level ? "k4l-debug-aktiv" : "")" @onclick="() => SetLevel(level)">@level</button>
+                    }
+                    <span class="k4l-debug-abstand">Mastery:</span>
+                    <input type="range" min="0" max="@EchtSchritt" step="1" value="@MasterySchritt"
+                           @onchange="SetMastery" aria-label="Mastery"/>
+                    <span class="k4l-debug-wert">@(_masteryProzent is { } p ? $"{p} %" : "echt")</span>
+                </div>
+            }
+        </div>
+    }
+
+    <DynamicComponent @key="_version" Type="_pageType!" />
+}
+
+@code {
+    [Parameter] public string PageName { get; set; } = "";
+
+    private Type? _pageType;
+    private string? _error;
+    private Dictionary<string, string> _debugParams = new();
+
+    /// <summary>Slider steps are 10 % each; the step right of 100 % means the device's real mastery.</summary>
+    private const int EchtSchritt = 11;
+
+    private int? _level;
+    private int? _masteryProzent;
+
+    /// <summary>Bumped to re-create the wrapped page, so it picks a fresh task with the new settings.</summary>
+    private int _version;
+
+    private int MasterySchritt => _masteryProzent is { } p ? p / 10 : EchtSchritt;
+
+    /// <summary>Levels the forced skill offers on a registered view; null without <c>task=skill</c>.</summary>
+    private IReadOnlyList<int>? SkillLevels =>
+        _debugParams.GetValueOrDefault("task") == "skill" && _debugParams.GetValueOrDefault("skill") is { } skill
+            ? TaskRegistry.All.Where(d => d.Skills.Contains(skill) && TaskPresentationRegistry.IsRegistered(d.View))
+                .Select(d => d.DifficultyLevel).Distinct().Order().ToList()
+            : null;
+
+    protected override void OnParametersSet()
+    {
+        _pageType = ResolvePageType(PageName);
+        if (_pageType is null)
+        {
+            _error = $"Keine Komponente namens '{PageName}' gefunden.";
+            AdaptiveTaskGenerator.DebugOverride = null;
+            return;
+        }
+
+        var query = QueryHelpers.ParseQuery(Navigation.ToAbsoluteUri(Navigation.Uri).Query)
+            .Where(kv => kv.Key != "skipSplash")
+            .ToDictionary(kv => kv.Key, kv => kv.Value.ToString(), StringComparer.OrdinalIgnoreCase);
+
+        _level = query.TryGetValue("level", out var level) && int.TryParse(level, out var l) ? l : null;
+        _masteryProzent = query.TryGetValue("mastery", out var mastery) && int.TryParse(mastery, out var m)
+            ? Math.Clamp(m, 0, 100)
+            : null;
+
+        if (query.TryGetValue("task", out var kind))
+        {
+            _debugParams = query;
+            AdaptiveTaskGenerator.DebugOverride = TaskDebugOverrideRegistry.Build(kind, query);
+            _error = AdaptiveTaskGenerator.DebugOverride is null
+                ? $"Kein Debug-Override für task='{kind}' registriert (bekannt: {string.Join(", ", TaskDebugOverrideRegistry.Kinds)})."
+                : null;
+        }
+        else
+        {
+            _debugParams = [];
+            AdaptiveTaskGenerator.DebugOverride = null;
+        }
+    }
+
+    private void SetLevel(int? level)
+    {
+        _level = level;
+        Uebernehmen();
+    }
+
+    private void SetMastery(ChangeEventArgs e)
+    {
+        var schritt = int.TryParse(e.Value?.ToString(), out var s) ? s : EchtSchritt;
+        _masteryProzent = schritt >= EchtSchritt ? null : schritt * 10;
+        Uebernehmen();
+    }
+
+    /// <summary>New override from the picked level/mastery, a fresh task, and the URL to match.</summary>
+    private void Uebernehmen()
+    {
+        SetOrRemove("level", _level?.ToString());
+        SetOrRemove("mastery", _masteryProzent?.ToString());
+        AdaptiveTaskGenerator.DebugOverride = TaskDebugOverrideRegistry.Build(_debugParams["task"], _debugParams);
+        _version++;
+        Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            ["level"] = _level,
+            ["mastery"] = _masteryProzent
+        }), replace: true);
+    }
+
+    private void SetOrRemove(string key, string? value)
+    {
+        if (value is null)
+            _debugParams.Remove(key);
+        else
+            _debugParams[key] = value;
+    }
+
+    private static Type? ResolvePageType(string name)
+    {
+        return typeof(App).Assembly.GetTypes().FirstOrDefault(t =>
+            t is { IsClass: true, IsAbstract: false } &&
+            typeof(IComponent).IsAssignableFrom(t) &&
+            string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public void Dispose()
+    {
+        AdaptiveTaskGenerator.DebugOverride = null;
+    }
+}

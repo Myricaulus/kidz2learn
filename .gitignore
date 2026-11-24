@@ -10,6 +10,8 @@
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
+# The debug page (/debug/...) is source, not build output.
+!Pages/Debug/
 [Rr]elease/
 [Rr]eleases/
 x64/
