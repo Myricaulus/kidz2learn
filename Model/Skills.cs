@@ -17,6 +17,7 @@ public static class Skill
     public const string ReadNouns = "read_nouns";
     public const string ReadMirrorLetters = "read_mirror_letters";
     public const string ReadStoryMath = "read_story_math";
+    public const string ReadAbcSort = "read_abc_sort";
 
     public static class Math
     {
@@ -186,6 +187,14 @@ public static class SkillRegistry
             {
                 Id = Skill.ReadMirrorLetters, Domain = TaskDomain.Reading, Category = "phonetics", Difficulty = 2,
                 DisplayName = "Spiegelbuchstaben"
+            }
+        },
+        {
+            Skill.ReadAbcSort,
+            new SkillDefinition
+            {
+                Id = Skill.ReadAbcSort, Domain = TaskDomain.Reading, Category = "spelling", Difficulty = 2,
+                DisplayName = "ABC-Sortieren"
             }
         },
         {

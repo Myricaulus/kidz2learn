@@ -6,9 +6,9 @@ namespace Kidz2Learn.Model.Tasks;
 /// <summary>
 ///     Sentence-level reading comprehension ("Lesedetektiv"): judging whether a sentence makes
 ///     sense, answering W-questions about a single sentence, "Wer bin ich?" riddles, and search
-///     grids (nouns among words, one mirror letter among b/d/p/q). Content lives in
+///     grids (nouns among words, one mirror letter among b/d/p/q) and putting words in ABC order. Content lives in
 ///     <see cref="QuatschSaetze" /> / <see cref="WFragen" /> / <see cref="RaetselSammlung" /> /
-///     <see cref="NomenSammlung" /> / <see cref="Spiegelbuchstaben" />.
+///     <see cref="NomenSammlung" /> / <see cref="Spiegelbuchstaben" /> / <see cref="AbcSortieren" />.
 /// </summary>
 public static class LeseVerstehenTaskRegistry
 {
@@ -124,8 +124,21 @@ public static class LeseVerstehenTaskRegistry
         }
     ];
 
+    private static readonly List<AbcSortierTaskDefinition> AbcDefs =
+    [
+        .. from stufe in new[] { 1, 2, 3 }
+            select new AbcSortierTaskDefinition
+            {
+                Skills = [Skill.ReadAbcSort],
+                DifficultyLevel = stufe,
+                View = "abc-sortieren",
+                Generator = (rng, mastery) => AbcSortieren.Generate(stufe, mastery, rng)
+            }
+    ];
+
     public static IReadOnlyList<QuatschTaskDefinition> Quatsch => QuatschDefs;
     public static IReadOnlyList<WFrageTaskDefinition> WFrage => WFrageDefs;
     public static IReadOnlyList<RaetselTaskDefinition> Raetsel => RaetselDefs;
     public static IReadOnlyList<SuchRasterTaskDefinition> SuchRaster => SuchRasterDefs;
+    public static IReadOnlyList<AbcSortierTaskDefinition> Abc => AbcDefs;
 }

@@ -74,3 +74,4 @@ uv sync                          # Python tooling (WaveSplit/, tools/), needs Py
 | `docs/recording-pipeline.md` | recording new words, `WordMeta.g.cs`, asset manifests, SID song lengths |
 | `LESE_MERKMALE.md` | the reading profile's design (M1-M17, statistics), German |
 | `TASK_PRESENTATION_REDESIGN.md` | why TaskHost looks the way it does (history) |
+| `docs/auffaelligkeiten.md` | cleaning up: known duplicates, stale comments, design oddities (German); add what you notice |

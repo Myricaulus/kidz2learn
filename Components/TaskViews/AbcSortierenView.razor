@@ -1,0 +1,44 @@
+@using Kidz2Learn.Model
+<div class="abc-container">
+    <h2 class="abc-titel">Sortiere die Wörter nach dem ABC!</h2>
+    @if (ChosenTask.Difficulty == Difficulty.Extreme)
+    {
+        @* Bomb words are close enough that one is often the start of another. *@
+        <div class="abc-tipp">💡 Kürzere zuerst: „leb“ kommt vor „leben“</div>
+    }
+    <div class="abc-liste @(_phase != Phase.Sortieren ? "abc-gesperrt" : "") @(_reihenfolge.Count >= 6 ? "abc-viele" : "")" @ref="_liste">
+        @for (var i = 0; i < _reihenfolge.Count; i++)
+        {
+            var wort = _reihenfolge[i];
+            <div @key="wort" class="abc-karte @KartenClass(wort, i)">
+                <span class="abc-griff" aria-hidden="true">⠿</span>
+                @if (_phase == Phase.Aufloesung)
+                {
+                    var markiert = _aufgabe.Markierung(wort);
+                    <span class="abc-wort">
+                        @for (var b = 0; b < wort.Length; b++)
+                        {
+                            <span class="@(markiert.Contains(b) ? "abc-buchstabe-wichtig" : "")">@wort[b]</span>
+                        }
+                    </span>
+                }
+                else
+                {
+                    <span class="abc-wort">@wort</span>
+                }
+            </div>
+        }
+    </div>
+    @if (_phase == Phase.Sortieren)
+    {
+        <button class="abc-knopf" @onclick="Pruefen">Prüfen</button>
+    }
+    @if (_feedbackText is not null)
+    {
+        <div class="abc-feedback @(_phase == Phase.Geloest ? "abc-feedback-richtig" : "abc-feedback-falsch")">@_feedbackText</div>
+    }
+    <div class="abc-fortschritt">
+        <span>Richtig: @_correctCount</span>
+        <span>Fehler: @_wrongCount</span>
+    </div>
+</div>

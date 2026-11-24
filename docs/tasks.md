@@ -113,6 +113,25 @@ Most challenge routes (`/` = `Lesedetektiv`, `/silben` = `SilbenChallenge`, `/gr
   solved for mastery). After a hand-in with mistakes they light up for 1.5 s and the child fixes
   them: "Weiter" unlocks once everything is right or after 10 s; pressing it with mistakes left
   marks them for good, and the grid still has to be fixed before going on.
+  `AbcSortierenView` (`"abc-sortieren"`, skill `read_abc_sort`, "ABC-Sortieren") is the third kind
+  of task there: put word cards into ABC order by dragging them (pointer events in
+  `k4l_sortierListe`, `wwwroot/js/interop.js` - mouse and touch alike; the DOM order stays Blazor's,
+  JS only moves cards with transforms) or by tapping two cards to swap them, then "Prüfen".
+  `Model/Lesen/AbcSortieren.cs` draws the words from the Lese-Turbo real words plus the
+  `Grundschule` tier of the Silbenhammer catalog (2-10 letters, no ß, no umlaut first; order
+  ignores case, ä/ö/ü sort as a/o/u). Level 1: 4 words, all first letters different; level 2: 4
+  words, at least two share a first letter, otherwise random; level 3: 5 words from the Levenshtein
+  neighbourhood of a random seed word (catalog sorted by distance to the seed, the rest drawn from
+  the nearest N). The skill's mastery adds a word per level and shrinks N at every level
+  (`ZusatzFuer`/`NachbarnFuer`: +1/+2/+3 words from 40/60/80 %, N = 80/40/20/12; level 1/2 draw at
+  random below 40 %) - that's why `BaseTaskDefinition.Choose` gets the group skill's mastery. As a
+  💣 it shows the rule a child can't know: "Kürzere zuerst" (leb < leben). If a
+  level's rule can't be met in the neighbourhood, N doubles (best effort). Two tries: the first
+  wrong check only says "Falsch, letzter Versuch" (no hint), the second shows for 5 s which cards
+  sit wrong (red/green) with the deciding letters against each correct neighbour underlined in
+  blue, then moves on. 2 points per word on the first try, half on the second, wrong checks cost
+  nothing; every check is a scored attempt with `AbcSortieren.Beobachtung` (orders, deciding
+  letter per pair, moves, time to the first move).
   Points scale with word count (`LesePunkte`, calibrated to a 5-10 min session to the reward), and
   apart from the search grid and W-Frage wrong answers cost nothing. The old Silben
   tasks are mixed in via `TaskHost`'s `FillerSkills`/`FillerChance` (fixed ~1-in-8 rate, independent of

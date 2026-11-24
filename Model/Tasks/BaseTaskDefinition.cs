@@ -33,8 +33,9 @@ public abstract class BaseTaskDefinition
     ///     matching how pages call <c>Generator(rng)</c> with their own rng today.
     /// </summary>
     /// <param name="levelsAboveEasiest">How far <see cref="DifficultyLevel" /> lies above the pool's easiest level.</param>
+    /// <param name="mastery">Current mastery of the definition's first skill (its group), 0..1.</param>
     internal abstract IChosenTask Choose(Random rng, Difficulty difficulty, ISkillMasteryStore store,
-        int levelsAboveEasiest);
+        int levelsAboveEasiest, float mastery);
 
     /// <summary>
     ///     Runs for a fixed time (the Turbo rounds), so it always counts as long in

@@ -7,7 +7,7 @@ public sealed class SuchRasterTaskDefinition : BaseTaskDefinition
     public required Func<Random, SuchRaster> Generator { get; init; }
 
     internal override IChosenTask Choose(Random rng, Difficulty difficulty, ISkillMasteryStore store,
-        int levelsAboveEasiest)
+        int levelsAboveEasiest, float mastery)
     {
         return new LearningTask<SuchRasterTaskDefinition>(this, Generator(rng), difficulty, store,
             levelsAboveEasiest);

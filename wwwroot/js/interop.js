@@ -305,3 +305,87 @@ window.k4l_spielzeitStart = function (dotnetRef) {
     console.log("%cHallo Hacker 👋", "font-size:20px;font-weight:bold;color:#2e7d32");
     console.log("Versuch mal: k4l.zeit(30)");
 };
+
+// Drag-to-reorder for a vertical list of ".abc-karte" cards (ABC-Sortieren), with pointer events
+// so mouse, pen and touch work alike. The dragged card follows the pointer, the others slide
+// aside; on release .NET gets Verschoben(from, to), or Angetippt(index) for a tap without movement.
+// The DOM order itself stays Blazor's: transforms only, cleared once .NET has re-rendered.
+window.k4l_sortierListe = function (liste, dotnetRef) {
+    var drag = null;
+    var SCHWELLE = 6;
+
+    function down(e) {
+        var karte = e.target.closest(".abc-karte");
+        if (!karte || !liste.contains(karte) || liste.classList.contains("abc-gesperrt") || e.button > 0) return;
+        e.preventDefault();
+        var alle = Array.prototype.slice.call(liste.querySelectorAll(".abc-karte"));
+        var rects = alle.map(function (k) { return k.getBoundingClientRect(); });
+        var start = alle.indexOf(karte);
+        var schritt = alle.length > 1 ? rects[1].top - rects[0].top : rects[0].height;
+        drag = { karte: karte, alle: alle, rects: rects, start: start, ziel: start, schritt: schritt,
+                 x0: e.clientX, y0: e.clientY, id: e.pointerId, bewegt: false };
+        karte.setPointerCapture(e.pointerId);
+    }
+
+    function move(e) {
+        if (!drag || e.pointerId !== drag.id) return;
+        var dy = e.clientY - drag.y0;
+        if (!drag.bewegt && Math.abs(dy) < SCHWELLE && Math.abs(e.clientX - drag.x0) < SCHWELLE) return;
+        drag.bewegt = true;
+        drag.karte.classList.add("abc-ziehen");
+        drag.karte.style.transform = "translateY(" + dy + "px)";
+
+        // A card gives way once the dragged card's leading edge (top going up, bottom going down)
+        // passes its middle - half a step, not a whole one.
+        var r = drag.rects[drag.start];
+        var oben = r.top + dy;
+        var unten = r.bottom + dy;
+        var ziel = drag.start;
+        drag.rects.forEach(function (q, i) {
+            var mitte = (q.top + q.bottom) / 2;
+            if (i < drag.start && oben < mitte) ziel--;
+            if (i > drag.start && unten > mitte) ziel++;
+        });
+        drag.ziel = ziel;
+        drag.alle.forEach(function (k, i) {
+            if (i === drag.start) return;
+            var verschiebung = 0;
+            if (drag.start < ziel && i > drag.start && i <= ziel) verschiebung = -drag.schritt;
+            if (drag.start > ziel && i >= ziel && i < drag.start) verschiebung = drag.schritt;
+            k.style.transform = verschiebung ? "translateY(" + verschiebung + "px)" : "";
+        });
+    }
+
+    function zuruecksetzen(d) {
+        d.alle.forEach(function (k) { k.style.transform = ""; k.classList.remove("abc-ziehen"); });
+        requestAnimationFrame(function () { liste.classList.remove("abc-ruhe"); });
+    }
+
+    function up(e, abgebrochen) {
+        if (!drag || e.pointerId !== drag.id) return;
+        var d = drag;
+        drag = null;
+        // No slide animation while the cards jump to their new DOM places.
+        liste.classList.add("abc-ruhe");
+        var fertig = Promise.resolve();
+        if (!abgebrochen && !d.bewegt) fertig = dotnetRef.invokeMethodAsync("Angetippt", d.start);
+        else if (!abgebrochen && d.ziel !== d.start) fertig = dotnetRef.invokeMethodAsync("Verschoben", d.start, d.ziel);
+        fertig.catch(function () { }).then(function () { zuruecksetzen(d); });
+    }
+
+    function hoch(e) { up(e, false); }
+    function abbruch(e) { up(e, true); }
+
+    liste.addEventListener("pointerdown", down);
+    liste.addEventListener("pointermove", move);
+    liste.addEventListener("pointerup", hoch);
+    liste.addEventListener("pointercancel", abbruch);
+    return {
+        dispose: function () {
+            liste.removeEventListener("pointerdown", down);
+            liste.removeEventListener("pointermove", move);
+            liste.removeEventListener("pointerup", hoch);
+            liste.removeEventListener("pointercancel", abbruch);
+        }
+    };
+};

@@ -228,11 +228,11 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
             throw new InvalidOperationException(
                 $"No tasks match skills [{string.Join(", ", skills ?? [])}].");
 
-        if (DebugOverride?.TryForce(candidates) is { } forced)
-            return forced.Choose(rng, Difficulty.Normal, store, 0);
-
         var masteryBySkill = (await store.GetSkillViewEnumerableAsync())
             .ToDictionary(sv => sv.State.Id, sv => sv.State.Mastery);
+
+        if (DebugOverride?.TryForce(candidates) is { } forced)
+            return forced.Choose(rng, Difficulty.Normal, store, 0, masteryBySkill.GetValueOrDefault(forced.Skills[0], 0f));
 
         // 🎈/💪/💣 stay relative to the whole pool, before anything is left out for now.
         var easiestDifficulty = candidates.Min(c => c.DifficultyLevel);
@@ -276,7 +276,8 @@ public sealed class AdaptiveTaskGenerator(ISkillMasteryStore store, Random rng)
             _ => Difficulty.Extreme
         };
 
-        return chosen.Choose(rng, difficulty, store, chosen.DifficultyLevel - easiestDifficulty);
+        return chosen.Choose(rng, difficulty, store, chosen.DifficultyLevel - easiestDifficulty,
+            masteryBySkill.GetValueOrDefault(chosen.Skills[0], 0f));
     }
 
     /// <summary>

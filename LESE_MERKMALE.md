@@ -93,6 +93,12 @@ echte Wörter, halb mit gleichem, halb mit anderem Umriss (`LeseTurboWords.Verta
 `VertauschtAnders`, höchstens 3 pro vertauschtem Buchstabenpaar, damit das Kind kein Muster wie
 "tn" lernt).
 
+ABC-Sortieren (`read_abc_sort`) speist noch kein Merkmal, nur die allgemeinen (Raten, Ermüdung,
+Frust). Die Beobachtung hält aber pro Nachbarpaar fest, an welchem Buchstaben sich die
+Reihenfolge entscheidet (`entscheidung`), und welche Wörter falsch lagen. Damit ließe sich später
+vergleichen: Fehler, wenn der 1. Buchstabe entscheidet, gegen Fehler, wenn erst der 2./3.
+entscheidet - ein Kind, das nur den Wortanfang ansieht, scheitert vor allem an Letzterem.
+
 ## Bekanntes aus der Zeit vor den Beobachtungen
 
 Nicht in der App, aber als Kontext: mi/im wurde 2025-11 beim Hören/Sprechen verwechselt, beim

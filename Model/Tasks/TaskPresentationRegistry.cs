@@ -23,6 +23,7 @@ public static class TaskPresentationRegistry
         Register("such-raster", typeof(SuchRasterView));
         Register("turbo-runde", typeof(TurboRundeView));
         Register("lese-turbo", typeof(LeseTurboView));
+        Register("abc-sortieren", typeof(AbcSortierenView));
     }
 
     public static void Register(string view, Type componentType)

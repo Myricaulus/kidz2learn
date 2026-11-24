@@ -15,7 +15,7 @@ public class TaskRegistryTests
         Assert.Equal(
             TaskRegistry.AllArith.Count + TaskRegistry.AllSilben.Count + TaskRegistry.AllEvents.Count +
             TaskRegistry.AllQuatsch.Count + TaskRegistry.AllWFrage.Count + TaskRegistry.AllRaetsel.Count +
-            TaskRegistry.AllSuchRaster.Count,
+            TaskRegistry.AllSuchRaster.Count + TaskRegistry.AllAbc.Count,
             TaskRegistry.All.Count);
     }
 
