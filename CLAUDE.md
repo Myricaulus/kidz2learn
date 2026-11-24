@@ -60,8 +60,8 @@ uv sync                          # Python tooling (WaveSplit/, tools/), needs Py
   has no recording yet goes into `WaveSplit/names.txt` (local, gitignored).
 - **Telemetry**: the endpoint never goes into the repo. Dev runs (environment `Development`) send to
   the parent's server; `telemetrie=off` in the URL keeps a run out of it.
-- **Debug**: `/debug/<Page>?task=skill&skill=<id>[&level=<n>]&skipSplash=true&telemetrie=off`
-  forces one kind of task.
+- **Debug**: `/debug` - a bar on top picks task, level and mastery; answers there change no mastery
+  and send no telemetry. `/debug/<Page>?task=skill&skill=<id>&skipSplash=true` links straight to one.
 
 ## More docs - read the one that fits the task
 

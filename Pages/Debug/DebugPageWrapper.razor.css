@@ -46,3 +46,14 @@
     min-width: 3.5em;
     text-align: left;
 }
+
+.k4l-debug-steuerung select {
+    font-family: monospace;
+    font-size: 0.85rem;
+    max-width: 16em;
+    padding: 1px 4px;
+    border: 1px solid #000;
+    border-radius: 4px;
+    background: #fff3b0;
+    color: #000;
+}

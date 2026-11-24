@@ -10,10 +10,15 @@ word breaking a layout) can be reproduced directly by URL — in particular for 
 Chrome extension — instead of reloading the real page repeatedly until the adaptive picker happens
 to serve it.
 
+- `/debug` alone is the entry: it shows the Deutsch-Mix with a debug bar whose dropdown picks any
+  skill a registered view trains (grouped Lesen/Mathe, "– normal –" = no override). Picking one
+  moves to that skill's domain mix (`DeutschMix`/`MatheMix`, the only pages sure to offer it) unless
+  already there.
+- A session that starts on a `/debug` page sends no telemetry unless `?telemetrie=` is given; the
+  device's own setting stays untouched (`TelemetryService.InitAsync(..., nurDieseSitzungAus)`).
 - `task=skill&skill=<id>` (`SkillDebugOverride`, any domain) forces a definition that trains that
   skill, each task freshly generated - e.g.
-  `/debug/Lesedetektiv?task=skill&skill=read_abc_sort&skipSplash=true&telemetrie=off`
-  (`telemetrie=off` keeps a test run out of the telemetry). While an override is active, answers
+  `/debug/Lesedetektiv?task=skill&skill=read_abc_sort&skipSplash=true`. While an override is active, answers
   don't change mastery (`NurLesenderMasteryStore.FuerAufgaben` in `TaskHost` and
   `TurboArithChallenge`); points and reading-profile observations still count. The debug bar then offers buttons for the skill's
   levels ("Mix" = a random one each task, the default) and a mastery slider in 10 % steps whose

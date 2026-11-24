@@ -404,11 +404,14 @@ else
 
         // Local dev runs (dotnet run/Rider, environment "Development") take their endpoint from the
         // gitignored wwwroot/appsettings.Development.json, so they always log without ?telemetrie=.
+        // A session that starts on a /debug page sends nothing unless ?telemetrie= says otherwise.
         query.TryGetValue("telemetrie", out var telemetrie);
         var telemetrieValue = telemetrie.ToString();
-        if (string.IsNullOrWhiteSpace(telemetrieValue))
+        var debugSitzung = Navigation.ToBaseRelativePath(Navigation.Uri)
+            .StartsWith("debug", StringComparison.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(telemetrieValue) && !debugSitzung)
             telemetrieValue = Configuration["Telemetrie"];
-        await Telemetry.InitAsync(telemetrieValue);
+        await Telemetry.InitAsync(telemetrieValue, nurDieseSitzungAus: debugSitzung);
         query.TryGetValue("spiele", out var spiele);
         Spielzeit.Init(spiele.ToString());
         Spielzeit.OnChange += HandleSpielzeitChanged;

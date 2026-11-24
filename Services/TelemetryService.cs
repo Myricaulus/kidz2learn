@@ -58,8 +58,18 @@ public sealed class TelemetryService(IJSRuntime js, ScoreService score, Navigati
     private bool? _enabled;
 
     /// <summary>Applies the <c>telemetrie</c> query parameter, if present, and retries pending sessions.</summary>
-    public async Task InitAsync(string? queryValue)
+    /// <param name="nurDieseSitzungAus">
+    ///     Debug pages: send nothing in this session, without touching the device's setting (an
+    ///     explicit <c>?telemetrie=</c> still wins).
+    /// </param>
+    public async Task InitAsync(string? queryValue, bool nurDieseSitzungAus = false)
     {
+        if (nurDieseSitzungAus && string.IsNullOrWhiteSpace(queryValue))
+        {
+            _enabled = false;
+            return;
+        }
+
         try
         {
             if (!string.IsNullOrWhiteSpace(queryValue))

@@ -1,3 +1,4 @@
+@page "/debug"
 @page "/debug/{PageName}"
 @using Kidz2Learn.Model
 @using Kidz2Learn.Model.Tasks
@@ -10,6 +11,9 @@
    that domain's task chooser onto the values from the rest of the query string instead of the
    normal adaptive pick. The wrapped page's own code is never touched.
 
+   The bar on top picks the task (any skill; the page switches to the skill's domain mix if
+   needed), its level and the mastery it is generated with, so /debug alone is a complete entry.
+
    Example: /debug/SilbenChallenge?task=silben&word=Sonnensystem&skill=read_precise&skipSplash=true *@
 
 @if (_error is not null)
@@ -18,34 +22,54 @@
 }
 else
 {
-    @if (_debugParams.Count > 0)
-    {
-        <div class="k4l-debug-banner">
-            DEBUG page=@PageName @string.Join(" ", _debugParams.Select(kv => $"{kv.Key}={kv.Value}"))
-            @if (SkillLevels is { Count: > 0 } levels)
+    <div class="k4l-debug-banner">
+        <div class="k4l-debug-steuerung">
+            <span>DEBUG @Seite</span>
+            <select @onchange="SetSkill" aria-label="Aufgabe">
+                <option value="" selected="@(_skill is null)">– normal –</option>
+                @foreach (var (bereich, skills) in AuswaehlbareSkills)
+                {
+                    <optgroup label="@bereich">
+                        @foreach (var skill in skills)
+                        {
+                            <option value="@skill.Id" selected="@(skill.Id == _skill)">@skill.DisplayName</option>
+                        }
+                    </optgroup>
+                }
+            </select>
+            @if (_debugParams.Count > 0)
             {
-                @* Level and mastery are picked here; the URL follows so a reload keeps them. *@
-                <div class="k4l-debug-steuerung">
-                    <span>Stufe:</span>
-                    <button class="@(_level is null ? "k4l-debug-aktiv" : "")" @onclick="() => SetLevel(null)">Mix</button>
-                    @foreach (var level in levels)
-                    {
-                        <button class="@(_level == level ? "k4l-debug-aktiv" : "")" @onclick="() => SetLevel(level)">@level</button>
-                    }
-                    <span class="k4l-debug-abstand">Mastery:</span>
-                    <input type="range" min="0" max="@EchtSchritt" step="1" value="@MasterySchritt"
-                           @onchange="SetMastery" aria-label="Mastery"/>
-                    <span class="k4l-debug-wert">@(_masteryProzent is { } p ? $"{p} %" : "echt")</span>
-                </div>
+                <span>@string.Join(" ", _debugParams.Where(kv => kv.Key is not ("task" or "skill" or "level" or "mastery")).Select(kv => $"{kv.Key}={kv.Value}"))</span>
             }
         </div>
-    }
+        @if (SkillLevels is { Count: > 0 } levels)
+        {
+            @* Level and mastery are picked here; the URL follows so a reload keeps them. *@
+            <div class="k4l-debug-steuerung">
+                <span>Stufe:</span>
+                <button class="@(_level is null ? "k4l-debug-aktiv" : "")" @onclick="() => SetLevel(null)">Mix</button>
+                @foreach (var level in levels)
+                {
+                    <button class="@(_level == level ? "k4l-debug-aktiv" : "")" @onclick="() => SetLevel(level)">@level</button>
+                }
+                <span class="k4l-debug-abstand">Mastery:</span>
+                <input type="range" min="0" max="@EchtSchritt" step="1" value="@MasterySchritt"
+                       @onchange="SetMastery" aria-label="Mastery"/>
+                <span class="k4l-debug-wert">@(_masteryProzent is { } p ? $"{p} %" : "echt")</span>
+            </div>
+        }
+    </div>
 
     <DynamicComponent @key="_version" Type="_pageType!" />
 }
 
 @code {
-    [Parameter] public string PageName { get; set; } = "";
+    [Parameter] public string? PageName { get; set; }
+
+    /// <summary>Page shown for a bare <c>/debug</c>.</summary>
+    private const string StandardSeite = "DeutschMix";
+
+    private string Seite => string.IsNullOrWhiteSpace(PageName) ? StandardSeite : PageName;
 
     private Type? _pageType;
     private string? _error;
@@ -54,6 +78,7 @@ else
     /// <summary>Slider steps are 10 % each; the step right of 100 % means the device's real mastery.</summary>
     private const int EchtSchritt = 11;
 
+    private string? _skill;
     private int? _level;
     private int? _masteryProzent;
 
@@ -64,17 +89,28 @@ else
 
     /// <summary>Levels the forced skill offers on a registered view; null without <c>task=skill</c>.</summary>
     private IReadOnlyList<int>? SkillLevels =>
-        _debugParams.GetValueOrDefault("task") == "skill" && _debugParams.GetValueOrDefault("skill") is { } skill
+        _debugParams.GetValueOrDefault("task") == "skill" && _skill is { } skill
             ? TaskRegistry.All.Where(d => d.Skills.Contains(skill) && TaskPresentationRegistry.IsRegistered(d.View))
                 .Select(d => d.DifficultyLevel).Distinct().Order().ToList()
             : null;
 
+    /// <summary>Skills a task on a registered view trains, by domain.</summary>
+    private static readonly IReadOnlyList<(string Bereich, IReadOnlyList<SkillDefinition> Skills)> AuswaehlbareSkills =
+    [
+        .. from domain in new[] { TaskDomain.Reading, TaskDomain.Math }
+            select (domain == TaskDomain.Math ? "Mathe" : "Lesen",
+                (IReadOnlyList<SkillDefinition>)SkillRegistry.ByDomain(domain)
+                    .Where(s => TaskRegistry.All.Any(d => d.Skills.Contains(s.Id) && TaskPresentationRegistry.IsRegistered(d.View)))
+                    .OrderBy(s => s.DisplayName)
+                    .ToList())
+    ];
+
     protected override void OnParametersSet()
     {
-        _pageType = ResolvePageType(PageName);
+        _pageType = ResolvePageType(Seite);
         if (_pageType is null)
         {
-            _error = $"Keine Komponente namens '{PageName}' gefunden.";
+            _error = $"Keine Komponente namens '{Seite}' gefunden.";
             AdaptiveTaskGenerator.DebugOverride = null;
             return;
         }
@@ -83,6 +119,7 @@ else
             .Where(kv => kv.Key != "skipSplash")
             .ToDictionary(kv => kv.Key, kv => kv.Value.ToString(), StringComparer.OrdinalIgnoreCase);
 
+        _skill = query.GetValueOrDefault("skill");
         _level = query.TryGetValue("level", out var level) && int.TryParse(level, out var l) ? l : null;
         _masteryProzent = query.TryGetValue("mastery", out var mastery) && int.TryParse(mastery, out var m)
             ? Math.Clamp(m, 0, 100)
@@ -101,6 +138,41 @@ else
             _debugParams = [];
             AdaptiveTaskGenerator.DebugOverride = null;
         }
+    }
+
+    /// <summary>
+    ///     Forces another skill (level "Mix", mastery "echt") or none. The page stays if it is the
+    ///     skill's domain mix, otherwise it switches there - only those are sure to offer the skill.
+    /// </summary>
+    private void SetSkill(ChangeEventArgs e)
+    {
+        var skill = e.Value?.ToString();
+        _skill = string.IsNullOrEmpty(skill) ? null : skill;
+        _level = null;
+        _masteryProzent = null;
+        foreach (var key in new[] { "task", "skill", "level", "mastery", "word", "options" })
+            _debugParams.Remove(key);
+        if (_skill is not null)
+        {
+            _debugParams["task"] = "skill";
+            _debugParams["skill"] = _skill;
+        }
+
+        var seite = _skill is null
+            ? Seite
+            : SkillRegistry.Get(_skill).Domain == TaskDomain.Math ? "MatheMix" : StandardSeite;
+        AdaptiveTaskGenerator.DebugOverride = _skill is null ? null : TaskDebugOverrideRegistry.Build("skill", _debugParams);
+        _version++;
+
+        var query = QueryHelpers.ParseQuery(Navigation.ToAbsoluteUri(Navigation.Uri).Query)
+            .Where(kv => kv.Key.ToLowerInvariant() is not ("task" or "skill" or "level" or "mastery" or "word" or "options"))
+            .ToDictionary(kv => kv.Key, kv => (string?)kv.Value.ToString());
+        if (_skill is not null)
+        {
+            query["task"] = "skill";
+            query["skill"] = _skill;
+        }
+        Navigation.NavigateTo(QueryHelpers.AddQueryString($"debug/{seite}", query), replace: seite == Seite);
     }
 
     private void SetLevel(int? level)

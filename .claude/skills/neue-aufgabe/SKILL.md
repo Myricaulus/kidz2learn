@@ -72,9 +72,10 @@ Then stop and wait. Don't let corrections of the design happen via code.
   on http://localhost:5171 (start `dotnet run` in the background if nothing listens there; if
   their own instance runs, a build is enough - say "Strg+Shift+R" for JS/CSS changes) and end the
   report with a clickable test link to exactly that task:
-  `http://localhost:5171/debug/<Page>?task=skill&skill=<id>&skipSplash=true&telemetrie=off`.
-  Level (buttons, default "Mix") and mastery (slider, far right = "echt") are picked in the
-  debug bar, not in the URL. Debug answers leave mastery alone, but points and reading-profile
+  `http://localhost:5171/debug/DeutschMix?task=skill&skill=<id>` (`MatheMix` for math skills;
+  no telemetry from /debug). The user can also start from plain `http://localhost:5171/debug`:
+  task (dropdown), level (buttons, default "Mix") and mastery (slider, far right = "echt") are
+  picked in the debug bar. Debug answers leave mastery alone, but points and reading-profile
   observations still count on that device.
 
 ## Docs and memory
